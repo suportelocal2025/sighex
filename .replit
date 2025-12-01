@@ -7,8 +7,8 @@ modules = ["php-8.4", "postgresql-16"]
 channel = "stable-22_11"
 
 [deployment]
-run = ["php", "-S", "0.0.0.0:8000", "-t", "."]
-deploymentTarget = "cloudrun"
+run = ["php", "-S", "0.0.0.0:5000", "index.php"]
+deploymentTarget = "autoscale"
 
 [[ports]]
 localPort = 5000
@@ -17,10 +17,6 @@ externalPort = 80
 [[ports]]
 localPort = 8000
 externalPort = 80
-
-[[ports]]
-localPort = 45593
-externalPort = 3000
 
 [agent]
 expertMode = true

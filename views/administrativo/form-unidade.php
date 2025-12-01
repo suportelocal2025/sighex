@@ -53,23 +53,65 @@
                 </div>
             </div>
             
-            <?php if ($unidade && !empty($modulos ?? [])): ?>
+            <?php if ($unidade): ?>
             <div class="card mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Módulos/Setores</h5>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarModulo()">
-                        <i class="bi bi-plus-lg"></i> Adicionar
-                    </button>
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Módulos / Raios / Setores</h5>
+                        <span class="badge bg-primary" id="contadorModulos"><?= count($modulos ?? []) ?> cadastrado(s)</span>
+                    </div>
                 </div>
                 <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-plus-circle"></i></span>
+                                <input type="text" class="form-control" id="novoModuloNome" 
+                                       placeholder="Digite o nome do módulo, raio ou setor (ex: Raio 1, Módulo A, Portaria)">
+                                <button type="button" class="btn btn-primary" onclick="adicionarModulo()">
+                                    <i class="bi bi-plus-lg me-1"></i> Adicionar
+                                </button>
+                            </div>
+                            <small class="text-muted">Pressione Enter ou clique em Adicionar para incluir</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-lightning me-1"></i> Adicionar Rápido
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="adicionarMultiplos('Raio', 5); return false;">Raios 1 a 5</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="adicionarMultiplos('Raio', 10); return false;">Raios 1 a 10</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="adicionarMultiplos('Módulo', 4); return false;">Módulos A a D</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="adicionarMultiplos('Módulo', 6); return false;">Módulos A a F</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="adicionarSetoresPadrao(); return false;">Setores Padrão</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <?php if (empty($modulos ?? [])): ?>
+                    <div class="alert alert-info mb-0" id="alertaSemModulos">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Nenhum módulo, raio ou setor cadastrado. Adicione usando o campo acima ou o botão "Adicionar Rápido".
+                    </div>
+                    <?php endif; ?>
+                    
                     <div class="row g-2" id="listaModulos">
-                        <?php foreach ($modulos as $m): ?>
-                            <div class="col-md-3" id="modulo-<?= $m['id'] ?>">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" value="<?= htmlspecialchars($m['nome']) ?>" readonly>
-                                    <button type="button" class="btn btn-outline-danger" onclick="removerModulo(<?= $m['id'] ?>)">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                        <?php foreach ($modulos ?? [] as $m): ?>
+                            <div class="col-md-3 col-sm-4" id="modulo-<?= $m['id'] ?>">
+                                <div class="card border">
+                                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                        <span class="fw-medium">
+                                            <i class="bi bi-geo-alt text-primary me-1"></i>
+                                            <?= htmlspecialchars($m['nome']) ?>
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerModulo(<?= $m['id'] ?>, '<?= htmlspecialchars($m['nome'], ENT_QUOTES) ?>')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -85,7 +127,8 @@
                     <div class="row g-2">
                         <?php foreach ($equipes ?? [] as $e): ?>
                             <div class="col-md-3">
-                                <div class="card text-center py-3">
+                                <div class="card text-center py-3 border">
+                                    <i class="bi bi-people-fill text-primary mb-1" style="font-size: 1.5rem;"></i>
                                     <strong><?= htmlspecialchars($e['nome']) ?></strong>
                                 </div>
                             </div>
@@ -109,26 +152,74 @@
 
 <?php if ($unidade): ?>
 <script>
-async function adicionarModulo() {
-    const nome = prompt('Nome do módulo/setor:');
-    if (!nome || !nome.trim()) return;
-    
+let moduloCount = <?= count($modulos ?? []) ?>;
+
+document.getElementById('novoModuloNome').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        adicionarModulo();
+    }
+});
+
+function atualizarContador() {
+    document.getElementById('contadorModulos').textContent = moduloCount + ' cadastrado(s)';
+    const alerta = document.getElementById('alertaSemModulos');
+    if (alerta && moduloCount > 0) {
+        alerta.style.display = 'none';
+    }
+}
+
+async function adicionarModuloAPI(nome) {
     const form = new FormData();
     form.append('unidade_id', <?= $unidade['id'] ?>);
     form.append('nome', nome.trim());
     
     const response = await fetch('/admin/modulos/adicionar', { method: 'POST', body: form });
-    const result = await response.json();
+    return await response.json();
+}
+
+async function adicionarModulo() {
+    const input = document.getElementById('novoModuloNome');
+    const nome = input.value.trim();
+    
+    if (!nome) {
+        input.focus();
+        return;
+    }
+    
+    const result = await adicionarModuloAPI(nome);
     
     if (result.success) {
-        location.reload();
+        const lista = document.getElementById('listaModulos');
+        const div = document.createElement('div');
+        div.className = 'col-md-3 col-sm-4';
+        div.id = 'modulo-' + result.id;
+        div.innerHTML = `
+            <div class="card border">
+                <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                    <span class="fw-medium">
+                        <i class="bi bi-geo-alt text-primary me-1"></i>
+                        ${nome}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerModulo(${result.id}, '${nome.replace(/'/g, "\\'")}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        lista.appendChild(div);
+        
+        input.value = '';
+        input.focus();
+        moduloCount++;
+        atualizarContador();
     } else {
         alert(result.message || 'Erro ao adicionar');
     }
 }
 
-async function removerModulo(id) {
-    if (!confirm('Remover este módulo?')) return;
+async function removerModulo(id, nome) {
+    if (!confirm('Remover o módulo "' + nome + '"?')) return;
     
     const form = new FormData();
     form.append('id', id);
@@ -138,8 +229,89 @@ async function removerModulo(id) {
     
     if (result.success) {
         document.getElementById('modulo-' + id).remove();
+        moduloCount--;
+        atualizarContador();
     } else {
         alert(result.message || 'Erro ao remover');
+    }
+}
+
+async function adicionarMultiplos(tipo, quantidade) {
+    const letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    let adicionados = 0;
+    
+    for (let i = 0; i < quantidade; i++) {
+        let nome;
+        if (tipo === 'Raio') {
+            nome = 'Raio ' + (i + 1);
+        } else {
+            nome = 'Módulo ' + letras[i];
+        }
+        
+        const result = await adicionarModuloAPI(nome);
+        if (result.success) {
+            const lista = document.getElementById('listaModulos');
+            const div = document.createElement('div');
+            div.className = 'col-md-3 col-sm-4';
+            div.id = 'modulo-' + result.id;
+            div.innerHTML = `
+                <div class="card border">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-medium">
+                            <i class="bi bi-geo-alt text-primary me-1"></i>
+                            ${nome}
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerModulo(${result.id}, '${nome}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            lista.appendChild(div);
+            adicionados++;
+            moduloCount++;
+        }
+    }
+    
+    atualizarContador();
+    if (adicionados > 0) {
+        alert(adicionados + ' módulo(s) adicionado(s) com sucesso!');
+    }
+}
+
+async function adicionarSetoresPadrao() {
+    const setores = ['Portaria', 'Administração', 'Enfermaria', 'Cozinha', 'Pátio', 'Oficina'];
+    let adicionados = 0;
+    
+    for (const nome of setores) {
+        const result = await adicionarModuloAPI(nome);
+        if (result.success) {
+            const lista = document.getElementById('listaModulos');
+            const div = document.createElement('div');
+            div.className = 'col-md-3 col-sm-4';
+            div.id = 'modulo-' + result.id;
+            div.innerHTML = `
+                <div class="card border">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-medium">
+                            <i class="bi bi-geo-alt text-primary me-1"></i>
+                            ${nome}
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerModulo(${result.id}, '${nome}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            lista.appendChild(div);
+            adicionados++;
+            moduloCount++;
+        }
+    }
+    
+    atualizarContador();
+    if (adicionados > 0) {
+        alert(adicionados + ' setor(es) adicionado(s) com sucesso!');
     }
 }
 </script>

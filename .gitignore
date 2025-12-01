@@ -1,0 +1,39 @@
+# Composer
+composer.phar
+/vendor/
+composer.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+/cache/*
+!/cache/.gitkeep
+
+# Sessions
+/sessions/*
+!/sessions/.gitkeep
+
+# Logs
+/logs/*
+!/logs/.gitkeep
+
+# Uploads
+/uploads/*
+!/uploads/.gitkeep
+
+# Temporary files
+/tmp/*
+!/tmp/.gitkeep

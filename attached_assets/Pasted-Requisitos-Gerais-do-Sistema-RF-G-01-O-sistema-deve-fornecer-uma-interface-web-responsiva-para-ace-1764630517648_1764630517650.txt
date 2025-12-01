@@ -1,0 +1,245 @@
+Requisitos Gerais do Sistema
+RF-G-01: O sistema deve fornecer uma interface web responsiva para acesso via navegadores de desktop.
+RF-G-02: O sistema deve implementar um mecanismo de autenticação seguro baseado em email e senha.
+RF-G-03: O acesso às funcionalidades deve ser estritamente controlado por papéis (Roles).
+RF-G-04: Todas as operações de criação, edição e exclusão de dados críticos devem ser persistidas.
+RNF-G-01 - Usabilidade:
+A interface deve ser intuitiva, com fluxos de trabalho claros e feedback visual imediato para ações do usuário (ex: toasts de sucesso/erro).
+RNF-G-02 - Performance:
+As telas principais e relatórios devem carregar em menos de 3 segundos em condições normais de rede.
+RNF-G-03 - Segurança:
+As senhas dos usuários devem ser armazenadas de forma segura (hashing). O acesso não autenticado a rotas internas deve ser bloqueado.
+RNF-G-04 - Compatibilidade:
+O sistema deve ser compatível com as versões mais recentes dos navegadores Google Chrome, Mozilla Firefox, Safari e Microsoft Edge.
+
+
+ 3. Papéis de Usuário e Permissões
+Superintendente: 
+
+- Visão global e gestão estratégica
+- Configurar orçamento anual e reserva técnica.
+- Distribuir orçamento entre unidades.
+- Visualizar dashboards com dados de valores repassados em reais, valores utilizados em horas e em reais e relatórios consolidados, no mês, trimestre, semestre e anual. 
+
+Diretor | Gestor da unidade prisional:
+
+- Montar escalas mensais para sua unidade.
+- Alocar servidores em equipes e setores.
+- Definir líderes de equipe e abonos.
+- Enviar escalas para aprovação do RH.
+- Visualizar dashboard de sua unidade.
+RH | Gestor de aprovações e execução:
+
+- Aprovar ou rejeitar escalas enviadas.
+- Marcar escalas como "executadas" e lançar o valor financeiro gasto.
+- Gerar relatórios de horas aprovadas e valores executados. 
+Administrativo | Suporte operacional ao cadastro:
+- Cadastrar e gerenciar unidades.
+- Cadastrar e gerenciar servidores/policiais participantes da escala extraordinária.
+
+4. Modelos de Dados e Armazenamento
+Todos os dados serão persistidos utilizando MYSQL.
+
+
+
+
+
+
+
+
+
+
+ 5. Requisitos por Tela
+ 5.1. Tela de Login
+Propósito: Autenticar usuários no sistema.
+RFs:
+RF-L-01:  Deve haver campos para email e senha.
+RF-L-02: Deve haver um botão "Entrar" para submeter as credenciais.
+RF-L-03: O sistema deve validar as credenciais contra a base de dados de usuários.
+RF-L-04: Em caso de sucesso, o usuário deve ser redirecionado para seu respectivo dashboard.
+RF-L-05: Em caso de falha, uma mensagem de erro clara deve ser exibida.
+RNFs:
+RNF-L-01 (Segurança): A comunicação durante o login deve ser segura (HTTPS em produção).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 5.2. Dashboard do Superintendente (`/`)
+ 5.2.1. Visão Geral 
+
+Propósito:  Fornecer uma visão macro do status do orçamento e das operações.
+RFs:
+RF-S-OV-01: Exibir cards com estatísticas chave: Orçamento Total, Reserva Técnica, Orçamento Disponível, Valores Repassados, Valores Gastos e Total de Unidades.
+RF-S-OV-02: Apresentar um gráfico de barras comparando "Gasto (R$)" e "Horas Executadas (H)" por unidade.
+RF-S-OV-03: Apresentar um gráfico de pizza mostrando a proporção de gastos entre as unidades.
+RF-S-OV-04: Exibir uma tabela com o status detalhado de cada unidade (Total Repassado, Gasto Total, (Em Horas e em Reais) , Saldo Disponivel.
+RF-S-OV-05: Permitir filtrar os dados de gastos por "Mês", "Trimestre" e "Ano".
+RNFs:
+
+RNF-S-OV-01 (Performance): Os gráficos e dados devem ser renderizados rapidamente, mesmo com um grande número de unidades.
+5.2.2. Orçamento 
+
+Propósito: Configurar o orçamento global.
+
+RFs:
+ RF-S-B-01: Permitir a inserção do "Valor Total Anual".
+ RF-S-B-02: Permitir a definição do "Percentual de Reserva Técnica" (0-100%).
+ RF-S-B-03: Calcular e exibir o "Valor disponível para distribuição".
+ RF-S-B-04: Salvar as configurações de orçamento e notificar o usuário com um toast.
+
+5.2.4. Distribuição
+Propósito:  Alocar o orçamento disponível entre as unidades.
+RFs:
+RF-S-D-01: Listar todas as unidades cadastradas com um campo para inserção do valor a ser distribuído.
+
+RF-S-D-02: Exibir o total já distribuído e o saldo restante do orçamento disponível.
+
+RF-S-D-03: Validar que o total distribuído não exceda o valor disponível.
+ RF-S-D-04: Salvar a distribuição de orçamento, salvar log com data e hora da distribuição,  data e hora de Adição ou Mudança no valor distribuído.
+
+5.2.5. Relatórios 
+Propósito:  Gerar relatórios consolidados. (Funcionalidade futura)
+RFs:
+RF-S-R-01: Fornecer opções para gerar relatórios de "Gastos por Unidade", "Análise Trimestral", etc.
+
+RF-S-R-02: Permitir a exportação dos relatórios em formatos PDF e Excel.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5.3. Dashboard do Gestor (Diretor) (`/`)
+5.3.1. Visão Geral
+Propósito:  Fornecer ao gestor uma visão rápida do orçamento e horas de sua unidade.
+RFs:
+RF-D-OV-01: Exibir cards com estatísticas da unidade: Orçamento Anual, Total Gasto, Disponível e Total de Horas Aprovadas.
+  RF-D-OV-02: Exibir alerta visual se o uso do orçamento ultrapassar 80%.
+ RF-D-OV-03: Apresentar gráfico de barras com "Valor Gasto" e "Saldo Disponível" mês a mês.
+ 5.3.2. Escala Mensal 
+Propósito:  Montar a escala de serviço extra para os servidores da unidade.
+RFs:
+
+RF-D-MS-01: Interface de calendário/tabela para alocar servidores em dias específicos.
+
+RF-D-MS-02: A escala deve ser organizada por Módulo/Setor e por Equipe.
+RF-D-MS-03: Permitir adicionar/remover servidores de uma equipe em um determinado setor.
+RF-D-MS-04: Lidar com conflitos de alocação (servidor já escalado em outra equipe/setor no mesmo mês).
+RF-D-MS-05: Permitir a designação de um "Líder de Equipe" e a atribuição de horas de abono.
+
+RF-D-MS-06: Calcular e exibir o total de horas por servidor em tempo real.
+RF-D-MS-07: Salvar o progresso da montagem da escala.
+RF-D-MS-08: Gerar um PDF da escala montada para impressão e controle local.
+
+5.3.3. Enviar Escala
+Propósito:  Consolidar e submeter a escala montada para aprovação do RH.
+RFs:
+RF-D-ES-01: Exibir um resumo das horas totais por equipe e por módulo.
+
+RF-D-ES-02: Exibir o total de horas do mês.
+RF-D-ES-03: Botão "Enviar para Aprovação do RH", que cria uma submissão com status "pendente".
+RF-D-ES-04: Exibir o status da submissão atual (Pendente, Aprovada, Rejeitada, Executada).
+
+RF-D-ES-05: Se rejeitada, exibir o motivo fornecido pelo RH.
+RF-D-ES-06: Bloquear o envio se uma escala para o mesmo mês já estiver com status "pendente" ou "aprovada".
+
+5.3.4. Servidores 
+
+Propósito: Visualizar os servidores lotados na unidade.
+RFs:
+RF-D-S-01: Listar todos os servidores associados à unidade do diretor logado, exibindo nome e matrícula.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5.4. Dashboard do RH (`/`)
+5.4.1. Escalas
+Propósito:  Gerenciar o ciclo de vida das escalas submetidas pelas unidades.
+
+RFs:
+RF-RH-S-01: Listar todas as submissões de escala, exibindo Unidade, Mês, Total de Horas, Data de Envio e Status.
+
+RF-RH-S-02: Permitir filtrar as escalas por status: Pendentes, Aprovadas, Executadas, Rejeitadas.
+RF-RH-S-03: Botão "Aprovar": muda o status da submissão para "aprovada" e cria registros individuais de horas para cada servidor envolvido.
+RF-RH-S-04: Botão "Rejeitar": abre um diálogo para inserir um motivo obrigatório e muda o status para "rejeitada".
+RF-RH-S-05: Botão "Marcar como Executada" (para escalas aprovadas): abre um diálogo para inserir o custo financeiro total e muda o status para "executada".
+RF-RH-S-06: Botão "Detalhar": abre um modal com a visualização completa da escala (servidores, equipes, horas).
+
+5.4.3. Relatórios 
+Propósito:  Gerar relatórios operacionais e financeiros.
+RFs:
+
+RF-RH-R-01: Gerar "Relatório de Escala Aprovada", totalizando horas por servidor e por unidade, com filtros por mês e unidade.
+RF-RH-R-02: Gerar "Relatório de Escala Executada", totalizando valores gastos (R$) por unidade, com filtro por mês.
+RF-RH-R-03: Para o relatório de horas, fornecer opções de exportação para PDF, CSV e Excel (.xls com formatação profissional).
+
+
+
+
+
+
+
+5.5 Dashboard Administrativo (`/admin`)
+Propósito:  Dar suporte ao cadastro de UNIDADES PRISIONAIS e de SERVIDORES/POLICIAIS PENAIS  no sistema.
+RFs:
+Deve conter a funcionalidade da tela de "Gestão de Unidades" .
+
+5.5.1. Unidades 
+Propósito: Gerenciar as unidades prisionais e seus responsáveis.
+RFs:
+RF-S-U-01: Listar todas as unidades cadastradas com seus detalhes (Nome, Responsável, Local, Equipes, Módulos).
+RF-S-U-02: Formulário para cadastrar nova unidade e o usuário do diretor responsável (com email e senha).
+
+RF-S-U-03: Ao criar uma unidade, gerar 4 equipes padrão (A, B, C, D) para ela.
+
+RF-S-U-04: Permitir a adição e remoção de Módulos/Setores para uma unidade.
+RF-S-U-05: Permitir a edição e exclusão de unidades existentes e seus usuários associados.
+
+RF-S-U-06: Botão para importação de dados  LISTA DE UNIDAES via CSV.
+
+5.5.2 Servidores/Policiais Penais
+Propósito: Gerenciar, cadastrar, editar os servidores/policiais penais que participam da escala extra ordinária em suas respectivas unidades de lotação.
+RFs:
+RF-S-V-01: Listar Servidores com seus detalhes (Nome, Matricula, Lotação, Se ativo na escala extra SIM/NÃO).
+Formulário para cadastrar novo SERVIDOR/POLICIAL PENAL (com CAMPO PARA, NOME, MATRICULA, LOTAÇÃO, SE ATIVO NA EXTRA).

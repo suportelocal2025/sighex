@@ -119,6 +119,14 @@ php -S 0.0.0.0:5000 index.php
 - [x] Gestão de servidores
 - [x] Importação via CSV
 - [x] Relatórios com exportação
+- [x] Imprimir P/Mural - Página otimizada para impressão da escala
+
+## Visual e Interface
+
+- Cards do Dashboard compactos e uniformes
+- Gráficos alinhados e responsivos
+- Calendário com cores: sábados (amarelo), domingos (laranja), feriados (vermelho)
+- Tela de impressão P/Mural com layout organizado por Módulo/Equipe
 
 ## Fluxo de Montagem de Escala (Diretor)
 

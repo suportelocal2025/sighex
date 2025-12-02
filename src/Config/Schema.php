@@ -135,6 +135,17 @@ class Schema {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
+        -- Vínculo de servidores com equipes na escala
+        CREATE TABLE IF NOT EXISTS escala_equipe_servidores (
+            id SERIAL PRIMARY KEY,
+            escala_id INTEGER NOT NULL REFERENCES escalas(id) ON DELETE CASCADE,
+            equipe_id INTEGER NOT NULL REFERENCES equipes(id) ON DELETE CASCADE,
+            servidor_id INTEGER NOT NULL REFERENCES servidores(id) ON DELETE CASCADE,
+            is_lider BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(escala_id, servidor_id)
+        );
+        
         -- Adicionar FK de usuario para unidade
         ALTER TABLE usuarios ADD CONSTRAINT fk_usuario_unidade 
             FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE SET NULL;

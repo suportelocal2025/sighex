@@ -442,4 +442,158 @@ class DiretorController {
         Session::flash('success', 'Escala reaberta para edição. Faça as correções e envie novamente.');
         View::redirect('/diretor/escala-mensal?mes=' . $mes . '&ano=' . $ano);
     }
+    
+    public function listarServidoresDisponiveis(): void {
+        $unidadeId = Session::getUserUnidadeId();
+        $escalaId = (int)($_GET['escala_id'] ?? 0);
+        $equipeId = (int)($_GET['equipe_id'] ?? 0);
+        
+        $servidores = $this->db->fetchAll(
+            "SELECT s.*, 
+                    ees.equipe_id as equipe_atual_id,
+                    e.nome as equipe_atual
+             FROM servidores s
+             LEFT JOIN escala_equipe_servidores ees ON ees.servidor_id = s.id AND ees.escala_id = :eid
+             LEFT JOIN equipes e ON e.id = ees.equipe_id
+             WHERE s.unidade_id = :uid AND s.ativo_extra = true
+             ORDER BY s.nome",
+            ['uid' => $unidadeId, 'eid' => $escalaId]
+        );
+        
+        View::json(['success' => true, 'servidores' => $servidores]);
+    }
+    
+    public function adicionarServidorEquipe(): void {
+        $unidadeId = Session::getUserUnidadeId();
+        $escalaId = (int)($_POST['escala_id'] ?? 0);
+        $equipeId = (int)($_POST['equipe_id'] ?? 0);
+        $servidorIds = $_POST['servidor_ids'] ?? [];
+        
+        if (!is_array($servidorIds)) {
+            $servidorIds = [$servidorIds];
+        }
+        
+        $escala = $this->db->fetch("SELECT * FROM escalas WHERE id = :id AND unidade_id = :uid", 
+            ['id' => $escalaId, 'uid' => $unidadeId]);
+        
+        if (!$escala || !in_array($escala['status'], ['rascunho', 'rejeitada'])) {
+            View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
+            return;
+        }
+        
+        $adicionados = 0;
+        $conflitos = [];
+        
+        foreach ($servidorIds as $servidorId) {
+            $servidorId = (int)$servidorId;
+            
+            $jaVinculado = $this->db->fetch(
+                "SELECT ees.*, e.nome as equipe_nome 
+                 FROM escala_equipe_servidores ees
+                 JOIN equipes e ON e.id = ees.equipe_id
+                 WHERE ees.escala_id = :eid AND ees.servidor_id = :sid",
+                ['eid' => $escalaId, 'sid' => $servidorId]
+            );
+            
+            if ($jaVinculado) {
+                if ($jaVinculado['equipe_id'] != $equipeId) {
+                    $servidor = $this->db->fetch("SELECT nome FROM servidores WHERE id = :id", ['id' => $servidorId]);
+                    $conflitos[] = [
+                        'servidor' => $servidor['nome'],
+                        'equipe_atual' => $jaVinculado['equipe_nome']
+                    ];
+                }
+                continue;
+            }
+            
+            $this->db->query(
+                "INSERT INTO escala_equipe_servidores (escala_id, equipe_id, servidor_id) VALUES (:eid, :eqid, :sid)",
+                ['eid' => $escalaId, 'eqid' => $equipeId, 'sid' => $servidorId]
+            );
+            $adicionados++;
+        }
+        
+        if (count($conflitos) > 0) {
+            View::json([
+                'success' => $adicionados > 0,
+                'message' => "$adicionados servidor(es) adicionado(s). " . count($conflitos) . " já vinculado(s) a outras equipes.",
+                'conflitos' => $conflitos
+            ]);
+        } else {
+            View::json(['success' => true, 'message' => "$adicionados servidor(es) adicionado(s) à equipe"]);
+        }
+    }
+    
+    public function removerServidorEquipe(): void {
+        $unidadeId = Session::getUserUnidadeId();
+        $escalaId = (int)($_POST['escala_id'] ?? 0);
+        $servidorId = (int)($_POST['servidor_id'] ?? 0);
+        
+        $escala = $this->db->fetch("SELECT * FROM escalas WHERE id = :id AND unidade_id = :uid", 
+            ['id' => $escalaId, 'uid' => $unidadeId]);
+        
+        if (!$escala || !in_array($escala['status'], ['rascunho', 'rejeitada'])) {
+            View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
+            return;
+        }
+        
+        $this->db->query(
+            "DELETE FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid",
+            ['eid' => $escalaId, 'sid' => $servidorId]
+        );
+        
+        $this->db->query(
+            "DELETE FROM escala_equipe_servidores WHERE escala_id = :eid AND servidor_id = :sid",
+            ['eid' => $escalaId, 'sid' => $servidorId]
+        );
+        
+        View::json(['success' => true, 'message' => 'Servidor removido da equipe']);
+    }
+    
+    public function listarServidoresEquipe(): void {
+        $unidadeId = Session::getUserUnidadeId();
+        $escalaId = (int)($_GET['escala_id'] ?? 0);
+        $equipeId = (int)($_GET['equipe_id'] ?? 0);
+        
+        $servidores = $this->db->fetchAll(
+            "SELECT s.*, ees.is_lider,
+                    COALESCE(SUM(a.horas + a.horas_abono), 0) as total_horas
+             FROM escala_equipe_servidores ees
+             JOIN servidores s ON s.id = ees.servidor_id
+             LEFT JOIN alocacoes a ON a.escala_id = ees.escala_id AND a.servidor_id = ees.servidor_id
+             WHERE ees.escala_id = :eid AND ees.equipe_id = :eqid
+             GROUP BY s.id, ees.is_lider
+             ORDER BY s.nome",
+            ['eid' => $escalaId, 'eqid' => $equipeId]
+        );
+        
+        View::json(['success' => true, 'servidores' => $servidores]);
+    }
+    
+    public function atualizarLiderEquipe(): void {
+        $escalaId = (int)($_POST['escala_id'] ?? 0);
+        $servidorId = (int)($_POST['servidor_id'] ?? 0);
+        $isLider = (bool)($_POST['is_lider'] ?? false);
+        
+        $unidadeId = Session::getUserUnidadeId();
+        $escala = $this->db->fetch("SELECT * FROM escalas WHERE id = :id AND unidade_id = :uid", 
+            ['id' => $escalaId, 'uid' => $unidadeId]);
+        
+        if (!$escala || !in_array($escala['status'], ['rascunho', 'rejeitada'])) {
+            View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
+            return;
+        }
+        
+        $this->db->query(
+            "UPDATE escala_equipe_servidores SET is_lider = :lider WHERE escala_id = :eid AND servidor_id = :sid",
+            ['lider' => $isLider ? 't' : 'f', 'eid' => $escalaId, 'sid' => $servidorId]
+        );
+        
+        $this->db->query(
+            "UPDATE alocacoes SET is_lider = :lider WHERE escala_id = :eid AND servidor_id = :sid",
+            ['lider' => $isLider ? 't' : 'f', 'eid' => $escalaId, 'sid' => $servidorId]
+        );
+        
+        View::json(['success' => true]);
+    }
 }

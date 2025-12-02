@@ -67,6 +67,11 @@ $router->get('/diretor/enviar-escala', [DiretorController::class, 'enviarEscala'
 $router->post('/diretor/escala/confirmar-envio', [DiretorController::class, 'confirmarEnvioEscala'], [Middleware::diretor()]);
 $router->get('/diretor/servidores', [DiretorController::class, 'servidores'], [Middleware::diretor()]);
 $router->get('/diretor/escala/reabrir', [DiretorController::class, 'reabrirEscala'], [Middleware::diretor()]);
+$router->get('/diretor/escala/servidores-disponiveis', [DiretorController::class, 'listarServidoresDisponiveis'], [Middleware::diretor()]);
+$router->post('/diretor/escala/adicionar-servidor-equipe', [DiretorController::class, 'adicionarServidorEquipe'], [Middleware::diretor()]);
+$router->post('/diretor/escala/remover-servidor-equipe', [DiretorController::class, 'removerServidorEquipe'], [Middleware::diretor()]);
+$router->get('/diretor/escala/servidores-equipe', [DiretorController::class, 'listarServidoresEquipe'], [Middleware::diretor()]);
+$router->post('/diretor/escala/atualizar-lider', [DiretorController::class, 'atualizarLiderEquipe'], [Middleware::diretor()]);
 
 $router->get('/rh/escalas', [RhController::class, 'escalas'], [Middleware::rh()]);
 $router->get('/rh/escalas/{id}', [RhController::class, 'detalharEscala'], [Middleware::rh()]);

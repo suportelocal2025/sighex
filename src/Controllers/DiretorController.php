@@ -234,7 +234,7 @@ class DiretorController {
                     [
                         'eid' => $escalaId, 'sid' => $servidorId, 'eqid' => $equipeId,
                         'mid' => $moduloId, 'dia' => $dia, 'horas' => $horas,
-                        'habono' => $horasAbono, 'lider' => $isLider
+                        'habono' => $horasAbono, 'lider' => $isLider ? 't' : 'f'
                     ]
                 );
             }

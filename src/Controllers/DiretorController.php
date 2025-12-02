@@ -12,6 +12,32 @@ class DiretorController {
         $this->db = Database::getInstance();
     }
     
+    private function getFeriados(int $ano): array {
+        $feriados = [
+            "$ano-01-01" => "Confraternização Universal",
+            "$ano-04-21" => "Tiradentes",
+            "$ano-05-01" => "Dia do Trabalho",
+            "$ano-09-07" => "Independência do Brasil",
+            "$ano-10-12" => "Nossa Senhora Aparecida",
+            "$ano-11-02" => "Finados",
+            "$ano-11-15" => "Proclamação da República",
+            "$ano-12-25" => "Natal",
+        ];
+        
+        $pascoa = easter_date($ano);
+        $carnaval = date('Y-m-d', strtotime('-47 days', $pascoa));
+        $carnaval2 = date('Y-m-d', strtotime('-46 days', $pascoa));
+        $sextaSanta = date('Y-m-d', strtotime('-2 days', $pascoa));
+        $corpusChristi = date('Y-m-d', strtotime('+60 days', $pascoa));
+        
+        $feriados[$carnaval] = "Carnaval";
+        $feriados[$carnaval2] = "Carnaval";
+        $feriados[$sextaSanta] = "Sexta-Feira Santa";
+        $feriados[$corpusChristi] = "Corpus Christi";
+        
+        return $feriados;
+    }
+    
     public function escalaMensal(): void {
         $unidadeId = Session::getUserUnidadeId();
         $mes = (int)($_GET['mes'] ?? date('n'));
@@ -60,23 +86,53 @@ class DiretorController {
             "SELECT a.*, s.nome as servidor_nome, s.matricula 
              FROM alocacoes a 
              JOIN servidores s ON a.servidor_id = s.id
-             WHERE a.escala_id = :eid",
+             WHERE a.escala_id = :eid
+             ORDER BY a.dia, s.nome",
             ['eid' => $escala['id']]
         );
         
+        $horasPorServidor = $this->db->fetchAll(
+            "SELECT servidor_id, SUM(horas + horas_abono) as total_horas 
+             FROM alocacoes WHERE escala_id = :eid GROUP BY servidor_id",
+            ['eid' => $escala['id']]
+        );
+        $horasMap = [];
+        foreach ($horasPorServidor as $h) {
+            $horasMap[$h['servidor_id']] = (float)$h['total_horas'];
+        }
+        
         $diasNoMes = cal_days_in_month(CAL_GREGORIAN, $mes, $ano);
+        $feriados = $this->getFeriados($ano);
+        
+        $diasInfo = [];
+        for ($d = 1; $d <= $diasNoMes; $d++) {
+            $data = sprintf('%04d-%02d-%02d', $ano, $mes, $d);
+            $diaSemana = date('w', strtotime($data));
+            $diasInfo[$d] = [
+                'data' => $data,
+                'diaSemana' => $diaSemana,
+                'nomeDia' => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][$diaSemana],
+                'isFimDeSemana' => in_array($diaSemana, [0, 6]),
+                'isFeriado' => isset($feriados[$data]),
+                'nomeFeriado' => $feriados[$data] ?? null
+            ];
+        }
         
         View::layout('main', 'diretor/escala-mensal', [
-            'titulo' => 'Escala Mensal',
+            'titulo' => 'Escala Mensal - ' . $unidade['nome'],
             'unidade' => $unidade,
             'escala' => $escala,
             'equipes' => $equipes,
             'modulos' => $modulos,
             'servidores' => $servidores,
             'alocacoes' => $alocacoes,
+            'horasMap' => $horasMap,
             'mes' => $mes,
             'ano' => $ano,
-            'diasNoMes' => $diasNoMes
+            'diasNoMes' => $diasNoMes,
+            'diasInfo' => $diasInfo,
+            'feriados' => $feriados,
+            'limiteHoras' => 60
         ]);
     }
     
@@ -85,10 +141,16 @@ class DiretorController {
         $servidorId = (int)($_POST['servidor_id'] ?? 0);
         $equipeId = (int)($_POST['equipe_id'] ?? 0);
         $moduloId = (int)($_POST['modulo_id'] ?? 0);
-        $dia = (int)($_POST['dia'] ?? 0);
-        $horas = (float)($_POST['horas'] ?? 0);
+        $dias = $_POST['dias'] ?? [];
+        $horas = (float)($_POST['horas'] ?? 12);
         $horasAbono = (float)($_POST['horas_abono'] ?? 0);
         $isLider = isset($_POST['is_lider']) && $_POST['is_lider'] == '1';
+        $forcarMover = isset($_POST['forcar_mover']) && $_POST['forcar_mover'] == '1';
+        
+        if (is_string($dias)) {
+            $dias = explode(',', $dias);
+        }
+        $dias = array_filter(array_map('intval', $dias));
         
         $escala = $this->db->fetch("SELECT * FROM escalas WHERE id = :id", ['id' => $escalaId]);
         if (!$escala || $escala['status'] != 'rascunho') {
@@ -96,28 +158,127 @@ class DiretorController {
             return;
         }
         
-        $existing = $this->db->fetch(
-            "SELECT id FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid AND dia = :dia",
-            ['eid' => $escalaId, 'sid' => $servidorId, 'dia' => $dia]
-        );
+        $horasAtuais = $this->db->fetch(
+            "SELECT COALESCE(SUM(horas + horas_abono), 0) as total FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid",
+            ['eid' => $escalaId, 'sid' => $servidorId]
+        )['total'];
         
-        if ($existing) {
-            $this->db->update('alocacoes', [
-                'equipe_id' => $equipeId,
-                'modulo_id' => $moduloId,
-                'horas' => $horas,
-                'horas_abono' => $horasAbono,
-                'is_lider' => $isLider
-            ], 'id = :id', ['id' => $existing['id']]);
-        } else {
+        $horasNovas = count($dias) * ($horas + $horasAbono);
+        $totalProjetado = $horasAtuais + $horasNovas;
+        
+        if ($totalProjetado > 60) {
+            View::json([
+                'success' => false, 
+                'message' => "Limite de 60 horas excedido! O servidor já possui {$horasAtuais}h alocadas. Máximo disponível: " . (60 - $horasAtuais) . "h"
+            ]);
+            return;
+        }
+        
+        $conflitos = [];
+        foreach ($dias as $dia) {
+            $existing = $this->db->fetch(
+                "SELECT a.*, eq.nome as equipe_nome, m.nome as modulo_nome 
+                 FROM alocacoes a 
+                 LEFT JOIN equipes eq ON a.equipe_id = eq.id
+                 LEFT JOIN modulos m ON a.modulo_id = m.id
+                 WHERE a.escala_id = :eid AND a.servidor_id = :sid AND a.dia = :dia",
+                ['eid' => $escalaId, 'sid' => $servidorId, 'dia' => $dia]
+            );
+            
+            if ($existing) {
+                if ($existing['equipe_id'] != $equipeId || $existing['modulo_id'] != $moduloId) {
+                    $conflitos[] = [
+                        'dia' => $dia,
+                        'alocacao_id' => $existing['id'],
+                        'equipe_atual' => $existing['equipe_nome'],
+                        'modulo_atual' => $existing['modulo_nome']
+                    ];
+                }
+            }
+        }
+        
+        if (!empty($conflitos) && !$forcarMover) {
+            View::json([
+                'success' => false,
+                'conflito' => true,
+                'conflitos' => $conflitos,
+                'message' => 'Servidor já alocado em outro local para alguns dias'
+            ]);
+            return;
+        }
+        
+        foreach ($dias as $dia) {
+            $existing = $this->db->fetch(
+                "SELECT id FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid AND dia = :dia",
+                ['eid' => $escalaId, 'sid' => $servidorId, 'dia' => $dia]
+            );
+            
+            if ($existing) {
+                $this->db->update('alocacoes', [
+                    'equipe_id' => $equipeId,
+                    'modulo_id' => $moduloId,
+                    'horas' => $horas,
+                    'horas_abono' => $horasAbono,
+                    'is_lider' => $isLider
+                ], 'id = :id', ['id' => $existing['id']]);
+            } else {
+                $this->db->query(
+                    "INSERT INTO alocacoes (escala_id, servidor_id, equipe_id, modulo_id, dia, horas, horas_abono, is_lider) 
+                     VALUES (:eid, :sid, :eqid, :mid, :dia, :horas, :habono, :lider)",
+                    [
+                        'eid' => $escalaId, 'sid' => $servidorId, 'eqid' => $equipeId,
+                        'mid' => $moduloId, 'dia' => $dia, 'horas' => $horas,
+                        'habono' => $horasAbono, 'lider' => $isLider
+                    ]
+                );
+            }
+        }
+        
+        $totalHoras = $this->db->fetch(
+            "SELECT COALESCE(SUM(horas + horas_abono), 0) as total FROM alocacoes WHERE escala_id = :eid",
+            ['eid' => $escalaId]
+        )['total'];
+        
+        $this->db->update('escalas', ['total_horas' => $totalHoras], 'id = :id', ['id' => $escalaId]);
+        
+        $horasServidor = $this->db->fetch(
+            "SELECT COALESCE(SUM(horas + horas_abono), 0) as total FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid",
+            ['eid' => $escalaId, 'sid' => $servidorId]
+        )['total'];
+        
+        View::json(['success' => true, 'total_horas' => $totalHoras, 'horas_servidor' => $horasServidor]);
+    }
+    
+    public function removerAlocacao(): void {
+        $alocacaoId = (int)($_POST['id'] ?? 0);
+        $servidorId = (int)($_POST['servidor_id'] ?? 0);
+        $escalaId = (int)($_POST['escala_id'] ?? 0);
+        $dia = (int)($_POST['dia'] ?? 0);
+        
+        if ($alocacaoId > 0) {
+            $alocacao = $this->db->fetch(
+                "SELECT a.*, e.status FROM alocacoes a JOIN escalas e ON a.escala_id = e.id WHERE a.id = :id",
+                ['id' => $alocacaoId]
+            );
+            
+            if (!$alocacao || $alocacao['status'] != 'rascunho') {
+                View::json(['success' => false, 'message' => 'Alocação não pode ser removida']);
+                return;
+            }
+            
+            $this->db->delete('alocacoes', 'id = :id', ['id' => $alocacaoId]);
+            $escalaId = $alocacao['escala_id'];
+            $servidorId = $alocacao['servidor_id'];
+        } elseif ($servidorId > 0 && $escalaId > 0 && $dia > 0) {
+            $escala = $this->db->fetch("SELECT status FROM escalas WHERE id = :id", ['id' => $escalaId]);
+            if (!$escala || $escala['status'] != 'rascunho') {
+                View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
+                return;
+            }
+            
             $this->db->query(
-                "INSERT INTO alocacoes (escala_id, servidor_id, equipe_id, modulo_id, dia, horas, horas_abono, is_lider) 
-                 VALUES (:eid, :sid, :eqid, :mid, :dia, :horas, :habono, :lider)",
-                [
-                    'eid' => $escalaId, 'sid' => $servidorId, 'eqid' => $equipeId,
-                    'mid' => $moduloId, 'dia' => $dia, 'horas' => $horas,
-                    'habono' => $horasAbono, 'lider' => $isLider
-                ]
+                "DELETE FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid AND dia = :dia",
+                ['eid' => $escalaId, 'sid' => $servidorId, 'dia' => $dia]
             );
         }
         
@@ -128,32 +289,42 @@ class DiretorController {
         
         $this->db->update('escalas', ['total_horas' => $totalHoras], 'id = :id', ['id' => $escalaId]);
         
-        View::json(['success' => true, 'total_horas' => $totalHoras]);
-    }
-    
-    public function removerAlocacao(): void {
-        $alocacaoId = (int)($_POST['id'] ?? 0);
-        
-        $alocacao = $this->db->fetch(
-            "SELECT a.*, e.status FROM alocacoes a JOIN escalas e ON a.escala_id = e.id WHERE a.id = :id",
-            ['id' => $alocacaoId]
-        );
-        
-        if (!$alocacao || $alocacao['status'] != 'rascunho') {
-            View::json(['success' => false, 'message' => 'Alocação não pode ser removida']);
-            return;
+        $horasServidor = 0;
+        if ($servidorId > 0) {
+            $horasServidor = $this->db->fetch(
+                "SELECT COALESCE(SUM(horas + horas_abono), 0) as total FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid",
+                ['eid' => $escalaId, 'sid' => $servidorId]
+            )['total'];
         }
         
-        $this->db->delete('alocacoes', 'id = :id', ['id' => $alocacaoId]);
+        View::json(['success' => true, 'total_horas' => $totalHoras, 'horas_servidor' => $horasServidor]);
+    }
+    
+    public function verificarAlocacao(): void {
+        $escalaId = (int)($_GET['escala_id'] ?? 0);
+        $servidorId = (int)($_GET['servidor_id'] ?? 0);
+        
+        $alocacoes = $this->db->fetchAll(
+            "SELECT a.*, eq.nome as equipe_nome, m.nome as modulo_nome 
+             FROM alocacoes a 
+             LEFT JOIN equipes eq ON a.equipe_id = eq.id
+             LEFT JOIN modulos m ON a.modulo_id = m.id
+             WHERE a.escala_id = :eid AND a.servidor_id = :sid
+             ORDER BY a.dia",
+            ['eid' => $escalaId, 'sid' => $servidorId]
+        );
         
         $totalHoras = $this->db->fetch(
-            "SELECT COALESCE(SUM(horas + horas_abono), 0) as total FROM alocacoes WHERE escala_id = :eid",
-            ['eid' => $alocacao['escala_id']]
+            "SELECT COALESCE(SUM(horas + horas_abono), 0) as total FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid",
+            ['eid' => $escalaId, 'sid' => $servidorId]
         )['total'];
         
-        $this->db->update('escalas', ['total_horas' => $totalHoras], 'id = :id', ['id' => $alocacao['escala_id']]);
-        
-        View::json(['success' => true, 'total_horas' => $totalHoras]);
+        View::json([
+            'success' => true,
+            'alocacoes' => $alocacoes,
+            'total_horas' => $totalHoras,
+            'disponivel' => 60 - $totalHoras
+        ]);
     }
     
     public function enviarEscala(): void {

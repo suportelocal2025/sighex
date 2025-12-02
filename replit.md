@@ -60,6 +60,7 @@ Sistema web em PHP para gestão de escalas de servidores em unidades prisionais,
 | Papel           | Email                     | Senha     |
 |-----------------|---------------------------|-----------|
 | Superintendente | super@sistema.gov.br      | admin123  |
+| Diretor         | diretor@sistema.gov.br    | admin123  |
 | RH              | rh@sistema.gov.br         | admin123  |
 | Administrativo  | admin@sistema.gov.br      | admin123  |
 
@@ -102,12 +103,17 @@ php -S 0.0.0.0:5000 index.php
 - [x] Configuração de orçamento
 - [x] Distribuição de orçamento
 - [x] Dashboard do Diretor
-- [x] Montagem de escala mensal
+- [x] Montagem de escala mensal com calendário interativo
+  - Visualização de todos os dias do mês (1-30/31)
+  - Cores diferenciadas para sábados (amarelo), domingos (vermelho) e feriados (verde)
+  - Limite de 60 horas por servidor
+  - Detecção de conflito quando servidor já está alocado
+  - Opção de mover servidor para novo local
 - [x] Envio de escala para aprovação
 - [x] Dashboard do RH
 - [x] Aprovação/Rejeição de escalas
 - [x] Marcar escala como executada
-- [x] Gestão de unidades
+- [x] Gestão de unidades com módulos/raios/setores
 - [x] Gestão de servidores
 - [x] Importação via CSV
 - [x] Relatórios com exportação

@@ -62,6 +62,7 @@ $router->get('/superintendente/relatorios', [SuperintendenteController::class, '
 $router->get('/diretor/escala-mensal', [DiretorController::class, 'escalaMensal'], [Middleware::diretor()]);
 $router->post('/diretor/escala/salvar-alocacao', [DiretorController::class, 'salvarAlocacao'], [Middleware::diretor()]);
 $router->post('/diretor/escala/remover-alocacao', [DiretorController::class, 'removerAlocacao'], [Middleware::diretor()]);
+$router->get('/diretor/escala/verificar-alocacao', [DiretorController::class, 'verificarAlocacao'], [Middleware::diretor()]);
 $router->get('/diretor/enviar-escala', [DiretorController::class, 'enviarEscala'], [Middleware::diretor()]);
 $router->post('/diretor/escala/confirmar-envio', [DiretorController::class, 'confirmarEnvioEscala'], [Middleware::diretor()]);
 $router->get('/diretor/servidores', [DiretorController::class, 'servidores'], [Middleware::diretor()]);

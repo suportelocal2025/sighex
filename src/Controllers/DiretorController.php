@@ -444,23 +444,32 @@ class DiretorController {
     }
     
     public function listarServidoresDisponiveis(): void {
-        $unidadeId = Session::getUserUnidadeId();
-        $escalaId = (int)($_GET['escala_id'] ?? 0);
-        $equipeId = (int)($_GET['equipe_id'] ?? 0);
-        
-        $servidores = $this->db->fetchAll(
-            "SELECT s.*, 
-                    ees.equipe_id as equipe_atual_id,
-                    e.nome as equipe_atual
-             FROM servidores s
-             LEFT JOIN escala_equipe_servidores ees ON ees.servidor_id = s.id AND ees.escala_id = :eid
-             LEFT JOIN equipes e ON e.id = ees.equipe_id
-             WHERE s.unidade_id = :uid AND s.ativo_extra = true
-             ORDER BY s.nome",
-            ['uid' => $unidadeId, 'eid' => $escalaId]
-        );
-        
-        View::json(['success' => true, 'servidores' => $servidores]);
+        try {
+            $unidadeId = Session::getUserUnidadeId();
+            $escalaId = (int)($_GET['escala_id'] ?? 0);
+            $equipeId = (int)($_GET['equipe_id'] ?? 0);
+            
+            if (!$unidadeId) {
+                View::json(['success' => false, 'message' => 'Unidade não encontrada', 'servidores' => []]);
+                return;
+            }
+            
+            $servidores = $this->db->fetchAll(
+                "SELECT s.id, s.nome, s.matricula, 
+                        ees.equipe_id as equipe_atual_id,
+                        e.nome as equipe_atual
+                 FROM servidores s
+                 LEFT JOIN escala_equipe_servidores ees ON ees.servidor_id = s.id AND ees.escala_id = :eid
+                 LEFT JOIN equipes e ON e.id = ees.equipe_id
+                 WHERE s.unidade_id = :uid AND s.ativo_extra = true
+                 ORDER BY s.nome",
+                ['uid' => $unidadeId, 'eid' => $escalaId]
+            );
+            
+            View::json(['success' => true, 'servidores' => $servidores ?: []]);
+        } catch (\Exception $e) {
+            View::json(['success' => false, 'message' => $e->getMessage(), 'servidores' => []]);
+        }
     }
     
     public function adicionarServidorEquipe(): void {

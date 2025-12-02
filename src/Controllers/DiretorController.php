@@ -454,23 +454,40 @@ class DiretorController {
                 View::json([
                     'success' => false, 
                     'message' => 'Unidade não encontrada. Faça login novamente.', 
-                    'debug' => ['user' => $user],
                     'servidores' => []
                 ]);
                 return;
             }
             
             $servidores = $this->db->fetchAll(
-                "SELECT s.id, s.nome, s.matricula, 
-                        ees.equipe_id as equipe_atual_id,
-                        e.nome as equipe_atual
+                "SELECT s.id, s.nome, s.matricula, NULL as equipe_atual_id, NULL as equipe_atual
                  FROM servidores s
-                 LEFT JOIN escala_equipe_servidores ees ON ees.servidor_id = s.id AND ees.escala_id = :eid
-                 LEFT JOIN equipes e ON e.id = ees.equipe_id
                  WHERE s.unidade_id = :uid
                  ORDER BY s.nome",
-                ['uid' => $unidadeId, 'eid' => $escalaId]
+                ['uid' => $unidadeId]
             );
+            
+            if ($servidores && $escalaId > 0) {
+                $vinculados = $this->db->fetchAll(
+                    "SELECT ees.servidor_id, ees.equipe_id, e.nome as equipe_nome
+                     FROM escala_equipe_servidores ees
+                     JOIN equipes e ON e.id = ees.equipe_id
+                     WHERE ees.escala_id = :eid",
+                    ['eid' => $escalaId]
+                );
+                
+                $vinculadosMap = [];
+                foreach ($vinculados ?: [] as $v) {
+                    $vinculadosMap[$v['servidor_id']] = $v;
+                }
+                
+                foreach ($servidores as &$s) {
+                    if (isset($vinculadosMap[$s['id']])) {
+                        $s['equipe_atual_id'] = $vinculadosMap[$s['id']]['equipe_id'];
+                        $s['equipe_atual'] = $vinculadosMap[$s['id']]['equipe_nome'];
+                    }
+                }
+            }
             
             View::json(['success' => true, 'servidores' => $servidores ?: [], 'unidade_id' => $unidadeId]);
         } catch (\Exception $e) {

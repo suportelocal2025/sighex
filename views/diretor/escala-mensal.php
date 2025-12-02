@@ -648,12 +648,24 @@ function abrirModalServidores() {
     }
     
     servidoresSelecionadosModal.clear();
+    document.getElementById('listaServidoresModal').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+    new bootstrap.Modal(document.getElementById('modalServidores')).show();
     
     fetch(`/diretor/escala/servidores-disponiveis?escala_id=${escalaId}&equipe_id=${equipeId}`)
         .then(r => r.json())
         .then(data => {
+            console.log('Resposta servidores:', data);
+            if (!data.success) {
+                document.getElementById('listaServidoresModal').innerHTML = 
+                    `<div class="alert alert-warning">${data.message || 'Erro ao carregar servidores'}</div>`;
+                return;
+            }
             renderizarListaServidoresModal(data.servidores || []);
-            new bootstrap.Modal(document.getElementById('modalServidores')).show();
+        })
+        .catch(err => {
+            console.error('Erro ao buscar servidores:', err);
+            document.getElementById('listaServidoresModal').innerHTML = 
+                '<div class="alert alert-danger">Erro ao carregar servidores. Faça login novamente.</div>';
         });
 }
 

@@ -450,7 +450,13 @@ class DiretorController {
             $equipeId = (int)($_GET['equipe_id'] ?? 0);
             
             if (!$unidadeId) {
-                View::json(['success' => false, 'message' => 'Unidade não encontrada', 'servidores' => []]);
+                $user = Session::getUser();
+                View::json([
+                    'success' => false, 
+                    'message' => 'Unidade não encontrada. Faça login novamente.', 
+                    'debug' => ['user' => $user],
+                    'servidores' => []
+                ]);
                 return;
             }
             
@@ -461,12 +467,12 @@ class DiretorController {
                  FROM servidores s
                  LEFT JOIN escala_equipe_servidores ees ON ees.servidor_id = s.id AND ees.escala_id = :eid
                  LEFT JOIN equipes e ON e.id = ees.equipe_id
-                 WHERE s.unidade_id = :uid AND s.ativo_extra = true
+                 WHERE s.unidade_id = :uid
                  ORDER BY s.nome",
                 ['uid' => $unidadeId, 'eid' => $escalaId]
             );
             
-            View::json(['success' => true, 'servidores' => $servidores ?: []]);
+            View::json(['success' => true, 'servidores' => $servidores ?: [], 'unidade_id' => $unidadeId]);
         } catch (\Exception $e) {
             View::json(['success' => false, 'message' => $e->getMessage(), 'servidores' => []]);
         }

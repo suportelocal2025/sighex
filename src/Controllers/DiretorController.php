@@ -225,7 +225,7 @@ class DiretorController {
                     'modulo_id' => $moduloId,
                     'horas' => $horas,
                     'horas_abono' => $horasAbono,
-                    'is_lider' => $isLider
+                    'is_lider' => $this->db->boolValue($isLider)
                 ], 'id = :id', ['id' => $existing['id']]);
             } else {
                 $this->db->query(

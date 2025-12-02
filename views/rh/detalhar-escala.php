@@ -107,6 +107,35 @@ $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     </div>
 </div>
 
+<?php
+$alocacoesAgrupadas = [];
+foreach ($alocacoes as $a) {
+    $key = $a['servidor_id'] . '_' . $a['equipe_id'] . '_' . $a['modulo_id'];
+    if (!isset($alocacoesAgrupadas[$key])) {
+        $alocacoesAgrupadas[$key] = [
+            'servidor_nome' => $a['servidor_nome'],
+            'matricula' => $a['matricula'],
+            'equipe_nome' => $a['equipe_nome'],
+            'modulo_nome' => $a['modulo_nome'],
+            'is_lider' => $a['is_lider'],
+            'dias' => [],
+            'horas' => 0,
+            'horas_abono' => 0
+        ];
+    }
+    $alocacoesAgrupadas[$key]['dias'][] = str_pad($a['dia'], 2, '0', STR_PAD_LEFT);
+    $alocacoesAgrupadas[$key]['horas'] += $a['horas'];
+    $alocacoesAgrupadas[$key]['horas_abono'] += $a['horas_abono'];
+    if ($a['is_lider']) {
+        $alocacoesAgrupadas[$key]['is_lider'] = true;
+    }
+}
+foreach ($alocacoesAgrupadas as &$ag) {
+    sort($ag['dias']);
+}
+unset($ag);
+?>
+
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-table me-2"></i>Alocações Detalhadas</h5>
@@ -122,20 +151,20 @@ $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                     <th>Matrícula</th>
                     <th>Equipe</th>
                     <th>Módulo</th>
-                    <th class="text-center">Dia</th>
+                    <th>Dias</th>
                     <th class="text-center">Horas</th>
                     <th class="text-center">Abono</th>
                     <th class="text-center">Líder</th>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($alocacoes as $a): ?>
+                <?php foreach ($alocacoesAgrupadas as $a): ?>
                     <tr>
                         <td><?= htmlspecialchars($a['servidor_nome']) ?></td>
                         <td><?= htmlspecialchars($a['matricula']) ?></td>
                         <td><?= htmlspecialchars($a['equipe_nome']) ?></td>
                         <td><?= htmlspecialchars($a['modulo_nome']) ?></td>
-                        <td class="text-center"><?= $a['dia'] ?></td>
+                        <td><span class="badge bg-light text-dark"><?= implode(', ', $a['dias']) ?></span></td>
                         <td class="text-center"><?= number_format($a['horas'], 1) ?></td>
                         <td class="text-center"><?= number_format($a['horas_abono'], 1) ?></td>
                         <td class="text-center">

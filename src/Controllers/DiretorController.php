@@ -447,10 +447,8 @@ class DiretorController {
         try {
             $unidadeId = Session::getUserUnidadeId();
             $escalaId = (int)($_GET['escala_id'] ?? 0);
-            $equipeId = (int)($_GET['equipe_id'] ?? 0);
             
             if (!$unidadeId) {
-                $user = Session::getUser();
                 View::json([
                     'success' => false, 
                     'message' => 'Unidade não encontrada. Faça login novamente.', 
@@ -460,36 +458,22 @@ class DiretorController {
             }
             
             $servidores = $this->db->fetchAll(
-                "SELECT s.id, s.nome, s.matricula, NULL as equipe_atual_id, NULL as equipe_atual
-                 FROM servidores s
-                 WHERE s.unidade_id = :uid
-                 ORDER BY s.nome",
+                "SELECT id, nome, matricula FROM servidores WHERE unidade_id = :uid ORDER BY nome",
                 ['uid' => $unidadeId]
             );
             
-            if ($servidores && $escalaId > 0) {
-                $vinculados = $this->db->fetchAll(
-                    "SELECT ees.servidor_id, ees.equipe_id, e.nome as equipe_nome
-                     FROM escala_equipe_servidores ees
-                     JOIN equipes e ON e.id = ees.equipe_id
-                     WHERE ees.escala_id = :eid",
-                    ['eid' => $escalaId]
-                );
-                
-                $vinculadosMap = [];
-                foreach ($vinculados ?: [] as $v) {
-                    $vinculadosMap[$v['servidor_id']] = $v;
-                }
-                
-                foreach ($servidores as &$s) {
-                    if (isset($vinculadosMap[$s['id']])) {
-                        $s['equipe_atual_id'] = $vinculadosMap[$s['id']]['equipe_id'];
-                        $s['equipe_atual'] = $vinculadosMap[$s['id']]['equipe_nome'];
-                    }
-                }
+            $result = [];
+            foreach ($servidores ?: [] as $s) {
+                $result[] = [
+                    'id' => $s['id'],
+                    'nome' => $s['nome'],
+                    'matricula' => $s['matricula'],
+                    'equipe_atual_id' => null,
+                    'equipe_atual' => null
+                ];
             }
             
-            View::json(['success' => true, 'servidores' => $servidores ?: [], 'unidade_id' => $unidadeId]);
+            View::json(['success' => true, 'servidores' => $result, 'unidade_id' => $unidadeId]);
         } catch (\Exception $e) {
             View::json(['success' => false, 'message' => $e->getMessage(), 'servidores' => []]);
         }

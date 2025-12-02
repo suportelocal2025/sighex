@@ -107,7 +107,7 @@ class DiretorController {
         $diasInfo = [];
         for ($d = 1; $d <= $diasNoMes; $d++) {
             $data = sprintf('%04d-%02d-%02d', $ano, $mes, $d);
-            $diaSemana = date('w', strtotime($data));
+            $diaSemana = (int)date('w', strtotime($data));
             $diasInfo[$d] = [
                 'data' => $data,
                 'diaSemana' => $diaSemana,

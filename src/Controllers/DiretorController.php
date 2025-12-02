@@ -137,26 +137,32 @@ class DiretorController {
     }
     
     public function salvarAlocacao(): void {
-        $escalaId = (int)($_POST['escala_id'] ?? 0);
-        $servidorId = (int)($_POST['servidor_id'] ?? 0);
-        $equipeId = (int)($_POST['equipe_id'] ?? 0);
-        $moduloId = (int)($_POST['modulo_id'] ?? 0);
-        $dias = $_POST['dias'] ?? [];
-        $horas = (float)($_POST['horas'] ?? 12);
-        $horasAbono = (float)($_POST['horas_abono'] ?? 0);
-        $isLider = isset($_POST['is_lider']) && $_POST['is_lider'] == '1';
-        $forcarMover = isset($_POST['forcar_mover']) && $_POST['forcar_mover'] == '1';
-        
-        if (is_string($dias)) {
-            $dias = explode(',', $dias);
-        }
-        $dias = array_filter(array_map('intval', $dias));
-        
-        $escala = $this->db->fetch("SELECT * FROM escalas WHERE id = :id", ['id' => $escalaId]);
-        if (!$escala || !in_array($escala['status'], ['rascunho', 'rejeitada'])) {
-            View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
-            return;
-        }
+        try {
+            $escalaId = (int)($_POST['escala_id'] ?? 0);
+            $servidorId = (int)($_POST['servidor_id'] ?? 0);
+            $equipeId = (int)($_POST['equipe_id'] ?? 0);
+            $moduloId = (int)($_POST['modulo_id'] ?? 0);
+            $dias = $_POST['dias'] ?? [];
+            $horas = (float)($_POST['horas'] ?? 12);
+            $horasAbono = (float)($_POST['horas_abono'] ?? 0);
+            $isLider = isset($_POST['is_lider']) && $_POST['is_lider'] == '1';
+            $forcarMover = isset($_POST['forcar_mover']) && $_POST['forcar_mover'] == '1';
+            
+            if (is_string($dias)) {
+                $dias = explode(',', $dias);
+            }
+            $dias = array_filter(array_map('intval', $dias));
+            
+            if (empty($dias)) {
+                View::json(['success' => false, 'message' => 'Nenhum dia selecionado']);
+                return;
+            }
+            
+            $escala = $this->db->fetch("SELECT * FROM escalas WHERE id = :id", ['id' => $escalaId]);
+            if (!$escala || !in_array($escala['status'], ['rascunho', 'rejeitada'])) {
+                View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
+                return;
+            }
         
         $horasAtuais = $this->db->fetch(
             "SELECT COALESCE(SUM(horas + horas_abono), 0) as total FROM alocacoes WHERE escala_id = :eid AND servidor_id = :sid",
@@ -247,6 +253,9 @@ class DiretorController {
         )['total'];
         
         View::json(['success' => true, 'total_horas' => $totalHoras, 'horas_servidor' => $horasServidor]);
+        } catch (\Exception $e) {
+            View::json(['success' => false, 'message' => 'Erro ao salvar: ' . $e->getMessage()]);
+        }
     }
     
     public function removerAlocacao(): void {

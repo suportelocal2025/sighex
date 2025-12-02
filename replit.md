@@ -122,10 +122,20 @@ php -S 0.0.0.0:5000 index.php
 
 ## Fluxo de Montagem de Escala (Diretor)
 
-1. Selecione a **Equipe** e o **Módulo/Raio** obrigatoriamente
-2. Defina as **Horas por dia** (padrão: 12h) e **Abono** se necessário
-3. Marque o checkbox **Líder** apenas se o servidor for líder de plantão
-4. **Clique diretamente nos dias do calendário** para alocar
-5. O dia fica imediatamente marcado como "Alocado" (azul escuro)
-6. Para remover uma alocação, clique no dia já alocado e confirme
-7. Ao finalizar, clique em **"Enviar para Aprovação"**
+1. **Selecione a Equipe** (A, B, C ou D)
+2. **Selecione o Módulo/Raio** onde os servidores trabalharão
+3. Clique em **"Add Servidor"** para abrir o modal de seleção
+4. No modal, selecione os servidores que farão parte da equipe
+   - Servidores já vinculados a outras equipes aparecem desabilitados
+   - Clique nos servidores desejados e depois em "Adicionar Selecionados"
+5. Os servidores selecionados aparecem no calendário
+6. Para cada servidor, marque o checkbox **"Líder"** se ele for mesário/líder de equipe
+7. **Clique nos dias** do calendário para alocar (dia fica azul escuro)
+8. Para remover uma alocação, clique no dia já alocado e confirme
+9. Para remover um servidor da equipe, clique no botão X ao lado do nome
+10. Ao finalizar, clique em **"Enviar para Aprovação"**
+
+### Tabela de Vínculo Servidor-Equipe
+- `escala_equipe_servidores` - Vincula servidores às equipes por escala
+- Um servidor só pode estar em uma equipe por escala (validação de conflito)
+- O checkbox "Líder" é por servidor/equipe e aplica a todas as alocações

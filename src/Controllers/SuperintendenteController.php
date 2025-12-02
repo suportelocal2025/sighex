@@ -177,6 +177,11 @@ class SuperintendenteController {
         $unidadeId = (int)($_GET['unidade_id'] ?? 0);
         $ano = (int)($_GET['ano'] ?? date('Y'));
         
+        if ($unidadeId <= 0 || $ano < 2000 || $ano > 2100) {
+            View::json(['success' => false, 'message' => 'Parâmetros inválidos']);
+            return;
+        }
+        
         $unidade = $this->db->fetch("SELECT nome FROM unidades WHERE id = :id", ['id' => $unidadeId]);
         
         if (!$unidade) {
@@ -196,11 +201,21 @@ class SuperintendenteController {
             ORDER BY created_at DESC
         ", ['uid' => $unidadeId, 'ano' => $ano]);
         
+        $historicoFormatado = array_map(function($h) {
+            return [
+                'id' => (int)$h['id'],
+                'valor_anterior' => (float)$h['valor_anterior'],
+                'valor_novo' => (float)$h['valor_novo'],
+                'tipo' => in_array($h['tipo'], ['adicao', 'alteracao']) ? $h['tipo'] : 'desconhecido',
+                'created_at' => $h['created_at']
+            ];
+        }, $historico);
+        
         View::json([
             'success' => true,
-            'unidade' => $unidade['nome'],
+            'unidade' => htmlspecialchars($unidade['nome'], ENT_QUOTES, 'UTF-8'),
             'ano' => $ano,
-            'historico' => $historico
+            'historico' => $historicoFormatado
         ]);
     }
 }

@@ -100,7 +100,9 @@
                                 </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-info" 
-                                            onclick="verHistorico(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['nome'])) ?>')">
+                                            data-unidade-id="<?= $u['id'] ?>"
+                                            data-unidade-nome="<?= htmlspecialchars($u['nome'], ENT_QUOTES) ?>"
+                                            onclick="verHistorico(this)">
                                         <i class="bi bi-clock-history me-1"></i>Histórico
                                     </button>
                                 </td>
@@ -188,7 +190,12 @@ document.querySelectorAll('.valor-distribuicao').forEach(input => {
     input.addEventListener('input', calcularTotais);
 });
 
-function verHistorico(unidadeId, nomeUnidade) {
+function verHistorico(btn) {
+    const unidadeId = parseInt(btn.dataset.unidadeId, 10);
+    const nomeUnidade = btn.dataset.unidadeNome;
+    
+    if (!unidadeId || isNaN(unidadeId)) return;
+    
     document.getElementById('historicoUnidadeNome').textContent = nomeUnidade;
     document.getElementById('historicoConteudo').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Carregando histórico...</p></div>';
     

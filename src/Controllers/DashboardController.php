@@ -47,12 +47,13 @@ class DashboardController {
         }
         
         $reservaTecnica = ($orcamento['valor_total'] * $orcamento['percentual_reserva']) / 100;
-        $valorDisponivel = $orcamento['valor_total'] - $reservaTecnica;
         
         $totalDistribuido = $this->db->fetch(
             "SELECT COALESCE(SUM(valor), 0) as total FROM distribuicao_orcamento WHERE ano = :ano",
             ['ano' => $ano]
         )['total'];
+        
+        $valorDisponivel = $orcamento['valor_total'] - $reservaTecnica - $totalDistribuido;
         
         $totalGasto = $this->db->fetch(
             "SELECT COALESCE(SUM(valor_executado), 0) as total FROM escalas WHERE ano = :ano AND status = 'executada'",

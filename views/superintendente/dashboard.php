@@ -103,15 +103,17 @@
 
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
-        <div class="card p-4">
-            <h5 class="card-title mb-4"><i class="bi bi-bar-chart me-2"></i>Gastos x Horas por Unidade</h5>
-            <canvas id="chartGastosHoras" height="200"></canvas>
+        <div class="card p-4 h-100">
+            <h6 class="card-title mb-3"><i class="bi bi-bar-chart me-2"></i>Gastos x Horas por Unidade</h6>
+            <canvas id="chartGastosHoras" height="180"></canvas>
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card p-4">
-            <h5 class="card-title mb-4"><i class="bi bi-pie-chart me-2"></i>Distribuição de Gastos</h5>
-            <canvas id="chartDistribuicao"></canvas>
+        <div class="card p-4 h-100 d-flex flex-column">
+            <h6 class="card-title mb-3"><i class="bi bi-pie-chart me-2"></i>Distribuição de Gastos</h6>
+            <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="max-height: 220px;">
+                <canvas id="chartDistribuicao"></canvas>
+            </div>
         </div>
     </div>
 </div>

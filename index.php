@@ -72,6 +72,7 @@ $router->post('/diretor/escala/adicionar-servidor-equipe', [DiretorController::c
 $router->post('/diretor/escala/remover-servidor-equipe', [DiretorController::class, 'removerServidorEquipe'], [Middleware::diretor()]);
 $router->get('/diretor/escala/servidores-equipe', [DiretorController::class, 'listarServidoresEquipe'], [Middleware::diretor()]);
 $router->post('/diretor/escala/atualizar-lider', [DiretorController::class, 'atualizarLiderEquipe'], [Middleware::diretor()]);
+$router->get('/diretor/escala/imprimir-mural', [DiretorController::class, 'imprimirMural'], [Middleware::diretor()]);
 
 $router->get('/rh/escalas', [RhController::class, 'escalas'], [Middleware::rh()]);
 $router->get('/rh/escalas/{id}', [RhController::class, 'detalharEscala'], [Middleware::rh()]);

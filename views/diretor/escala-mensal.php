@@ -249,9 +249,9 @@ $podeEditar = in_array($escala['status'], ['rascunho', 'rejeitada']);
             <span id="equipeNomeHeader">Selecione uma equipe</span>
         </h6>
         <div>
-            <button class="btn btn-outline-secondary btn-sm me-2" onclick="imprimirEscala()">
-                <i class="bi bi-printer me-1"></i> Imprimir
-            </button>
+            <a href="/diretor/escala/imprimir-mural?mes=<?= $mes ?>&ano=<?= $ano ?>" target="_blank" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-printer me-1"></i> Imprimir P/Mural
+            </a>
             <?php if ($podeEditar): ?>
             <a href="/diretor/enviar-escala?mes=<?= $mes ?>&ano=<?= $ano ?>" class="btn btn-success btn-sm" id="btnEnviar" style="display:none;">
                 <i class="bi bi-send me-1"></i> <?= $escala['status'] == 'rejeitada' ? 'Re-Enviar para Aprovação' : 'Enviar para Aprovação' ?>

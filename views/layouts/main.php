@@ -72,25 +72,31 @@
             box-shadow: 0 5px 25px rgba(0,0,0,0.12);
         }
         .stat-card {
-            padding: 1.5rem;
+            padding: 1rem;
+            height: 100%;
         }
         .stat-card .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
+            flex-shrink: 0;
         }
         .stat-card .stat-value {
-            font-size: 1.8rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: var(--primary-color);
+            white-space: nowrap;
         }
         .stat-card .stat-label {
             color: #6c757d;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
+        }
+        .stat-card.stat-card-colored .stat-value {
+            color: inherit;
         }
         .btn-primary {
             background-color: var(--primary-color);

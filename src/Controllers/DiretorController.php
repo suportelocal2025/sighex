@@ -621,4 +621,203 @@ class DiretorController {
         
         View::json(['success' => true]);
     }
+    
+    public function imprimirMural(): void {
+        $unidadeId = Session::getUserUnidadeId();
+        $mes = (int)($_GET['mes'] ?? date('m'));
+        $ano = (int)($_GET['ano'] ?? date('Y'));
+        
+        $unidade = $this->db->fetch("SELECT * FROM unidades WHERE id = :id", ['id' => $unidadeId]);
+        
+        $escala = $this->db->fetch(
+            "SELECT * FROM escalas WHERE unidade_id = :uid AND mes = :mes AND ano = :ano",
+            ['uid' => $unidadeId, 'mes' => $mes, 'ano' => $ano]
+        );
+        
+        if (!$escala) {
+            echo "Escala não encontrada.";
+            return;
+        }
+        
+        $alocacoes = $this->db->fetchAll("
+            SELECT a.*, s.nome as servidor_nome, s.matricula, 
+                   eq.nome as equipe_nome, m.nome as modulo_nome
+            FROM alocacoes a
+            JOIN servidores s ON a.servidor_id = s.id
+            JOIN equipes eq ON a.equipe_id = eq.id
+            JOIN modulos m ON a.modulo_id = m.id
+            WHERE a.escala_id = :eid
+            ORDER BY m.nome, eq.nome, s.nome, a.dia
+        ", ['eid' => $escala['id']]);
+        
+        $agrupado = [];
+        foreach ($alocacoes as $a) {
+            $key = $a['modulo_nome'] . '|' . $a['equipe_nome'];
+            if (!isset($agrupado[$key])) {
+                $agrupado[$key] = [
+                    'modulo' => $a['modulo_nome'],
+                    'equipe' => $a['equipe_nome'],
+                    'servidores' => []
+                ];
+            }
+            $sKey = $a['servidor_id'];
+            if (!isset($agrupado[$key]['servidores'][$sKey])) {
+                $agrupado[$key]['servidores'][$sKey] = [
+                    'nome' => $a['servidor_nome'],
+                    'matricula' => $a['matricula'],
+                    'is_lider' => $a['is_lider'],
+                    'dias' => [],
+                    'horas' => 0
+                ];
+            }
+            $agrupado[$key]['servidores'][$sKey]['dias'][] = str_pad($a['dia'], 2, '0', STR_PAD_LEFT);
+            $agrupado[$key]['servidores'][$sKey]['horas'] += $a['horas'] + $a['horas_abono'];
+        }
+        
+        foreach ($agrupado as &$grupo) {
+            foreach ($grupo['servidores'] as &$srv) {
+                sort($srv['dias']);
+            }
+        }
+        unset($grupo, $srv);
+        
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        ?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Escala - <?= htmlspecialchars($unidade['nome']) ?> - <?= $meses[$mes] ?>/<?= $ano ?></title>
+    <style>
+        @page { margin: 1.5cm; size: A4 portrait; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            font-size: 11pt; 
+            line-height: 1.4;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1a4480;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            margin: 0 0 5px 0;
+            font-size: 18pt;
+            color: #1a4480;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 14pt;
+            font-weight: normal;
+            color: #666;
+        }
+        .grupo {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .grupo-header {
+            background: #1a4480;
+            color: white;
+            padding: 8px 12px;
+            font-weight: bold;
+            font-size: 11pt;
+            border-radius: 4px 4px 0 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        td { font-size: 10pt; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .lider { color: #d4a00a; font-weight: bold; }
+        .dias { font-family: monospace; font-size: 9pt; }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 30px; font-size: 14pt; cursor: pointer;">
+            Imprimir / Salvar PDF
+        </button>
+    </div>
+    
+    <div class="header">
+        <h1><?= htmlspecialchars($unidade['nome']) ?></h1>
+        <h2>Escala Extraordinária - <?= $meses[$mes] ?>/<?= $ano ?></h2>
+    </div>
+    
+    <?php if (empty($agrupado)): ?>
+        <p style="text-align: center; color: #666;">Nenhuma alocação encontrada para esta escala.</p>
+    <?php else: ?>
+        <?php foreach ($agrupado as $grupo): ?>
+        <div class="grupo">
+            <div class="grupo-header">
+                <?= htmlspecialchars($grupo['modulo']) ?> - <?= htmlspecialchars($grupo['equipe']) ?>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 35%">Nome</th>
+                        <th style="width: 15%">Matrícula</th>
+                        <th style="width: 35%">Dias</th>
+                        <th style="width: 15%" class="text-center">Total Horas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($grupo['servidores'] as $srv): ?>
+                    <tr>
+                        <td>
+                            <?= htmlspecialchars($srv['nome']) ?>
+                            <?php if ($srv['is_lider']): ?>
+                                <span class="lider">★</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= htmlspecialchars($srv['matricula']) ?></td>
+                        <td class="dias"><?= implode(', ', $srv['dias']) ?></td>
+                        <td class="text-center"><?= number_format($srv['horas'], 0) ?>h</td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+    
+    <div class="footer">
+        Documento gerado em <?= date('d/m/Y H:i') ?> - SGEEX - Sistema de Gestão de Escalas Extraordinárias
+    </div>
+</body>
+</html>
+        <?php
+    }
 }

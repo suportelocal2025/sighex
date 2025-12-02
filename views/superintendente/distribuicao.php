@@ -1,30 +1,58 @@
-<div class="row mb-4">
+<div class="row g-4 mb-4">
     <div class="col-md-3">
-        <div class="card stat-card bg-primary text-white">
-            <div class="stat-value">R$ <?= number_format($valorDisponivel, 2, ',', '.') ?></div>
-            <div class="stat-label text-white-50">Orçamento Disponível</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card bg-success text-white">
-            <div class="stat-value">R$ <?= number_format($totalDistribuido, 2, ',', '.') ?></div>
-            <div class="stat-label text-white-50">Total Distribuído</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card bg-info text-white">
-            <div class="stat-value">R$ <?= number_format($saldoRestante, 2, ',', '.') ?></div>
-            <div class="stat-label text-white-50">Saldo Restante</div>
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ <?= number_format($valorDisponivel, 0, ',', '.') ?></div>
+                    <div class="stat-label">Orçamento Disponível</div>
+                </div>
+            </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card stat-card">
-            <label class="form-label mb-2">Ano:</label>
-            <select class="form-select" onchange="window.location.href='?ano='+this.value">
-                <?php for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++): ?>
-                    <option value="<?= $y ?>" <?= $y == $ano ? 'selected' : '' ?>><?= $y ?></option>
-                <?php endfor; ?>
-            </select>
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ <?= number_format($totalDistribuido, 0, ',', '.') ?></div>
+                    <div class="stat-label">Total Distribuído</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-info bg-opacity-10 text-info me-3">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ <?= number_format($saldoRestante, 0, ',', '.') ?></div>
+                    <div class="stat-label">Saldo Restante</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-secondary bg-opacity-10 text-secondary me-3">
+                    <i class="bi bi-calendar3"></i>
+                </div>
+                <div>
+                    <div class="stat-label mb-1">Filtrar por Ano</div>
+                    <select class="form-select form-select-sm" onchange="window.location.href='?ano='+this.value" style="width: 100px;">
+                        <?php for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++): ?>
+                            <option value="<?= $y ?>" <?= $y == $ano ? 'selected' : '' ?>><?= $y ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
 </div>

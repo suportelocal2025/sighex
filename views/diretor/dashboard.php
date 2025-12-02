@@ -73,17 +73,17 @@ if ($percentualUso > 80):
 
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
-        <div class="card p-4">
-            <h5 class="card-title mb-4"><i class="bi bi-bar-chart me-2"></i>Gastos x Saldo Mensal</h5>
-            <canvas id="chartMensal" height="200"></canvas>
+        <div class="card p-4 h-100">
+            <h6 class="card-title mb-3"><i class="bi bi-bar-chart me-2"></i>Gastos x Saldo Mensal</h6>
+            <canvas id="chartMensal" height="180"></canvas>
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card p-4 h-100">
-            <h5 class="card-title mb-4"><i class="bi bi-calendar-check me-2"></i>Escala do Mês</h5>
+        <div class="card p-4 h-100 d-flex flex-column">
+            <h6 class="card-title mb-3"><i class="bi bi-calendar-check me-2"></i>Escala do Mês</h6>
             <?php if ($stats['escala_mes_atual']): ?>
-                <div class="text-center py-4">
-                    <div class="display-4 text-<?= 
+                <div class="text-center flex-grow-1 d-flex flex-column justify-content-center py-2">
+                    <div class="fs-1 text-<?= 
                         $stats['escala_mes_atual']['status'] == 'aprovada' ? 'success' : 
                         ($stats['escala_mes_atual']['status'] == 'rejeitada' ? 'danger' : 
                         ($stats['escala_mes_atual']['status'] == 'pendente' ? 'warning' : 'secondary')) 
@@ -94,20 +94,20 @@ if ($percentualUso > 80):
                             ($stats['escala_mes_atual']['status'] == 'pendente' ? 'hourglass-split' : 'pencil-square')) 
                         ?>"></i>
                     </div>
-                    <h4 class="mt-3"><?= ucfirst($stats['escala_mes_atual']['status']) ?></h4>
-                    <p class="text-muted"><?= number_format($stats['escala_mes_atual']['total_horas'], 0, ',', '.') ?> horas</p>
-                    <a href="/diretor/escala-mensal" class="btn btn-primary">
+                    <h5 class="mt-2 mb-1"><?= ucfirst($stats['escala_mes_atual']['status']) ?></h5>
+                    <p class="text-muted small mb-3"><?= number_format($stats['escala_mes_atual']['total_horas'], 0, ',', '.') ?> horas</p>
+                    <a href="/diretor/escala-mensal" class="btn btn-primary btn-sm">
                         <i class="bi bi-eye me-2"></i>Ver Escala
                     </a>
                 </div>
             <?php else: ?>
-                <div class="text-center py-4">
-                    <div class="display-4 text-muted">
+                <div class="text-center flex-grow-1 d-flex flex-column justify-content-center py-2">
+                    <div class="fs-1 text-muted">
                         <i class="bi bi-calendar-x"></i>
                     </div>
-                    <h5 class="mt-3">Nenhuma escala</h5>
-                    <p class="text-muted">Monte a escala deste mês</p>
-                    <a href="/diretor/escala-mensal" class="btn btn-primary">
+                    <h6 class="mt-2 mb-1">Nenhuma escala</h6>
+                    <p class="text-muted small mb-3">Monte a escala deste mês</p>
+                    <a href="/diretor/escala-mensal" class="btn btn-primary btn-sm">
                         <i class="bi bi-plus-lg me-2"></i>Criar Escala
                     </a>
                 </div>

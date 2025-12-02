@@ -139,9 +139,14 @@ unset($ag);
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-table me-2"></i>Alocações Detalhadas</h5>
-        <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
-            <i class="bi bi-printer me-2"></i>Imprimir
-        </button>
+        <div>
+            <a href="/rh/escalas/<?= $escala['id'] ?>/exportar-excel" class="btn btn-success btn-sm me-2">
+                <i class="bi bi-file-earmark-excel me-2"></i>Exportar Excel
+            </a>
+            <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer me-2"></i>Imprimir
+            </button>
+        </div>
     </div>
     <div class="table-responsive">
         <table class="table table-hover">

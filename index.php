@@ -77,6 +77,7 @@ $router->get('/diretor/escala/imprimir-mural', [DiretorController::class, 'impri
 
 $router->get('/rh/escalas', [RhController::class, 'escalas'], [Middleware::rh()]);
 $router->get('/rh/escalas/{id}', [RhController::class, 'detalharEscala'], [Middleware::rh()]);
+$router->get('/rh/escalas/{id}/exportar-excel', [RhController::class, 'exportarEscalaExcel'], [Middleware::rh()]);
 $router->post('/rh/escalas/aprovar', [RhController::class, 'aprovarEscala'], [Middleware::rh()]);
 $router->post('/rh/escalas/rejeitar', [RhController::class, 'rejeitarEscala'], [Middleware::rh()]);
 $router->post('/rh/escalas/executar', [RhController::class, 'executarEscala'], [Middleware::rh()]);

@@ -89,6 +89,140 @@ class RhController {
         ]);
     }
     
+    public function exportarEscalaExcel(string $id): void {
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        $escala = $this->db->fetch("
+            SELECT e.*, u.nome as unidade_nome
+            FROM escalas e
+            JOIN unidades u ON e.unidade_id = u.id
+            WHERE e.id = :id
+        ", ['id' => $id]);
+        
+        if (!$escala) {
+            Session::flash('error', 'Escala não encontrada');
+            View::redirect('/rh/escalas');
+            return;
+        }
+        
+        $alocacoes = $this->db->fetchAll("
+            SELECT a.*, s.nome as servidor_nome, s.matricula, eq.nome as equipe_nome, m.nome as modulo_nome
+            FROM alocacoes a
+            JOIN servidores s ON a.servidor_id = s.id
+            JOIN equipes eq ON a.equipe_id = eq.id
+            JOIN modulos m ON a.modulo_id = m.id
+            WHERE a.escala_id = :eid
+            ORDER BY s.nome, a.dia
+        ", ['eid' => $id]);
+        
+        $alocacoesAgrupadas = [];
+        foreach ($alocacoes as $a) {
+            $key = $a['servidor_id'] . '_' . $a['modulo_id'];
+            if (!isset($alocacoesAgrupadas[$key])) {
+                $alocacoesAgrupadas[$key] = [
+                    'servidor_nome' => $a['servidor_nome'],
+                    'matricula' => $a['matricula'],
+                    'modulo_nome' => $a['modulo_nome'],
+                    'dias' => [],
+                    'horas' => 0
+                ];
+            }
+            $alocacoesAgrupadas[$key]['dias'][] = str_pad($a['dia'], 2, '0', STR_PAD_LEFT);
+            $alocacoesAgrupadas[$key]['horas'] += $a['horas'] + $a['horas_abono'];
+        }
+        
+        foreach ($alocacoesAgrupadas as &$ag) {
+            sort($ag['dias']);
+        }
+        unset($ag);
+        
+        $unidadeNome = $escala['unidade_nome'];
+        $mesNome = $meses[$escala['mes']];
+        $ano = $escala['ano'];
+        $nomeArquivo = "escala_{$escala['id']}_{$mesNome}_{$ano}.xls";
+        
+        header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+        header("Content-Disposition: attachment; filename=\"{$nomeArquivo}\"");
+        header("Pragma: no-cache");
+        header("Expires: 0");
+        
+        echo "\xEF\xBB\xBF";
+        
+        echo "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        echo "<head><meta charset='UTF-8'>";
+        echo "<style>";
+        echo "table { border-collapse: collapse; width: 100%; }";
+        echo "th, td { border: 1px solid #000; padding: 8px; text-align: left; }";
+        echo "th { background-color: #4472C4; color: white; font-weight: bold; }";
+        echo ".header { text-align: center; font-size: 16pt; font-weight: bold; }";
+        echo ".subheader { text-align: center; font-size: 12pt; }";
+        echo ".logo-cell { width: 100px; height: 80px; text-align: center; vertical-align: middle; }";
+        echo ".total-row { background-color: #D9E2F3; font-weight: bold; }";
+        echo ".numero { text-align: center; }";
+        echo ".horas { text-align: center; }";
+        echo "</style>";
+        echo "</head><body>";
+        
+        echo "<table>";
+        echo "<tr>";
+        echo "<td class='logo-cell' colspan='1'>[LOGO SEAP]</td>";
+        echo "<td class='header' colspan='4'>";
+        echo htmlspecialchars($unidadeNome) . "<br>";
+        echo "<span class='subheader'>Escala Extraordinária - {$mesNome}/{$ano}</span>";
+        echo "</td>";
+        echo "<td class='logo-cell' colspan='1'>[LOGO UNIDADE]</td>";
+        echo "</tr>";
+        echo "</table>";
+        
+        echo "<br>";
+        
+        echo "<table>";
+        echo "<thead>";
+        echo "<tr>";
+        echo "<th class='numero'>Núm.</th>";
+        echo "<th>Matrícula</th>";
+        echo "<th>Nome do Servidor</th>";
+        echo "<th class='horas'>Horas</th>";
+        echo "<th>Unidade</th>";
+        echo "<th>Dias</th>";
+        echo "</tr>";
+        echo "</thead>";
+        echo "<tbody>";
+        
+        $num = 1;
+        $totalHoras = 0;
+        
+        foreach ($alocacoesAgrupadas as $a) {
+            $diasStr = implode(', ', $a['dias']);
+            $totalHoras += $a['horas'];
+            
+            echo "<tr>";
+            echo "<td class='numero'>" . str_pad($num, 3, '0', STR_PAD_LEFT) . "</td>";
+            echo "<td>" . htmlspecialchars($a['matricula']) . "</td>";
+            echo "<td>" . htmlspecialchars($a['servidor_nome']) . "</td>";
+            echo "<td class='horas'>" . number_format($a['horas'], 0, ',', '.') . "</td>";
+            echo "<td>" . htmlspecialchars($a['modulo_nome']) . "</td>";
+            echo "<td>" . htmlspecialchars($diasStr) . "</td>";
+            echo "</tr>";
+            
+            $num++;
+        }
+        
+        echo "</tbody>";
+        echo "<tfoot>";
+        echo "<tr class='total-row'>";
+        echo "<td colspan='3' style='text-align: right;'>TOTAL DE HORAS:</td>";
+        echo "<td class='horas'>" . number_format($totalHoras, 0, ',', '.') . "</td>";
+        echo "<td colspan='2'></td>";
+        echo "</tr>";
+        echo "</tfoot>";
+        echo "</table>";
+        
+        echo "</body></html>";
+        exit;
+    }
+    
     public function aprovarEscala(): void {
         $escalaId = (int)($_POST['escala_id'] ?? 0);
         

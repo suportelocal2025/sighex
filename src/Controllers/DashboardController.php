@@ -185,7 +185,7 @@ class DashboardController {
     private function administrativoDashboard(): void {
         $totalUnidades = $this->db->fetch("SELECT COUNT(*) as total FROM unidades")['total'];
         $totalServidores = $this->db->fetch("SELECT COUNT(*) as total FROM servidores")['total'];
-        $servidoresAtivos = $this->db->fetch("SELECT COUNT(*) as total FROM servidores WHERE ativo_extra = true")['total'];
+        $servidoresAtivos = $this->db->fetch("SELECT COUNT(*) as total FROM servidores WHERE ativo_extra = 1")['total'];
         
         View::layout('main', 'administrativo/dashboard', [
             'titulo' => 'Dashboard Administrativo',

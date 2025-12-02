@@ -78,7 +78,7 @@ class DiretorController {
         );
         
         $servidores = $this->db->fetchAll(
-            "SELECT * FROM servidores WHERE unidade_id = :uid AND ativo_extra = true ORDER BY nome",
+            "SELECT * FROM servidores WHERE unidade_id = :uid AND ativo_extra = 1 ORDER BY nome",
             ['uid' => $unidadeId]
         );
         

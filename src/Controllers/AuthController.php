@@ -27,7 +27,7 @@ class AuthController {
         }
         
         $user = $this->db->fetch(
-            "SELECT * FROM usuarios WHERE email = :email AND ativo = true",
+            "SELECT * FROM usuarios WHERE email = :email AND ativo = 1",
             ['email' => $email]
         );
         

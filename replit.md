@@ -104,11 +104,13 @@ php -S 0.0.0.0:5000 index.php
 - [x] Distribuição de orçamento
 - [x] Dashboard do Diretor
 - [x] Montagem de escala mensal com calendário interativo
+  - **Alocação direta por clique**: clique no dia para alocar imediatamente
   - Visualização de todos os dias do mês (1-30/31)
-  - Cores diferenciadas para sábados (amarelo), domingos (vermelho) e feriados (verde)
+  - Cores diferenciadas: sábados (amarelo claro), domingos (laranja claro), feriados (vermelho claro)
   - Limite de 60 horas por servidor
   - Detecção de conflito quando servidor já está alocado
   - Opção de mover servidor para novo local
+  - Edição de escalas rejeitadas com botão "Editar e Corrigir"
 - [x] Envio de escala para aprovação
 - [x] Dashboard do RH
 - [x] Aprovação/Rejeição de escalas
@@ -117,3 +119,13 @@ php -S 0.0.0.0:5000 index.php
 - [x] Gestão de servidores
 - [x] Importação via CSV
 - [x] Relatórios com exportação
+
+## Fluxo de Montagem de Escala (Diretor)
+
+1. Selecione a **Equipe** e o **Módulo/Raio** obrigatoriamente
+2. Defina as **Horas por dia** (padrão: 12h) e **Abono** se necessário
+3. Marque o checkbox **Líder** apenas se o servidor for líder de plantão
+4. **Clique diretamente nos dias do calendário** para alocar
+5. O dia fica imediatamente marcado como "Alocado" (azul escuro)
+6. Para remover uma alocação, clique no dia já alocado e confirme
+7. Ao finalizar, clique em **"Enviar para Aprovação"**

@@ -68,11 +68,11 @@ class DashboardController {
                 COALESCE(SUM(CASE WHEN e.status = 'executada' THEN e.valor_executado ELSE 0 END), 0) as gasto_total,
                 COALESCE(SUM(CASE WHEN e.status IN ('aprovada', 'executada') THEN e.total_horas ELSE 0 END), 0) as horas_total
             FROM unidades u
-            LEFT JOIN distribuicao_orcamento d ON u.id = d.unidade_id AND d.ano = :ano
-            LEFT JOIN escalas e ON u.id = e.unidade_id AND e.ano = :ano
+            LEFT JOIN distribuicao_orcamento d ON u.id = d.unidade_id AND d.ano = :ano1
+            LEFT JOIN escalas e ON u.id = e.unidade_id AND e.ano = :ano2
             GROUP BY u.id, u.nome, d.valor
             ORDER BY u.nome
-        ", ['ano' => $ano]);
+        ", ['ano1' => $ano, 'ano2' => $ano]);
         
         View::layout('main', 'superintendente/dashboard', [
             'titulo' => 'Dashboard do Superintendente',

@@ -234,7 +234,7 @@ class DiretorController {
                     [
                         'eid' => $escalaId, 'sid' => $servidorId, 'eqid' => $equipeId,
                         'mid' => $moduloId, 'dia' => $dia, 'horas' => $horas,
-                        'habono' => $horasAbono, 'lider' => $isLider ? 't' : 'f'
+                        'habono' => $horasAbono, 'lider' => $this->db->boolValue($isLider)
                     ]
                 );
             }
@@ -611,12 +611,12 @@ class DiretorController {
         
         $this->db->query(
             "UPDATE escala_equipe_servidores SET is_lider = :lider WHERE escala_id = :eid AND servidor_id = :sid",
-            ['lider' => $isLider ? 't' : 'f', 'eid' => $escalaId, 'sid' => $servidorId]
+            ['lider' => $this->db->boolValue($isLider), 'eid' => $escalaId, 'sid' => $servidorId]
         );
         
         $this->db->query(
             "UPDATE alocacoes SET is_lider = :lider WHERE escala_id = :eid AND servidor_id = :sid",
-            ['lider' => $isLider ? 't' : 'f', 'eid' => $escalaId, 'sid' => $servidorId]
+            ['lider' => $this->db->boolValue($isLider), 'eid' => $escalaId, 'sid' => $servidorId]
         );
         
         View::json(['success' => true]);

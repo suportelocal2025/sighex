@@ -111,4 +111,11 @@ class Database {
     public function lastInsertId(): string {
         return $this->connection->lastInsertId();
     }
+    
+    public function boolValue(bool $value): string|int {
+        if ($this->driver === 'mysql') {
+            return $value ? 1 : 0;
+        }
+        return $value ? 't' : 'f';
+    }
 }

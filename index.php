@@ -57,6 +57,7 @@ $router->get('/superintendente/orcamento', [SuperintendenteController::class, 'o
 $router->post('/superintendente/orcamento/salvar', [SuperintendenteController::class, 'salvarOrcamento'], [Middleware::superintendente()]);
 $router->get('/superintendente/distribuicao', [SuperintendenteController::class, 'distribuicao'], [Middleware::superintendente()]);
 $router->post('/superintendente/distribuicao/salvar', [SuperintendenteController::class, 'salvarDistribuicao'], [Middleware::superintendente()]);
+$router->get('/superintendente/distribuicao/historico', [SuperintendenteController::class, 'historicoDistribuicao'], [Middleware::superintendente()]);
 $router->get('/superintendente/relatorios', [SuperintendenteController::class, 'relatorios'], [Middleware::superintendente()]);
 
 $router->get('/diretor/escala-mensal', [DiretorController::class, 'escalaMensal'], [Middleware::diretor()]);

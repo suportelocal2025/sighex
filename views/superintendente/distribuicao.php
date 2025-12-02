@@ -72,9 +72,10 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th style="width: 50%">Unidade</th>
-                            <th style="width: 30%">Valor a Distribuir (R$)</th>
-                            <th style="width: 20%">% do Total</th>
+                            <th style="width: 40%">Unidade</th>
+                            <th style="width: 25%">Valor a Distribuir (R$)</th>
+                            <th style="width: 15%">% do Total</th>
+                            <th style="width: 20%" class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -97,6 +98,12 @@
                                         <?= $valorDisponivel > 0 ? number_format(($u['valor_distribuido'] / $valorDisponivel) * 100, 1) : 0 ?>%
                                     </span>
                                 </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-info" 
+                                            onclick="verHistorico(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['nome'])) ?>')">
+                                        <i class="bi bi-clock-history me-1"></i>Histórico
+                                    </button>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -115,6 +122,7 @@
                                     <?= $valorDisponivel > 0 ? number_format(($totalDistribuido / $valorDisponivel) * 100, 1) : 0 ?>%
                                 </span>
                             </th>
+                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -179,4 +187,71 @@ function calcularTotais() {
 document.querySelectorAll('.valor-distribuicao').forEach(input => {
     input.addEventListener('input', calcularTotais);
 });
+
+function verHistorico(unidadeId, nomeUnidade) {
+    document.getElementById('historicoUnidadeNome').textContent = nomeUnidade;
+    document.getElementById('historicoConteudo').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Carregando histórico...</p></div>';
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalHistorico'));
+    modal.show();
+    
+    fetch(`/superintendente/distribuicao/historico?unidade_id=${unidadeId}&ano=<?= $ano ?>`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById('historicoConteudo').innerHTML = '<div class="alert alert-danger">Erro ao carregar histórico</div>';
+                return;
+            }
+            
+            if (data.historico.length === 0) {
+                document.getElementById('historicoConteudo').innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Nenhum registro de aporte encontrado para esta unidade em ' + data.ano + '.</div>';
+                return;
+            }
+            
+            let html = '<table class="table table-sm table-striped">';
+            html += '<thead><tr><th>Data/Hora</th><th>Tipo</th><th>Valor Anterior</th><th>Valor Novo</th><th>Diferença</th></tr></thead><tbody>';
+            
+            data.historico.forEach(h => {
+                const dataFormatada = new Date(h.created_at).toLocaleString('pt-BR');
+                const tipoLabel = h.tipo === 'adicao' ? '<span class="badge bg-success">Adição</span>' : '<span class="badge bg-warning text-dark">Edição</span>';
+                const valorAnterior = parseFloat(h.valor_anterior) || 0;
+                const valorNovo = parseFloat(h.valor_novo) || 0;
+                const diferenca = valorNovo - valorAnterior;
+                const diferencaClass = diferenca >= 0 ? 'text-success' : 'text-danger';
+                const diferencaPrefix = diferenca >= 0 ? '+' : '';
+                
+                html += '<tr>';
+                html += '<td>' + dataFormatada + '</td>';
+                html += '<td>' + tipoLabel + '</td>';
+                html += '<td>R$ ' + valorAnterior.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>';
+                html += '<td>R$ ' + valorNovo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>';
+                html += '<td class="' + diferencaClass + ' fw-bold">' + diferencaPrefix + 'R$ ' + diferenca.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            document.getElementById('historicoConteudo').innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById('historicoConteudo').innerHTML = '<div class="alert alert-danger">Erro ao carregar histórico: ' + err.message + '</div>';
+        });
+}
 </script>
+
+<div class="modal fade" id="modalHistorico" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-clock-history me-2"></i>Histórico de Aportes - <span id="historicoUnidadeNome"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="historicoConteudo">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>

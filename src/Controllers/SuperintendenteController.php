@@ -172,4 +172,35 @@ class SuperintendenteController {
             'titulo' => 'Relatórios'
         ]);
     }
+    
+    public function historicoDistribuicao(): void {
+        $unidadeId = (int)($_GET['unidade_id'] ?? 0);
+        $ano = (int)($_GET['ano'] ?? date('Y'));
+        
+        $unidade = $this->db->fetch("SELECT nome FROM unidades WHERE id = :id", ['id' => $unidadeId]);
+        
+        if (!$unidade) {
+            View::json(['success' => false, 'message' => 'Unidade não encontrada']);
+            return;
+        }
+        
+        $historico = $this->db->fetchAll("
+            SELECT 
+                id,
+                valor_anterior,
+                valor_novo,
+                tipo,
+                created_at
+            FROM log_distribuicao 
+            WHERE unidade_id = :uid AND ano = :ano
+            ORDER BY created_at DESC
+        ", ['uid' => $unidadeId, 'ano' => $ano]);
+        
+        View::json([
+            'success' => true,
+            'unidade' => $unidade['nome'],
+            'ano' => $ano,
+            'historico' => $historico
+        ]);
+    }
 }

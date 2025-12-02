@@ -163,7 +163,7 @@ class DashboardController {
             FROM escalas e
             JOIN unidades u ON e.unidade_id = u.id
             WHERE e.ano = :ano {$whereStatus}
-            ORDER BY e.enviado_em DESC NULLS LAST, e.mes DESC
+            ORDER BY CASE WHEN e.enviado_em IS NULL THEN 1 ELSE 0 END, e.enviado_em DESC, e.mes DESC
         ", ['ano' => $ano]);
         
         $estatisticas = [

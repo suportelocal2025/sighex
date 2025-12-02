@@ -13,116 +13,127 @@ foreach ($alocacoes as $a) {
 ?>
 
 <style>
+.calendario-container {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: auto;
+}
 .dia-cell {
-    width: 38px;
-    height: 38px;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     position: relative;
+    background-color: #fff;
+    color: #374151;
 }
 .dia-cell:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
     z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 .dia-cell.dia-semana {
-    background-color: #f8f9fa;
+    background-color: #fff;
 }
 .dia-cell.sabado {
-    background-color: #fff3cd;
-    border-color: #ffc107;
+    background-color: #fafafa;
+    border-color: #d1d5db;
+    color: #6b7280;
 }
 .dia-cell.domingo {
-    background-color: #f8d7da;
-    border-color: #dc3545;
+    background-color: #f5f5f5;
+    border-color: #9ca3af;
+    color: #6b7280;
+    font-weight: 500;
 }
 .dia-cell.feriado {
-    background-color: #d1e7dd;
-    border-color: #198754;
+    background-color: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
 }
 .dia-cell.selecionado {
-    background-color: #0d6efd !important;
+    background-color: #3b82f6 !important;
     color: white !important;
-    border-color: #0d6efd !important;
-    font-weight: bold;
+    border-color: #2563eb !important;
+    font-weight: 600;
 }
 .dia-cell.alocado {
-    background-color: #6f42c1 !important;
+    background-color: #1e3a5f !important;
     color: white !important;
-    border-color: #6f42c1 !important;
-}
-.dia-cell.alocado-outro {
-    background-color: #fd7e14 !important;
-    color: white !important;
-    border-color: #fd7e14 !important;
+    border-color: #1e3a5f !important;
 }
 .servidor-row {
-    transition: background-color 0.2s;
+    transition: background-color 0.15s ease;
 }
 .servidor-row:hover {
-    background-color: #f0f7ff;
+    background-color: #f8fafc;
 }
 .servidor-row.selecionado {
-    background-color: #e3f2fd;
+    background-color: #eff6ff;
 }
 .horas-badge {
-    font-size: 0.75rem;
-    min-width: 45px;
+    font-size: 0.7rem;
+    min-width: 40px;
 }
 .legenda-item {
     display: inline-flex;
     align-items: center;
-    margin-right: 15px;
-    font-size: 0.85rem;
+    margin-right: 12px;
+    font-size: 0.8rem;
+    color: #6b7280;
 }
 .legenda-cor {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    margin-right: 5px;
-}
-.calendario-header {
-    position: sticky;
-    top: 0;
-    background: white;
-    z-index: 100;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: 4px;
 }
 .servidor-info {
-    min-width: 200px;
-    max-width: 200px;
+    min-width: 180px;
+    max-width: 180px;
 }
 .dias-container {
     display: flex;
     gap: 2px;
     flex-wrap: nowrap;
-    overflow-x: auto;
 }
 .form-alocacao {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    padding: 1.5rem;
-    color: white;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.25rem;
 }
 .form-alocacao .form-label {
-    color: rgba(255,255,255,0.9);
+    color: #475569;
     font-weight: 500;
+    font-size: 0.85rem;
 }
-.form-alocacao .form-select, .form-alocacao .form-control {
-    background-color: rgba(255,255,255,0.95);
+.card-stat {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.table-calendario th {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.2rem;
+}
+.table-calendario td {
+    padding: 0.25rem;
 }
 </style>
 
-<div class="row mb-4">
+<div class="row g-3 mb-4">
     <div class="col-md-6">
-        <div class="card p-3">
+        <div class="card border-0 shadow-sm p-3">
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 <div>
-                    <label class="form-label mb-0 small">Mês</label>
+                    <label class="form-label mb-0 small text-muted">Mês</label>
                     <select class="form-select form-select-sm" id="selectMes" onchange="alterarPeriodo()">
                         <?php foreach ($meses as $i => $m): ?>
                             <option value="<?= $i + 1 ?>" <?= ($i + 1) == $mes ? 'selected' : '' ?>><?= $m ?></option>
@@ -130,7 +141,7 @@ foreach ($alocacoes as $a) {
                     </select>
                 </div>
                 <div>
-                    <label class="form-label mb-0 small">Ano</label>
+                    <label class="form-label mb-0 small text-muted">Ano</label>
                     <select class="form-select form-select-sm" id="selectAno" onchange="alterarPeriodo()">
                         <?php for ($y = date('Y') - 1; $y <= date('Y') + 1; $y++): ?>
                             <option value="<?= $y ?>" <?= $y == $ano ? 'selected' : '' ?>><?= $y ?></option>
@@ -138,13 +149,17 @@ foreach ($alocacoes as $a) {
                     </select>
                 </div>
                 <div class="ms-auto">
-                    <span class="badge bg-<?= 
-                        $escala['status'] == 'rascunho' ? 'secondary' :
-                        ($escala['status'] == 'pendente' ? 'warning text-dark' :
-                        ($escala['status'] == 'aprovada' ? 'success' :
-                        ($escala['status'] == 'executada' ? 'info' : 'danger')))
-                    ?> fs-6 px-3 py-2">
-                        <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>
+                    <?php 
+                    $statusBadge = match($escala['status']) {
+                        'rascunho' => 'bg-secondary-subtle text-secondary',
+                        'pendente' => 'bg-warning-subtle text-warning',
+                        'aprovada' => 'bg-success-subtle text-success',
+                        'executada' => 'bg-primary-subtle text-primary',
+                        'rejeitada' => 'bg-danger-subtle text-danger',
+                        default => 'bg-secondary-subtle text-secondary'
+                    };
+                    ?>
+                    <span class="badge <?= $statusBadge ?> fs-6 px-3 py-2 fw-normal">
                         <?= ucfirst($escala['status']) ?>
                     </span>
                 </div>
@@ -152,54 +167,58 @@ foreach ($alocacoes as $a) {
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card p-3 bg-primary text-white h-100">
+        <div class="card border-0 shadow-sm p-3 h-100">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <small>Total de Horas</small>
-                    <h4 class="mb-0" id="totalHorasGeral"><?= number_format($escala['total_horas'], 0, ',', '.') ?>h</h4>
+                    <small class="text-muted">Total de Horas</small>
+                    <h4 class="mb-0 fw-bold" id="totalHorasGeral"><?= number_format($escala['total_horas'], 0, ',', '.') ?>h</h4>
                 </div>
-                <i class="bi bi-clock-history" style="font-size: 1.8rem;"></i>
+                <div class="rounded-circle bg-light p-2">
+                    <i class="bi bi-clock-history text-primary fs-5"></i>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card p-3 bg-success text-white h-100">
+        <div class="card border-0 shadow-sm p-3 h-100">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <small>Servidores Alocados</small>
-                    <h4 class="mb-0"><?= count($alocacoesPorServidor) ?></h4>
+                    <small class="text-muted">Servidores Alocados</small>
+                    <h4 class="mb-0 fw-bold"><?= count($alocacoesPorServidor) ?></h4>
                 </div>
-                <i class="bi bi-people-fill" style="font-size: 1.8rem;"></i>
+                <div class="rounded-circle bg-light p-2">
+                    <i class="bi bi-people-fill text-success fs-5"></i>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <?php if ($escala['status'] == 'rejeitada'): ?>
-<div class="alert alert-danger mb-4">
+<div class="alert alert-danger border-0 mb-4">
     <i class="bi bi-exclamation-triangle-fill me-2"></i>
     <strong>Escala Rejeitada:</strong> <?= htmlspecialchars($escala['motivo_rejeicao']) ?>
 </div>
 <?php endif; ?>
 
-<div class="card mb-4">
-    <div class="card-header bg-white py-2">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
-            <strong class="me-3"><i class="bi bi-info-circle me-1"></i> Legenda:</strong>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#f8f9fa; border:1px solid #dee2e6;"></span> Dia útil</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#fff3cd; border:1px solid #ffc107;"></span> Sábado</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#f8d7da; border:1px solid #dc3545;"></span> Domingo</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#d1e7dd; border:1px solid #198754;"></span> Feriado</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#0d6efd;"></span> Selecionado</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#6f42c1;"></span> Alocado</span>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <strong class="text-muted small me-2"><i class="bi bi-info-circle me-1"></i> Legenda:</strong>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#fff; border:1px solid #e5e7eb;"></span> Dia útil</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#fafafa; border:1px solid #d1d5db;"></span> Sábado</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#f5f5f5; border:1px solid #9ca3af;"></span> Domingo</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#f0fdf4; border:1px solid #86efac;"></span> Feriado</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#3b82f6;"></span> Selecionado</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#1e3a5f;"></span> Alocado</span>
         </div>
     </div>
 </div>
 
 <?php if ($escala['status'] == 'rascunho'): ?>
-<div class="card mb-4">
+<div class="card border-0 shadow-sm mb-4">
     <div class="card-body form-alocacao">
-        <h5 class="mb-3"><i class="bi bi-plus-circle me-2"></i>Alocar Servidor</h5>
+        <h6 class="mb-3 fw-semibold text-dark"><i class="bi bi-plus-circle me-2"></i>Alocar Servidor</h6>
         <form id="formAlocacao">
             <input type="hidden" name="escala_id" value="<?= $escala['id'] ?>">
             <input type="hidden" name="dias" id="diasSelecionados" value="">
@@ -207,7 +226,7 @@ foreach ($alocacoes as $a) {
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Servidor</label>
-                    <select name="servidor_id" id="servidorSelect" class="form-select" required onchange="carregarAlocacoesServidor()">
+                    <select name="servidor_id" id="servidorSelect" class="form-select form-select-sm" required onchange="carregarAlocacoesServidor()">
                         <option value="">Selecione um servidor...</option>
                         <?php foreach ($servidores as $s): ?>
                             <option value="<?= $s['id'] ?>" data-horas="<?= $horasMap[$s['id']] ?? 0 ?>">
@@ -218,7 +237,7 @@ foreach ($alocacoes as $a) {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Equipe</label>
-                    <select name="equipe_id" id="equipeSelect" class="form-select" required>
+                    <select name="equipe_id" id="equipeSelect" class="form-select form-select-sm" required>
                         <option value="">Selecione...</option>
                         <?php foreach ($equipes as $e): ?>
                             <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['nome']) ?></option>
@@ -227,7 +246,7 @@ foreach ($alocacoes as $a) {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Módulo/Raio</label>
-                    <select name="modulo_id" id="moduloSelect" class="form-select" required>
+                    <select name="modulo_id" id="moduloSelect" class="form-select form-select-sm" required>
                         <option value="">Selecione...</option>
                         <?php foreach ($modulos as $m): ?>
                             <option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['nome']) ?></option>
@@ -236,20 +255,20 @@ foreach ($alocacoes as $a) {
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Horas</label>
-                    <input type="number" name="horas" id="horasInput" class="form-control" min="1" max="24" step="1" value="12" required>
+                    <input type="number" name="horas" id="horasInput" class="form-control form-control-sm" min="1" max="24" step="1" value="12" required>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Abono</label>
-                    <input type="number" name="horas_abono" class="form-control" min="0" max="24" step="1" value="0">
+                    <input type="number" name="horas_abono" class="form-control form-control-sm" min="0" max="24" step="1" value="0">
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Líder</label>
-                    <div class="form-check mt-2">
-                        <input type="checkbox" name="is_lider" value="1" class="form-check-input" style="width:24px; height:24px;">
+                    <div class="form-check mt-1">
+                        <input type="checkbox" name="is_lider" value="1" class="form-check-input" style="width:20px; height:20px;">
                     </div>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-light w-100 fw-bold" id="btnAlocar" disabled>
+                    <button type="submit" class="btn btn-primary btn-sm w-100" id="btnAlocar" disabled>
                         <i class="bi bi-check-lg me-1"></i> Alocar
                     </button>
                 </div>
@@ -257,18 +276,18 @@ foreach ($alocacoes as $a) {
             
             <div class="row mt-3">
                 <div class="col-12">
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <span id="diasSelecionadosInfo" class="badge bg-light text-dark fs-6">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span id="diasSelecionadosInfo" class="badge bg-light text-dark border">
                             <i class="bi bi-calendar3 me-1"></i> Nenhum dia selecionado
                         </span>
-                        <span id="horasServidorInfo" class="badge bg-warning text-dark fs-6" style="display:none;">
+                        <span id="horasServidorInfo" class="badge bg-light text-dark border" style="display:none;">
                             <i class="bi bi-clock me-1"></i> <span id="horasAtuais">0</span>h / 60h utilizadas
                         </span>
-                        <span id="horasProjetadasInfo" class="badge bg-info text-dark fs-6" style="display:none;">
+                        <span id="horasProjetadasInfo" class="badge bg-primary-subtle text-primary border" style="display:none;">
                             <i class="bi bi-calculator me-1"></i> +<span id="horasProjetadas">0</span>h projetadas
                         </span>
-                        <button type="button" class="btn btn-outline-light btn-sm ms-auto" onclick="limparSelecao()">
-                            <i class="bi bi-x-lg me-1"></i> Limpar Seleção
+                        <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" onclick="limparSelecao()">
+                            <i class="bi bi-x-lg me-1"></i> Limpar
                         </button>
                     </div>
                 </div>
@@ -278,11 +297,11 @@ foreach ($alocacoes as $a) {
 </div>
 <?php endif; ?>
 
-<div class="card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
-        <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Calendário de <?= $mesNome ?>/<?= $ano ?></h5>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 border-0">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-calendar3 me-2"></i>Calendário de <?= $mesNome ?>/<?= $ano ?></h6>
         <div>
-            <button class="btn btn-outline-primary btn-sm me-2" onclick="imprimirEscala()">
+            <button class="btn btn-outline-secondary btn-sm me-2" onclick="imprimirEscala()">
                 <i class="bi bi-printer me-1"></i> Imprimir
             </button>
             <?php if ($escala['status'] == 'rascunho' && count($alocacoes) > 0): ?>
@@ -293,22 +312,22 @@ foreach ($alocacoes as $a) {
         </div>
     </div>
     
-    <div class="table-responsive">
-        <table class="table table-sm mb-0" id="tabelaCalendario">
-            <thead class="calendario-header">
+    <div class="calendario-container">
+        <table class="table table-sm table-calendario mb-0" id="tabelaCalendario">
+            <thead class="sticky-top bg-white">
                 <tr>
-                    <th class="servidor-info bg-light">Servidor</th>
-                    <th class="text-center bg-light" style="min-width:50px;">Horas</th>
+                    <th class="servidor-info bg-light text-muted">Servidor</th>
+                    <th class="text-center bg-light text-muted" style="min-width:45px;">Horas</th>
                     <?php for ($d = 1; $d <= $diasNoMes; $d++): 
                         $info = $diasInfo[$d];
-                        $classeHeader = '';
+                        $classeHeader = 'bg-white';
                         if ($info['isFeriado']) $classeHeader = 'bg-success-subtle';
-                        elseif ($info['diaSemana'] == 0) $classeHeader = 'bg-danger-subtle';
-                        elseif ($info['diaSemana'] == 6) $classeHeader = 'bg-warning-subtle';
+                        elseif ($info['diaSemana'] == 0) $classeHeader = 'bg-light';
+                        elseif ($info['diaSemana'] == 6) $classeHeader = 'bg-light';
                     ?>
-                        <th class="text-center <?= $classeHeader ?>" style="min-width:40px;" 
+                        <th class="text-center <?= $classeHeader ?> text-muted" style="min-width:34px;" 
                             title="<?= $info['isFeriado'] ? $info['nomeFeriado'] : '' ?>">
-                            <small class="d-block text-muted"><?= $info['nomeDia'] ?></small>
+                            <small class="d-block" style="font-size:0.65rem;"><?= $info['nomeDia'] ?></small>
                             <?= $d ?>
                         </th>
                     <?php endfor; ?>
@@ -318,7 +337,7 @@ foreach ($alocacoes as $a) {
                 <?php if (empty($servidores)): ?>
                 <tr>
                     <td colspan="<?= $diasNoMes + 2 ?>" class="text-center py-4 text-muted">
-                        <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+                        <i class="bi bi-person-x fs-1 d-block mb-2 opacity-50"></i>
                         Nenhum servidor disponível para alocação
                     </td>
                 </tr>
@@ -329,10 +348,10 @@ foreach ($alocacoes as $a) {
                 ?>
                 <tr class="servidor-row" data-servidor-id="<?= $s['id'] ?>">
                     <td class="servidor-info">
-                        <div class="fw-medium text-truncate" title="<?= htmlspecialchars($s['nome']) ?>">
+                        <div class="fw-medium text-truncate small" title="<?= htmlspecialchars($s['nome']) ?>">
                             <?= htmlspecialchars($s['nome']) ?>
                         </div>
-                        <small class="text-muted"><?= $s['matricula'] ?></small>
+                        <small class="text-muted" style="font-size:0.7rem;"><?= $s['matricula'] ?></small>
                     </td>
                     <td class="text-center">
                         <span class="badge horas-badge <?= $horasServidor >= 60 ? 'bg-danger' : ($horasServidor >= 48 ? 'bg-warning text-dark' : 'bg-secondary') ?>" 
@@ -364,7 +383,7 @@ foreach ($alocacoes as $a) {
                                  onclick="<?= $escala['status'] == 'rascunho' ? 'toggleDia(this)' : '' ?>">
                                 <?= $d ?>
                                 <?php if ($alocacao && $alocacao['is_lider']): ?>
-                                    <i class="bi bi-star-fill position-absolute" style="font-size:0.5rem; top:2px; right:2px; color:#ffc107;"></i>
+                                    <i class="bi bi-star-fill position-absolute" style="font-size:0.45rem; top:1px; right:1px; color:#fbbf24;"></i>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -380,18 +399,18 @@ foreach ($alocacoes as $a) {
 <div class="modal fade" id="modalConflito" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Servidor já alocado</h5>
+            <div class="modal-header bg-warning-subtle border-0">
+                <h6 class="modal-title fw-semibold"><i class="bi bi-exclamation-triangle me-2"></i>Servidor já alocado</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>O servidor já está alocado em outro local para os seguintes dias:</p>
+                <p class="text-muted">O servidor já está alocado em outro local para os seguintes dias:</p>
                 <div id="conflitosList" class="mb-3"></div>
-                <p>O que deseja fazer?</p>
+                <p class="mb-0">O que deseja fazer?</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-warning" onclick="confirmarMover()">
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" onclick="confirmarMover()">
                     <i class="bi bi-arrow-right-circle me-1"></i> Mover para novo local
                 </button>
             </div>
@@ -459,13 +478,16 @@ function atualizarInfoDias() {
     const diasArray = Array.from(diasSelecionados).sort((a,b) => a-b);
     const info = document.getElementById('diasSelecionadosInfo');
     const btn = document.getElementById('btnAlocar');
+    const servidor = document.getElementById('servidorSelect').value;
+    const equipe = document.getElementById('equipeSelect').value;
+    const modulo = document.getElementById('moduloSelect').value;
     
     if (diasArray.length === 0) {
         info.innerHTML = '<i class="bi bi-calendar3 me-1"></i> Nenhum dia selecionado';
         btn.disabled = true;
     } else {
         info.innerHTML = `<i class="bi bi-calendar-check me-1"></i> ${diasArray.length} dia(s): ${diasArray.join(', ')}`;
-        btn.disabled = !document.getElementById('servidorSelect').value;
+        btn.disabled = !(servidor && equipe && modulo);
     }
     
     document.getElementById('diasSelecionados').value = diasArray.join(',');
@@ -489,11 +511,11 @@ function calcularHorasProjetadas() {
         
         const horasAtuais = horasIniciais[servidorId] || 0;
         if (horasAtuais + horasProjetadas > limiteHoras) {
-            infoProjetadas.classList.remove('bg-info');
-            infoProjetadas.classList.add('bg-danger', 'text-white');
+            infoProjetadas.classList.remove('bg-primary-subtle', 'text-primary');
+            infoProjetadas.classList.add('bg-danger-subtle', 'text-danger');
         } else {
-            infoProjetadas.classList.remove('bg-danger', 'text-white');
-            infoProjetadas.classList.add('bg-info');
+            infoProjetadas.classList.remove('bg-danger-subtle', 'text-danger');
+            infoProjetadas.classList.add('bg-primary-subtle', 'text-primary');
         }
     } else {
         infoProjetadas.style.display = 'none';
@@ -595,7 +617,7 @@ async function enviarAlocacao(forcarMover) {
 function mostrarModalConflito(conflitos) {
     const lista = document.getElementById('conflitosList');
     lista.innerHTML = conflitos.map(c => `
-        <div class="alert alert-warning py-2 mb-2">
+        <div class="alert alert-warning py-2 mb-2 border-0">
             <strong>Dia ${c.dia}:</strong> ${c.equipe_atual} - ${c.modulo_atual}
         </div>
     `).join('');
@@ -610,6 +632,8 @@ function confirmarMover() {
 
 document.getElementById('horasInput')?.addEventListener('change', calcularHorasProjetadas);
 document.querySelector('[name="horas_abono"]')?.addEventListener('change', calcularHorasProjetadas);
+document.getElementById('equipeSelect')?.addEventListener('change', atualizarInfoDias);
+document.getElementById('moduloSelect')?.addEventListener('change', atualizarInfoDias);
 
 function imprimirEscala() {
     window.print();

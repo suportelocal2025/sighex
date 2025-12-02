@@ -498,7 +498,8 @@ function atualizarInfoDias() {
         if (btn) btn.disabled = true;
     } else {
         info.innerHTML = `<i class="bi bi-calendar-check me-1"></i> ${diasArray.length} dia(s): ${diasArray.join(', ')}`;
-        if (btn) btn.disabled = !(servidor && equipe && modulo);
+        const podeAlocar = servidor && servidor !== '' && equipe && equipe !== '' && modulo && modulo !== '';
+        if (btn) btn.disabled = !podeAlocar;
     }
     
     document.getElementById('diasSelecionados').value = diasArray.join(',');
@@ -659,8 +660,13 @@ function confirmarMover() {
 
 document.getElementById('horasInput')?.addEventListener('change', calcularHorasProjetadas);
 document.querySelector('[name="horas_abono"]')?.addEventListener('change', calcularHorasProjetadas);
+document.getElementById('servidorSelect')?.addEventListener('change', atualizarInfoDias);
 document.getElementById('equipeSelect')?.addEventListener('change', atualizarInfoDias);
 document.getElementById('moduloSelect')?.addEventListener('change', atualizarInfoDias);
+
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarInfoDias();
+});
 
 function imprimirEscala() {
     window.print();

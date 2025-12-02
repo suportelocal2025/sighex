@@ -4,24 +4,49 @@ namespace App\Config;
 class Database {
     private static $instance = null;
     private $connection;
+    private $driver = 'pgsql';
     
     private function __construct() {
-        $host = getenv('PGHOST');
-        $port = getenv('PGPORT');
-        $dbname = getenv('PGDATABASE');
-        $user = getenv('PGUSER');
-        $password = getenv('PGPASSWORD');
+        $configFile = __DIR__ . '/../../config/database.php';
         
-        try {
-            $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
-            $this->connection = new \PDO($dsn, $user, $password, [
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \PDO::ATTR_EMULATE_PREPARES => false
-            ]);
-        } catch (\PDOException $e) {
-            die("Erro de conexão com o banco de dados: " . $e->getMessage());
+        if (file_exists($configFile) && !getenv('PGHOST')) {
+            $config = require $configFile;
+            $this->driver = 'mysql';
+            
+            try {
+                $dsn = "mysql:host={$config['host']};dbname={$config['database']};charset={$config['charset']}";
+                $this->connection = new \PDO($dsn, $config['username'], $config['password'], [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                    \PDO::ATTR_EMULATE_PREPARES => false,
+                    \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$config['charset']} COLLATE {$config['collation']}"
+                ]);
+            } catch (\PDOException $e) {
+                die("Erro de conexão com o banco de dados MySQL: " . $e->getMessage());
+            }
+        } else {
+            $host = getenv('PGHOST');
+            $port = getenv('PGPORT');
+            $dbname = getenv('PGDATABASE');
+            $user = getenv('PGUSER');
+            $password = getenv('PGPASSWORD');
+            $this->driver = 'pgsql';
+            
+            try {
+                $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
+                $this->connection = new \PDO($dsn, $user, $password, [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                    \PDO::ATTR_EMULATE_PREPARES => false
+                ]);
+            } catch (\PDOException $e) {
+                die("Erro de conexão com o banco de dados: " . $e->getMessage());
+            }
         }
+    }
+    
+    public function getDriver(): string {
+        return $this->driver;
     }
     
     public static function getInstance(): self {
@@ -53,10 +78,16 @@ class Database {
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
         
-        $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders}) RETURNING id";
-        $stmt = $this->query($sql, $data);
-        $result = $stmt->fetch();
-        return $result['id'] ?? 0;
+        if ($this->driver === 'mysql') {
+            $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
+            $this->query($sql, $data);
+            return (int)$this->connection->lastInsertId();
+        } else {
+            $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders}) RETURNING id";
+            $stmt = $this->query($sql, $data);
+            $result = $stmt->fetch();
+            return $result['id'] ?? 0;
+        }
     }
     
     public function update(string $table, array $data, string $where, array $whereParams = []): int {

@@ -10,6 +10,8 @@ foreach ($alocacoes as $a) {
     }
     $alocacoesPorServidor[$a['servidor_id']][$a['dia']] = $a;
 }
+
+$podeEditar = in_array($escala['status'], ['rascunho', 'rejeitada']);
 ?>
 
 <style>
@@ -43,20 +45,19 @@ foreach ($alocacoes as $a) {
     background-color: #fff;
 }
 .dia-cell.sabado {
-    background-color: #fafafa;
-    border-color: #d1d5db;
-    color: #6b7280;
+    background-color: #fef9c3;
+    border-color: #fde047;
+    color: #854d0e;
 }
 .dia-cell.domingo {
-    background-color: #f5f5f5;
-    border-color: #9ca3af;
-    color: #6b7280;
-    font-weight: 500;
+    background-color: #fed7aa;
+    border-color: #fdba74;
+    color: #9a3412;
 }
 .dia-cell.feriado {
-    background-color: #f0fdf4;
-    border-color: #86efac;
-    color: #166534;
+    background-color: #fecaca;
+    border-color: #fca5a5;
+    color: #991b1b;
 }
 .dia-cell.selecionado {
     background-color: #3b82f6 !important;
@@ -148,7 +149,7 @@ foreach ($alocacoes as $a) {
                         <?php endfor; ?>
                     </select>
                 </div>
-                <div class="ms-auto">
+                <div class="ms-auto d-flex gap-2 align-items-center">
                     <?php 
                     $statusBadge = match($escala['status']) {
                         'rascunho' => 'bg-secondary-subtle text-secondary',
@@ -162,6 +163,11 @@ foreach ($alocacoes as $a) {
                     <span class="badge <?= $statusBadge ?> fs-6 px-3 py-2 fw-normal">
                         <?= ucfirst($escala['status']) ?>
                     </span>
+                    <?php if ($escala['status'] == 'rejeitada'): ?>
+                    <a href="/diretor/escala/reabrir?mes=<?= $mes ?>&ano=<?= $ano ?>" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-pencil me-1"></i> Editar
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -195,9 +201,14 @@ foreach ($alocacoes as $a) {
 </div>
 
 <?php if ($escala['status'] == 'rejeitada'): ?>
-<div class="alert alert-danger border-0 mb-4">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-    <strong>Escala Rejeitada:</strong> <?= htmlspecialchars($escala['motivo_rejeicao']) ?>
+<div class="alert alert-danger border-0 mb-4 d-flex align-items-center justify-content-between">
+    <div>
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Escala Rejeitada:</strong> <?= htmlspecialchars($escala['motivo_rejeicao']) ?>
+    </div>
+    <a href="/diretor/escala/reabrir?mes=<?= $mes ?>&ano=<?= $ano ?>" class="btn btn-danger btn-sm">
+        <i class="bi bi-pencil me-1"></i> Editar e Corrigir
+    </a>
 </div>
 <?php endif; ?>
 
@@ -206,16 +217,16 @@ foreach ($alocacoes as $a) {
         <div class="d-flex flex-wrap gap-3 align-items-center">
             <strong class="text-muted small me-2"><i class="bi bi-info-circle me-1"></i> Legenda:</strong>
             <span class="legenda-item"><span class="legenda-cor" style="background:#fff; border:1px solid #e5e7eb;"></span> Dia útil</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#fafafa; border:1px solid #d1d5db;"></span> Sábado</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#f5f5f5; border:1px solid #9ca3af;"></span> Domingo</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#f0fdf4; border:1px solid #86efac;"></span> Feriado</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#fef9c3; border:1px solid #fde047;"></span> Sábado</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#fed7aa; border:1px solid #fdba74;"></span> Domingo</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#fecaca; border:1px solid #fca5a5;"></span> Feriado</span>
             <span class="legenda-item"><span class="legenda-cor" style="background:#3b82f6;"></span> Selecionado</span>
             <span class="legenda-item"><span class="legenda-cor" style="background:#1e3a5f;"></span> Alocado</span>
         </div>
     </div>
 </div>
 
-<?php if ($escala['status'] == 'rascunho'): ?>
+<?php if ($podeEditar): ?>
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body form-alocacao">
         <h6 class="mb-3 fw-semibold text-dark"><i class="bi bi-plus-circle me-2"></i>Alocar Servidor</h6>
@@ -304,9 +315,9 @@ foreach ($alocacoes as $a) {
             <button class="btn btn-outline-secondary btn-sm me-2" onclick="imprimirEscala()">
                 <i class="bi bi-printer me-1"></i> Imprimir
             </button>
-            <?php if ($escala['status'] == 'rascunho' && count($alocacoes) > 0): ?>
+            <?php if ($podeEditar && count($alocacoes) > 0): ?>
             <a href="/diretor/enviar-escala?mes=<?= $mes ?>&ano=<?= $ano ?>" class="btn btn-success btn-sm">
-                <i class="bi bi-send me-1"></i> Enviar para Aprovação
+                <i class="bi bi-send me-1"></i> <?= $escala['status'] == 'rejeitada' ? 'Re-Enviar para Aprovação' : 'Enviar para Aprovação' ?>
             </a>
             <?php endif; ?>
         </div>
@@ -321,11 +332,11 @@ foreach ($alocacoes as $a) {
                     <?php for ($d = 1; $d <= $diasNoMes; $d++): 
                         $info = $diasInfo[$d];
                         $classeHeader = 'bg-white';
-                        if ($info['isFeriado']) $classeHeader = 'bg-success-subtle';
-                        elseif ($info['diaSemana'] == 0) $classeHeader = 'bg-light';
-                        elseif ($info['diaSemana'] == 6) $classeHeader = 'bg-light';
+                        if ($info['isFeriado']) $classeHeader = 'bg-red-50';
+                        elseif ($info['diaSemana'] == 0) $classeHeader = 'bg-orange-50';
+                        elseif ($info['diaSemana'] == 6) $classeHeader = 'bg-yellow-50';
                     ?>
-                        <th class="text-center <?= $classeHeader ?> text-muted" style="min-width:34px;" 
+                        <th class="text-center text-muted" style="min-width:34px; <?= $info['isFeriado'] ? 'background:#fef2f2;' : ($info['diaSemana'] == 0 ? 'background:#fff7ed;' : ($info['diaSemana'] == 6 ? 'background:#fefce8;' : '')) ?>" 
                             title="<?= $info['isFeriado'] ? $info['nomeFeriado'] : '' ?>">
                             <small class="d-block" style="font-size:0.65rem;"><?= $info['nomeDia'] ?></small>
                             <?= $d ?>
@@ -380,7 +391,7 @@ foreach ($alocacoes as $a) {
                                  data-modulo="<?= $alocacao['modulo_id'] ?? '' ?>"
                                  data-horas="<?= $alocacao['horas'] ?? '' ?>"
                                  title="<?= $alocacao ? 'Alocado: ' . number_format($alocacao['horas'], 0) . 'h' : ($info['isFeriado'] ? $info['nomeFeriado'] : $info['nomeDia'] . ', dia ' . $d) ?>"
-                                 onclick="<?= $escala['status'] == 'rascunho' ? 'toggleDia(this)' : '' ?>">
+                                 onclick="<?= $podeEditar ? 'toggleDia(this)' : '' ?>">
                                 <?= $d ?>
                                 <?php if ($alocacao && $alocacao['is_lider']): ?>
                                     <i class="bi bi-star-fill position-absolute" style="font-size:0.45rem; top:1px; right:1px; color:#fbbf24;"></i>
@@ -421,7 +432,7 @@ foreach ($alocacoes as $a) {
 <script>
 const escalaId = <?= $escala['id'] ?>;
 const limiteHoras = <?= $limiteHoras ?>;
-const statusEscala = '<?= $escala['status'] ?>';
+const podeEditar = <?= $podeEditar ? 'true' : 'false' ?>;
 let diasSelecionados = new Set();
 let servidorSelecionado = null;
 let conflitosAtuais = [];
@@ -439,7 +450,7 @@ function alterarPeriodo() {
 }
 
 function toggleDia(el) {
-    if (statusEscala !== 'rascunho') return;
+    if (!podeEditar) return;
     
     const dia = parseInt(el.dataset.dia);
     const servidorId = parseInt(el.dataset.servidor);
@@ -478,16 +489,16 @@ function atualizarInfoDias() {
     const diasArray = Array.from(diasSelecionados).sort((a,b) => a-b);
     const info = document.getElementById('diasSelecionadosInfo');
     const btn = document.getElementById('btnAlocar');
-    const servidor = document.getElementById('servidorSelect').value;
-    const equipe = document.getElementById('equipeSelect').value;
-    const modulo = document.getElementById('moduloSelect').value;
+    const servidor = document.getElementById('servidorSelect')?.value;
+    const equipe = document.getElementById('equipeSelect')?.value;
+    const modulo = document.getElementById('moduloSelect')?.value;
     
     if (diasArray.length === 0) {
         info.innerHTML = '<i class="bi bi-calendar3 me-1"></i> Nenhum dia selecionado';
-        btn.disabled = true;
+        if (btn) btn.disabled = true;
     } else {
         info.innerHTML = `<i class="bi bi-calendar-check me-1"></i> ${diasArray.length} dia(s): ${diasArray.join(', ')}`;
-        btn.disabled = !(servidor && equipe && modulo);
+        if (btn) btn.disabled = !(servidor && equipe && modulo);
     }
     
     document.getElementById('diasSelecionados').value = diasArray.join(',');
@@ -495,15 +506,23 @@ function atualizarInfoDias() {
 }
 
 function calcularHorasProjetadas() {
-    const servidorId = document.getElementById('servidorSelect').value;
-    const horas = parseFloat(document.getElementById('horasInput').value) || 0;
-    const abono = parseFloat(document.querySelector('[name="horas_abono"]').value) || 0;
+    const servidorSelect = document.getElementById('servidorSelect');
+    const horasInput = document.getElementById('horasInput');
+    const abonoInput = document.querySelector('[name="horas_abono"]');
+    
+    if (!servidorSelect || !horasInput) return;
+    
+    const servidorId = servidorSelect.value;
+    const horas = parseFloat(horasInput.value) || 0;
+    const abono = parseFloat(abonoInput?.value) || 0;
     const totalPorDia = horas + abono;
     const diasCount = diasSelecionados.size;
     const horasProjetadas = diasCount * totalPorDia;
     
     const infoProjetadas = document.getElementById('horasProjetadasInfo');
     const spanProjetadas = document.getElementById('horasProjetadas');
+    
+    if (!infoProjetadas || !spanProjetadas) return;
     
     if (diasCount > 0 && servidorId) {
         infoProjetadas.style.display = 'inline-flex';
@@ -524,20 +543,25 @@ function calcularHorasProjetadas() {
 
 function carregarAlocacoesServidor() {
     const select = document.getElementById('servidorSelect');
+    if (!select) return;
+    
     const servidorId = select.value;
     
     limparSelecaoVisual();
     
     if (!servidorId) {
-        document.getElementById('horasServidorInfo').style.display = 'none';
+        const horasInfo = document.getElementById('horasServidorInfo');
+        if (horasInfo) horasInfo.style.display = 'none';
         return;
     }
     
     servidorSelecionado = servidorId;
     const horasAtuais = horasIniciais[servidorId] || 0;
     
-    document.getElementById('horasServidorInfo').style.display = 'inline-flex';
-    document.getElementById('horasAtuais').textContent = horasAtuais;
+    const horasInfo = document.getElementById('horasServidorInfo');
+    const horasAtuaisEl = document.getElementById('horasAtuais');
+    if (horasInfo) horasInfo.style.display = 'inline-flex';
+    if (horasAtuaisEl) horasAtuaisEl.textContent = horasAtuais;
     
     document.querySelectorAll('.servidor-row').forEach(row => {
         row.classList.remove('selecionado');
@@ -592,7 +616,10 @@ document.getElementById('formAlocacao')?.addEventListener('submit', async functi
 });
 
 async function enviarAlocacao(forcarMover) {
-    const form = new FormData(document.getElementById('formAlocacao'));
+    const formEl = document.getElementById('formAlocacao');
+    if (!formEl) return;
+    
+    const form = new FormData(formEl);
     if (forcarMover) {
         form.append('forcar_mover', '1');
     }

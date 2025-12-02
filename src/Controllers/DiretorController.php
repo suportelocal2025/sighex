@@ -153,7 +153,7 @@ class DiretorController {
         $dias = array_filter(array_map('intval', $dias));
         
         $escala = $this->db->fetch("SELECT * FROM escalas WHERE id = :id", ['id' => $escalaId]);
-        if (!$escala || $escala['status'] != 'rascunho') {
+        if (!$escala || !in_array($escala['status'], ['rascunho', 'rejeitada'])) {
             View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
             return;
         }
@@ -261,7 +261,7 @@ class DiretorController {
                 ['id' => $alocacaoId]
             );
             
-            if (!$alocacao || $alocacao['status'] != 'rascunho') {
+            if (!$alocacao || !in_array($alocacao['status'], ['rascunho', 'rejeitada'])) {
                 View::json(['success' => false, 'message' => 'Alocação não pode ser removida']);
                 return;
             }
@@ -271,7 +271,7 @@ class DiretorController {
             $servidorId = $alocacao['servidor_id'];
         } elseif ($servidorId > 0 && $escalaId > 0 && $dia > 0) {
             $escala = $this->db->fetch("SELECT status FROM escalas WHERE id = :id", ['id' => $escalaId]);
-            if (!$escala || $escala['status'] != 'rascunho') {
+            if (!$escala || !in_array($escala['status'], ['rascunho', 'rejeitada'])) {
                 View::json(['success' => false, 'message' => 'Escala não pode ser editada']);
                 return;
             }
@@ -382,7 +382,7 @@ class DiretorController {
             return;
         }
         
-        if ($escala['status'] != 'rascunho') {
+        if (!in_array($escala['status'], ['rascunho', 'rejeitada'])) {
             Session::flash('error', 'Esta escala não pode ser enviada');
             View::redirect('/diretor/enviar-escala?mes=' . $escala['mes'] . '&ano=' . $escala['ano']);
             return;
@@ -410,5 +410,36 @@ class DiretorController {
             'titulo' => 'Servidores da Unidade',
             'servidores' => $servidores
         ]);
+    }
+    
+    public function reabrirEscala(): void {
+        $unidadeId = Session::getUserUnidadeId();
+        $mes = (int)($_GET['mes'] ?? date('n'));
+        $ano = (int)($_GET['ano'] ?? date('Y'));
+        
+        $escala = $this->db->fetch(
+            "SELECT * FROM escalas WHERE unidade_id = :uid AND mes = :mes AND ano = :ano",
+            ['uid' => $unidadeId, 'mes' => $mes, 'ano' => $ano]
+        );
+        
+        if (!$escala) {
+            Session::flash('error', 'Escala não encontrada');
+            View::redirect('/diretor/escala-mensal?mes=' . $mes . '&ano=' . $ano);
+            return;
+        }
+        
+        if ($escala['status'] != 'rejeitada') {
+            Session::flash('error', 'Apenas escalas rejeitadas podem ser editadas');
+            View::redirect('/diretor/escala-mensal?mes=' . $mes . '&ano=' . $ano);
+            return;
+        }
+        
+        $this->db->update('escalas', [
+            'status' => 'rascunho',
+            'motivo_rejeicao' => null
+        ], 'id = :id', ['id' => $escala['id']]);
+        
+        Session::flash('success', 'Escala reaberta para edição. Faça as correções e envie novamente.');
+        View::redirect('/diretor/escala-mensal?mes=' . $mes . '&ano=' . $ano);
     }
 }

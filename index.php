@@ -66,6 +66,7 @@ $router->get('/diretor/escala/verificar-alocacao', [DiretorController::class, 'v
 $router->get('/diretor/enviar-escala', [DiretorController::class, 'enviarEscala'], [Middleware::diretor()]);
 $router->post('/diretor/escala/confirmar-envio', [DiretorController::class, 'confirmarEnvioEscala'], [Middleware::diretor()]);
 $router->get('/diretor/servidores', [DiretorController::class, 'servidores'], [Middleware::diretor()]);
+$router->get('/diretor/escala/reabrir', [DiretorController::class, 'reabrirEscala'], [Middleware::diretor()]);
 
 $router->get('/rh/escalas', [RhController::class, 'escalas'], [Middleware::rh()]);
 $router->get('/rh/escalas/{id}', [RhController::class, 'detalharEscala'], [Middleware::rh()]);

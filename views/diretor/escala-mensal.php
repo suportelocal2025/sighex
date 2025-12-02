@@ -220,7 +220,6 @@ $podeEditar = in_array($escala['status'], ['rascunho', 'rejeitada']);
             <span class="legenda-item"><span class="legenda-cor" style="background:#fef9c3; border:1px solid #fde047;"></span> Sábado</span>
             <span class="legenda-item"><span class="legenda-cor" style="background:#fed7aa; border:1px solid #fdba74;"></span> Domingo</span>
             <span class="legenda-item"><span class="legenda-cor" style="background:#fecaca; border:1px solid #fca5a5;"></span> Feriado</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#3b82f6;"></span> Selecionado</span>
             <span class="legenda-item"><span class="legenda-cor" style="background:#1e3a5f;"></span> Alocado</span>
         </div>
     </div>
@@ -229,81 +228,47 @@ $podeEditar = in_array($escala['status'], ['rascunho', 'rejeitada']);
 <?php if ($podeEditar): ?>
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body form-alocacao">
-        <h6 class="mb-3 fw-semibold text-dark"><i class="bi bi-plus-circle me-2"></i>Alocar Servidor</h6>
-        <form id="formAlocacao">
-            <input type="hidden" name="escala_id" value="<?= $escala['id'] ?>">
-            <input type="hidden" name="dias" id="diasSelecionados" value="">
-            
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Servidor</label>
-                    <select name="servidor_id" id="servidorSelect" class="form-select form-select-sm" required onchange="carregarAlocacoesServidor()">
-                        <option value="">Selecione um servidor...</option>
-                        <?php foreach ($servidores as $s): ?>
-                            <option value="<?= $s['id'] ?>" data-horas="<?= $horasMap[$s['id']] ?? 0 ?>">
-                                <?= htmlspecialchars($s['nome']) ?> (<?= $s['matricula'] ?>)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Equipe</label>
-                    <select name="equipe_id" id="equipeSelect" class="form-select form-select-sm" required>
-                        <option value="">Selecione...</option>
-                        <?php foreach ($equipes as $e): ?>
-                            <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['nome']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Módulo/Raio</label>
-                    <select name="modulo_id" id="moduloSelect" class="form-select form-select-sm" required>
-                        <option value="">Selecione...</option>
-                        <?php foreach ($modulos as $m): ?>
-                            <option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['nome']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">Horas</label>
-                    <input type="number" name="horas" id="horasInput" class="form-control form-control-sm" min="1" max="24" step="1" value="12" required>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">Abono</label>
-                    <input type="number" name="horas_abono" class="form-control form-control-sm" min="0" max="24" step="1" value="0">
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">Líder</label>
-                    <div class="form-check mt-1">
-                        <input type="checkbox" name="is_lider" value="1" class="form-check-input" style="width:20px; height:20px;">
-                    </div>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary btn-sm w-100" id="btnAlocar" disabled>
-                        <i class="bi bi-check-lg me-1"></i> Alocar
-                    </button>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0 fw-semibold text-dark"><i class="bi bi-hand-index me-2"></i>Montar Escala - Clique nos dias para alocar</h6>
+            <span class="badge bg-info-subtle text-info border">
+                <i class="bi bi-lightbulb me-1"></i> Selecione Equipe e Módulo, depois clique nos dias do calendário
+            </span>
+        </div>
+        
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Equipe <span class="text-danger">*</span></label>
+                <select name="equipe_id" id="equipeSelect" class="form-select form-select-sm" required>
+                    <option value="">Selecione a equipe...</option>
+                    <?php foreach ($equipes as $e): ?>
+                        <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['nome']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Módulo/Raio <span class="text-danger">*</span></label>
+                <select name="modulo_id" id="moduloSelect" class="form-select form-select-sm" required>
+                    <option value="">Selecione o módulo...</option>
+                    <?php foreach ($modulos as $m): ?>
+                        <option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['nome']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Horas por dia</label>
+                <input type="number" name="horas" id="horasInput" class="form-control form-control-sm" min="1" max="24" step="1" value="12">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Abono (h)</label>
+                <input type="number" name="horas_abono" class="form-control form-control-sm" min="0" max="24" step="1" value="0">
+            </div>
+            <div class="col-md-2">
+                <div class="form-check">
+                    <input type="checkbox" name="is_lider" value="1" class="form-check-input" id="checkLider">
+                    <label class="form-check-label" for="checkLider">Marcar como Líder</label>
                 </div>
             </div>
-            
-            <div class="row mt-3">
-                <div class="col-12">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span id="diasSelecionadosInfo" class="badge bg-light text-dark border">
-                            <i class="bi bi-calendar3 me-1"></i> Nenhum dia selecionado
-                        </span>
-                        <span id="horasServidorInfo" class="badge bg-light text-dark border" style="display:none;">
-                            <i class="bi bi-clock me-1"></i> <span id="horasAtuais">0</span>h / 60h utilizadas
-                        </span>
-                        <span id="horasProjetadasInfo" class="badge bg-primary-subtle text-primary border" style="display:none;">
-                            <i class="bi bi-calculator me-1"></i> +<span id="horasProjetadas">0</span>h projetadas
-                        </span>
-                        <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" onclick="limparSelecao()">
-                            <i class="bi bi-x-lg me-1"></i> Limpar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 <?php endif; ?>
@@ -449,141 +414,105 @@ function alterarPeriodo() {
     window.location.href = `/diretor/escala-mensal?mes=${mes}&ano=${ano}`;
 }
 
-function toggleDia(el) {
+async function toggleDia(el) {
     if (!podeEditar) return;
     
     const dia = parseInt(el.dataset.dia);
     const servidorId = parseInt(el.dataset.servidor);
     const alocado = el.dataset.alocado === '1';
     
-    if (!document.getElementById('servidorSelect').value) {
-        document.getElementById('servidorSelect').value = servidorId;
-        carregarAlocacoesServidor();
-    }
-    
-    const servidorAtual = parseInt(document.getElementById('servidorSelect').value);
-    if (servidorId !== servidorAtual) {
-        alert('Selecione primeiro o servidor na lista acima ou clique em um dia do mesmo servidor.');
-        return;
-    }
-    
+    // Se já está alocado, remove
     if (alocado) {
         if (confirm('Remover alocação deste dia?')) {
-            removerAlocacaoDia(servidorId, dia);
+            await removerAlocacaoDia(servidorId, dia);
         }
         return;
     }
     
-    if (diasSelecionados.has(dia)) {
-        diasSelecionados.delete(dia);
-        el.classList.remove('selecionado');
-    } else {
-        diasSelecionados.add(dia);
-        el.classList.add('selecionado');
-    }
-    
-    atualizarInfoDias();
-}
-
-function atualizarInfoDias() {
-    const diasArray = Array.from(diasSelecionados).sort((a,b) => a-b);
-    const info = document.getElementById('diasSelecionadosInfo');
-    const btn = document.getElementById('btnAlocar');
-    const servidor = document.getElementById('servidorSelect')?.value;
+    // Verifica se os campos obrigatórios estão preenchidos
     const equipe = document.getElementById('equipeSelect')?.value;
     const modulo = document.getElementById('moduloSelect')?.value;
+    const horas = document.getElementById('horasInput')?.value || 12;
+    const abono = document.querySelector('[name="horas_abono"]')?.value || 0;
+    const isLider = document.querySelector('[name="is_lider"]')?.checked ? 1 : 0;
     
-    if (diasArray.length === 0) {
-        info.innerHTML = '<i class="bi bi-calendar3 me-1"></i> Nenhum dia selecionado';
-        if (btn) btn.disabled = true;
-    } else {
-        info.innerHTML = `<i class="bi bi-calendar-check me-1"></i> ${diasArray.length} dia(s): ${diasArray.join(', ')}`;
-        const podeAlocar = servidor && servidor !== '' && equipe && equipe !== '' && modulo && modulo !== '';
-        if (btn) btn.disabled = !podeAlocar;
-    }
-    
-    document.getElementById('diasSelecionados').value = diasArray.join(',');
-    calcularHorasProjetadas();
-}
-
-function calcularHorasProjetadas() {
-    const servidorSelect = document.getElementById('servidorSelect');
-    const horasInput = document.getElementById('horasInput');
-    const abonoInput = document.querySelector('[name="horas_abono"]');
-    
-    if (!servidorSelect || !horasInput) return;
-    
-    const servidorId = servidorSelect.value;
-    const horas = parseFloat(horasInput.value) || 0;
-    const abono = parseFloat(abonoInput?.value) || 0;
-    const totalPorDia = horas + abono;
-    const diasCount = diasSelecionados.size;
-    const horasProjetadas = diasCount * totalPorDia;
-    
-    const infoProjetadas = document.getElementById('horasProjetadasInfo');
-    const spanProjetadas = document.getElementById('horasProjetadas');
-    
-    if (!infoProjetadas || !spanProjetadas) return;
-    
-    if (diasCount > 0 && servidorId) {
-        infoProjetadas.style.display = 'inline-flex';
-        spanProjetadas.textContent = horasProjetadas;
-        
-        const horasAtuais = horasIniciais[servidorId] || 0;
-        if (horasAtuais + horasProjetadas > limiteHoras) {
-            infoProjetadas.classList.remove('bg-primary-subtle', 'text-primary');
-            infoProjetadas.classList.add('bg-danger-subtle', 'text-danger');
-        } else {
-            infoProjetadas.classList.remove('bg-danger-subtle', 'text-danger');
-            infoProjetadas.classList.add('bg-primary-subtle', 'text-primary');
-        }
-    } else {
-        infoProjetadas.style.display = 'none';
-    }
-}
-
-function carregarAlocacoesServidor() {
-    const select = document.getElementById('servidorSelect');
-    if (!select) return;
-    
-    const servidorId = select.value;
-    
-    limparSelecaoVisual();
-    
-    if (!servidorId) {
-        const horasInfo = document.getElementById('horasServidorInfo');
-        if (horasInfo) horasInfo.style.display = 'none';
+    if (!equipe || equipe === '') {
+        alert('Selecione uma Equipe antes de clicar no dia.');
         return;
     }
     
-    servidorSelecionado = servidorId;
-    const horasAtuais = horasIniciais[servidorId] || 0;
+    if (!modulo || modulo === '') {
+        alert('Selecione um Módulo/Raio antes de clicar no dia.');
+        return;
+    }
     
-    const horasInfo = document.getElementById('horasServidorInfo');
-    const horasAtuaisEl = document.getElementById('horasAtuais');
-    if (horasInfo) horasInfo.style.display = 'inline-flex';
-    if (horasAtuaisEl) horasAtuaisEl.textContent = horasAtuais;
+    // Aloca imediatamente
+    el.style.opacity = '0.5';
+    el.style.pointerEvents = 'none';
     
-    document.querySelectorAll('.servidor-row').forEach(row => {
-        row.classList.remove('selecionado');
-        if (row.dataset.servidorId == servidorId) {
-            row.classList.add('selecionado');
+    const form = new FormData();
+    form.append('escala_id', escalaId);
+    form.append('servidor_id', servidorId);
+    form.append('equipe_id', equipe);
+    form.append('modulo_id', modulo);
+    form.append('horas', horas);
+    form.append('horas_abono', abono);
+    form.append('is_lider', isLider);
+    form.append('dias', dia.toString());
+    
+    try {
+        const response = await fetch('/diretor/escala/salvar-alocacao', {
+            method: 'POST',
+            body: form
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Atualiza visualmente como alocado
+            el.dataset.alocado = '1';
+            el.classList.remove('selecionado');
+            el.classList.add('alocado');
+            el.style.background = '#1e3a5f';
+            el.style.color = '#fff';
+            el.style.borderColor = '#1e3a5f';
+            el.title = 'Alocado: ' + horas + 'h';
+            
+            // Atualiza horas do servidor
+            if (horasIniciais[servidorId] !== undefined) {
+                horasIniciais[servidorId] += parseFloat(horas) + parseFloat(abono);
+            }
+            atualizarHorasServidor(servidorId);
+            
+        } else if (result.conflito) {
+            conflitosAtuais = result.conflitos;
+            pendingAlocacao = { servidorId, dia, equipe, modulo, horas, abono, isLider, el };
+            mostrarModalConflito(result.conflitos);
+        } else {
+            alert(result.message || 'Erro ao alocar');
         }
-    });
+    } catch (error) {
+        alert('Erro de conexão. Tente novamente.');
+    }
     
-    atualizarInfoDias();
+    el.style.opacity = '1';
+    el.style.pointerEvents = 'auto';
 }
 
-function limparSelecaoVisual() {
-    document.querySelectorAll('.dia-cell.selecionado').forEach(el => {
-        el.classList.remove('selecionado');
-    });
-    diasSelecionados.clear();
-}
+let pendingAlocacao = null;
 
-function limparSelecao() {
-    limparSelecaoVisual();
-    atualizarInfoDias();
+function atualizarHorasServidor(servidorId) {
+    const row = document.querySelector(`.servidor-row[data-servidor-id="${servidorId}"]`);
+    if (row) {
+        const horasEl = row.querySelector('.horas-servidor');
+        if (horasEl) {
+            const novasHoras = horasIniciais[servidorId] || 0;
+            horasEl.textContent = novasHoras + 'h';
+            if (novasHoras > limiteHoras) {
+                horasEl.classList.add('text-danger');
+            }
+        }
+    }
 }
 
 async function removerAlocacaoDia(servidorId, dia) {
@@ -605,43 +534,6 @@ async function removerAlocacaoDia(servidorId, dia) {
     }
 }
 
-document.getElementById('formAlocacao')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    if (diasSelecionados.size === 0) {
-        alert('Selecione pelo menos um dia no calendário');
-        return;
-    }
-    
-    await enviarAlocacao(false);
-});
-
-async function enviarAlocacao(forcarMover) {
-    const formEl = document.getElementById('formAlocacao');
-    if (!formEl) return;
-    
-    const form = new FormData(formEl);
-    if (forcarMover) {
-        form.append('forcar_mover', '1');
-    }
-    
-    const response = await fetch('/diretor/escala/salvar-alocacao', {
-        method: 'POST',
-        body: form
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-        location.reload();
-    } else if (result.conflito) {
-        conflitosAtuais = result.conflitos;
-        mostrarModalConflito(result.conflitos);
-    } else {
-        alert(result.message || 'Erro ao salvar');
-    }
-}
-
 function mostrarModalConflito(conflitos) {
     const lista = document.getElementById('conflitosList');
     lista.innerHTML = conflitos.map(c => `
@@ -653,20 +545,43 @@ function mostrarModalConflito(conflitos) {
     new bootstrap.Modal(document.getElementById('modalConflito')).show();
 }
 
-function confirmarMover() {
+async function confirmarMover() {
     bootstrap.Modal.getInstance(document.getElementById('modalConflito')).hide();
-    enviarAlocacao(true);
+    
+    if (!pendingAlocacao) return;
+    
+    const { servidorId, dia, equipe, modulo, horas, abono, isLider, el } = pendingAlocacao;
+    
+    const form = new FormData();
+    form.append('escala_id', escalaId);
+    form.append('servidor_id', servidorId);
+    form.append('equipe_id', equipe);
+    form.append('modulo_id', modulo);
+    form.append('horas', horas);
+    form.append('horas_abono', abono);
+    form.append('is_lider', isLider);
+    form.append('dias', dia.toString());
+    form.append('forcar_mover', '1');
+    
+    try {
+        const response = await fetch('/diretor/escala/salvar-alocacao', {
+            method: 'POST',
+            body: form
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert(result.message || 'Erro ao mover');
+        }
+    } catch (error) {
+        alert('Erro de conexão.');
+    }
+    
+    pendingAlocacao = null;
 }
-
-document.getElementById('horasInput')?.addEventListener('change', calcularHorasProjetadas);
-document.querySelector('[name="horas_abono"]')?.addEventListener('change', calcularHorasProjetadas);
-document.getElementById('servidorSelect')?.addEventListener('change', atualizarInfoDias);
-document.getElementById('equipeSelect')?.addEventListener('change', atualizarInfoDias);
-document.getElementById('moduloSelect')?.addEventListener('change', atualizarInfoDias);
-
-document.addEventListener('DOMContentLoaded', function() {
-    atualizarInfoDias();
-});
 
 function imprimirEscala() {
     window.print();

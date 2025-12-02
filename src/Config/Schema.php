@@ -9,8 +9,171 @@ class Schema {
     }
     
     public function createTables(): void {
+        $driver = $this->db->getDriver();
+        
+        if ($driver === 'mysql') {
+            $this->createTablesMysql();
+        } else {
+            $this->createTablesPostgres();
+        }
+    }
+    
+    private function createTablesMysql(): void {
+        $sqls = [
+            "CREATE TABLE IF NOT EXISTS usuarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                senha VARCHAR(255) NOT NULL,
+                papel ENUM('superintendente', 'diretor', 'rh', 'administrativo') NOT NULL,
+                unidade_id INT NULL,
+                ativo TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS unidades (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255) NOT NULL,
+                local VARCHAR(255),
+                responsavel_id INT NULL,
+                orcamento_anual DECIMAL(15,2) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS modulos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                unidade_id INT NOT NULL,
+                nome VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS equipes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                unidade_id INT NOT NULL,
+                nome VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS servidores (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255) NOT NULL,
+                matricula VARCHAR(50) NOT NULL UNIQUE,
+                unidade_id INT NULL,
+                ativo_extra TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS orcamento_global (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ano INT NOT NULL UNIQUE,
+                valor_total DECIMAL(15,2) NOT NULL DEFAULT 0,
+                percentual_reserva DECIMAL(5,2) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS distribuicao_orcamento (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                unidade_id INT NOT NULL,
+                ano INT NOT NULL,
+                valor DECIMAL(15,2) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_unidade_ano (unidade_id, ano),
+                FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS log_distribuicao (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                unidade_id INT NOT NULL,
+                ano INT NOT NULL,
+                valor_anterior DECIMAL(15,2),
+                valor_novo DECIMAL(15,2),
+                tipo VARCHAR(20) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS escalas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                unidade_id INT NOT NULL,
+                mes INT NOT NULL,
+                ano INT NOT NULL,
+                status ENUM('rascunho', 'pendente', 'aprovada', 'rejeitada', 'executada') DEFAULT 'rascunho',
+                motivo_rejeicao TEXT,
+                valor_executado DECIMAL(15,2),
+                total_horas DECIMAL(10,2) DEFAULT 0,
+                enviado_em TIMESTAMP NULL,
+                aprovado_em TIMESTAMP NULL,
+                executado_em TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_unidade_mes_ano (unidade_id, mes, ano),
+                FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS alocacoes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                escala_id INT NOT NULL,
+                servidor_id INT NOT NULL,
+                equipe_id INT NOT NULL,
+                modulo_id INT NOT NULL,
+                dia INT NOT NULL,
+                horas DECIMAL(5,2) NOT NULL DEFAULT 0,
+                horas_abono DECIMAL(5,2) DEFAULT 0,
+                is_lider TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_escala_servidor_dia (escala_id, servidor_id, dia),
+                FOREIGN KEY (escala_id) REFERENCES escalas(id) ON DELETE CASCADE,
+                FOREIGN KEY (servidor_id) REFERENCES servidores(id) ON DELETE CASCADE,
+                FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
+                FOREIGN KEY (modulo_id) REFERENCES modulos(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS horas_aprovadas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                escala_id INT NOT NULL,
+                servidor_id INT NOT NULL,
+                total_horas DECIMAL(10,2) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (escala_id) REFERENCES escalas(id) ON DELETE CASCADE,
+                FOREIGN KEY (servidor_id) REFERENCES servidores(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            
+            "CREATE TABLE IF NOT EXISTS escala_equipe_servidores (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                escala_id INT NOT NULL,
+                equipe_id INT NOT NULL,
+                servidor_id INT NOT NULL,
+                is_lider TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_escala_servidor (escala_id, servidor_id),
+                FOREIGN KEY (escala_id) REFERENCES escalas(id) ON DELETE CASCADE,
+                FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
+                FOREIGN KEY (servidor_id) REFERENCES servidores(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        ];
+        
+        foreach ($sqls as $sql) {
+            try {
+                $this->db->getConnection()->exec($sql);
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') === false && 
+                    strpos($e->getMessage(), 'Duplicate') === false) {
+                    throw $e;
+                }
+            }
+        }
+    }
+    
+    private function createTablesPostgres(): void {
         $sql = "
-        -- Tabela de usuários
         CREATE TABLE IF NOT EXISTS usuarios (
             id SERIAL PRIMARY KEY,
             nome VARCHAR(255) NOT NULL,
@@ -23,7 +186,6 @@ class Schema {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Tabela de unidades prisionais
         CREATE TABLE IF NOT EXISTS unidades (
             id SERIAL PRIMARY KEY,
             nome VARCHAR(255) NOT NULL,
@@ -34,7 +196,6 @@ class Schema {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Tabela de módulos/setores por unidade
         CREATE TABLE IF NOT EXISTS modulos (
             id SERIAL PRIMARY KEY,
             unidade_id INTEGER NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
@@ -42,7 +203,6 @@ class Schema {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Tabela de equipes (A, B, C, D por unidade)
         CREATE TABLE IF NOT EXISTS equipes (
             id SERIAL PRIMARY KEY,
             unidade_id INTEGER NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
@@ -50,7 +210,6 @@ class Schema {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Tabela de servidores/policiais penais
         CREATE TABLE IF NOT EXISTS servidores (
             id SERIAL PRIMARY KEY,
             nome VARCHAR(255) NOT NULL,
@@ -61,7 +220,6 @@ class Schema {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Tabela de configuração de orçamento global
         CREATE TABLE IF NOT EXISTS orcamento_global (
             id SERIAL PRIMARY KEY,
             ano INTEGER NOT NULL UNIQUE,
@@ -71,7 +229,6 @@ class Schema {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Tabela de distribuição de orçamento para unidades
         CREATE TABLE IF NOT EXISTS distribuicao_orcamento (
             id SERIAL PRIMARY KEY,
             unidade_id INTEGER NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
@@ -82,18 +239,16 @@ class Schema {
             UNIQUE(unidade_id, ano)
         );
         
-        -- Log de distribuição de orçamento
         CREATE TABLE IF NOT EXISTS log_distribuicao (
             id SERIAL PRIMARY KEY,
             unidade_id INTEGER NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
             ano INTEGER NOT NULL,
             valor_anterior DECIMAL(15,2),
             valor_novo DECIMAL(15,2),
-            tipo VARCHAR(20) NOT NULL, -- 'adicao' ou 'alteracao'
+            tipo VARCHAR(20) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Tabela de escalas mensais
         CREATE TABLE IF NOT EXISTS escalas (
             id SERIAL PRIMARY KEY,
             unidade_id INTEGER NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
@@ -111,7 +266,6 @@ class Schema {
             UNIQUE(unidade_id, mes, ano)
         );
         
-        -- Alocações de servidores nas escalas
         CREATE TABLE IF NOT EXISTS alocacoes (
             id SERIAL PRIMARY KEY,
             escala_id INTEGER NOT NULL REFERENCES escalas(id) ON DELETE CASCADE,
@@ -126,7 +280,6 @@ class Schema {
             UNIQUE(escala_id, servidor_id, dia)
         );
         
-        -- Horas aprovadas por servidor
         CREATE TABLE IF NOT EXISTS horas_aprovadas (
             id SERIAL PRIMARY KEY,
             escala_id INTEGER NOT NULL REFERENCES escalas(id) ON DELETE CASCADE,
@@ -135,7 +288,6 @@ class Schema {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Vínculo de servidores com equipes na escala
         CREATE TABLE IF NOT EXISTS escala_equipe_servidores (
             id SERIAL PRIMARY KEY,
             escala_id INTEGER NOT NULL REFERENCES escalas(id) ON DELETE CASCADE,
@@ -146,11 +298,9 @@ class Schema {
             UNIQUE(escala_id, servidor_id)
         );
         
-        -- Adicionar FK de usuario para unidade
         ALTER TABLE usuarios ADD CONSTRAINT fk_usuario_unidade 
             FOREIGN KEY (unidade_id) REFERENCES unidades(id) ON DELETE SET NULL;
         
-        -- Adicionar FK de unidade para responsavel
         ALTER TABLE unidades ADD CONSTRAINT fk_unidade_responsavel 
             FOREIGN KEY (responsavel_id) REFERENCES usuarios(id) ON DELETE SET NULL;
         ";
@@ -158,7 +308,6 @@ class Schema {
         try {
             $this->db->getConnection()->exec($sql);
         } catch (\PDOException $e) {
-            // Ignorar erros de constraint já existente
             if (strpos($e->getMessage(), 'already exists') === false) {
                 throw $e;
             }
@@ -205,10 +354,18 @@ class Schema {
             );
             
             // Criar orçamento para o ano atual
-            $this->db->query(
-                "INSERT INTO orcamento_global (ano, valor_total, percentual_reserva) VALUES (:ano, 0, 10) ON CONFLICT (ano) DO NOTHING",
-                ['ano' => date('Y')]
-            );
+            $driver = $this->db->getDriver();
+            if ($driver === 'mysql') {
+                $this->db->query(
+                    "INSERT IGNORE INTO orcamento_global (ano, valor_total, percentual_reserva) VALUES (:ano, 0, 10)",
+                    ['ano' => date('Y')]
+                );
+            } else {
+                $this->db->query(
+                    "INSERT INTO orcamento_global (ano, valor_total, percentual_reserva) VALUES (:ano, 0, 10) ON CONFLICT (ano) DO NOTHING",
+                    ['ano' => date('Y')]
+                );
+            }
         }
     }
 }

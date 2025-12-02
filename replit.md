@@ -39,6 +39,7 @@ Sistema web em PHP para gestão de escalas de servidores em unidades prisionais,
 1. **Superintendente** - Visão global e gestão estratégica
    - Configurar orçamento anual
    - Distribuir orçamento entre unidades
+   - Visualizar histórico de aportes por unidade (data, hora, valor anterior, valor novo)
    - Visualizar dashboards consolidados
 
 2. **Diretor** - Gestor da unidade prisional

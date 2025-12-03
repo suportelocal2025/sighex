@@ -210,13 +210,16 @@ class RhController {
         }
         
         echo "</tbody>";
-        echo "<tfoot>";
-        echo "<tr class='total-row'>";
-        echo "<td colspan='3' style='text-align: right;'>TOTAL DE HORAS:</td>";
-        echo "<td class='horas'>" . number_format($totalHoras, 0, ',', '.') . "</td>";
-        echo "<td colspan='2'></td>";
+        echo "</table>";
+        
+        echo "<table>";
+        echo "<tr><td colspan='6'>&nbsp;</td></tr>";
+        echo "<tr><td colspan='6'>&nbsp;</td></tr>";
+        echo "<tr>";
+        echo "<td colspan='3' style='background-color: #FF0000; color: white; font-weight: bold;'>Autorização de quantitativo a maior é realizado pela SGP</td>";
+        echo "<td style='background-color: #FF0000; color: white; font-weight: bold; text-align: center;'>" . number_format($totalHoras, 0, ',', '.') . "</td>";
+        echo "<td colspan='2' style='background-color: #FF0000;'></td>";
         echo "</tr>";
-        echo "</tfoot>";
         echo "</table>";
         
         echo "</body></html>";

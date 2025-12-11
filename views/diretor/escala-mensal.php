@@ -240,6 +240,31 @@ $podeEditar = in_array($escala['status'], ['rascunho', 'rejeitada']);
         </div>
     </div>
 </div>
+<?php else: ?>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body form-selecao">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Visualizar Equipe</label>
+                <select id="equipeSelect" class="form-select" onchange="carregarServidoresEquipe()">
+                    <option value="">Escolha uma equipe para visualizar...</option>
+                    <?php foreach ($equipes as $e): ?>
+                        <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['nome']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-8">
+                <div class="alert alert-info mb-0 py-2">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Modo Visualização:</strong> Esta escala está com status <strong><?= ucfirst($escala['status']) ?></strong> e não pode ser editada.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="moduloSelect" value="">
+<input type="hidden" id="horasInput" value="12">
+<input type="hidden" id="abonoInput" value="0">
 <?php endif; ?>
 
 <div class="card border-0 shadow-sm">

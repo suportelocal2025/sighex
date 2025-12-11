@@ -52,13 +52,60 @@
                     <i class="bi bi-clock-history"></i>
                 </div>
                 <div>
-                    <div class="stat-value"><?= number_format($stats['horas_aprovadas'], 0, ',', '.') ?>h</div>
-                    <div class="stat-label">Horas Aprovadas</div>
+                    <div class="stat-value"><?= number_format($stats['horas_executadas'], 0, ',', '.') ?>h</div>
+                    <div class="stat-label">Horas Executadas</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<?php 
+$meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+$totalAlertas = count($stats['escalas_rejeitadas']) + count($stats['escalas_aprovadas']);
+?>
+
+<?php if (count($stats['escalas_rejeitadas']) > 0): ?>
+<div class="alert alert-danger mb-4 d-flex align-items-center">
+    <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+    <div class="flex-grow-1">
+        <strong>Escalas Rejeitadas!</strong> 
+        <?php foreach ($stats['escalas_rejeitadas'] as $esc): ?>
+            <span class="badge bg-danger ms-2"><?= $meses[$esc['mes']] ?>/<?= $esc['ano'] ?></span>
+        <?php endforeach; ?>
+        <div class="small mt-1">Verifique os motivos e faça as correções necessárias.</div>
+    </div>
+    <a href="/diretor/escala-mensal" class="btn btn-danger btn-sm">
+        <i class="bi bi-pencil me-1"></i>Corrigir
+    </a>
+</div>
+<?php endif; ?>
+
+<?php if (count($stats['escalas_aprovadas']) > 0): ?>
+<div class="alert alert-success mb-4 d-flex align-items-center">
+    <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+    <div class="flex-grow-1">
+        <strong>Escalas Aprovadas!</strong> 
+        <?php foreach ($stats['escalas_aprovadas'] as $esc): ?>
+            <span class="badge bg-success ms-2"><?= $meses[$esc['mes']] ?>/<?= $esc['ano'] ?></span>
+        <?php endforeach; ?>
+        <div class="small mt-1">Aguardando execução pelo RH.</div>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if (count($stats['escalas_pendentes']) > 0): ?>
+<div class="alert alert-warning mb-4 d-flex align-items-center">
+    <i class="bi bi-hourglass-split me-3 fs-4"></i>
+    <div class="flex-grow-1">
+        <strong>Escalas Pendentes de Aprovação</strong> 
+        <?php foreach ($stats['escalas_pendentes'] as $esc): ?>
+            <span class="badge bg-warning text-dark ms-2"><?= $meses[$esc['mes']] ?>/<?= $esc['ano'] ?></span>
+        <?php endforeach; ?>
+        <div class="small mt-1">Aguardando análise do RH.</div>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php 
 $percentualUso = $stats['orcamento_anual'] > 0 ? ($stats['total_gasto'] / $stats['orcamento_anual']) * 100 : 0;

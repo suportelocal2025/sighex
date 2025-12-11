@@ -116,10 +116,25 @@ class DashboardController {
             ['uid' => $unidadeId, 'ano' => $ano]
         )['total'];
         
-        $horasAprovadas = $this->db->fetch(
-            "SELECT COALESCE(SUM(total_horas), 0) as total FROM escalas WHERE unidade_id = :uid AND ano = :ano AND status IN ('aprovada', 'executada')",
+        $horasExecutadas = $this->db->fetch(
+            "SELECT COALESCE(SUM(total_horas), 0) as total FROM escalas WHERE unidade_id = :uid AND ano = :ano AND status = 'executada'",
             ['uid' => $unidadeId, 'ano' => $ano]
         )['total'];
+        
+        $escalasRejeitadas = $this->db->fetchAll(
+            "SELECT * FROM escalas WHERE unidade_id = :uid AND ano = :ano AND status = 'rejeitada' ORDER BY mes DESC",
+            ['uid' => $unidadeId, 'ano' => $ano]
+        );
+        
+        $escalasPendentes = $this->db->fetchAll(
+            "SELECT * FROM escalas WHERE unidade_id = :uid AND ano = :ano AND status = 'pendente' ORDER BY mes DESC",
+            ['uid' => $unidadeId, 'ano' => $ano]
+        );
+        
+        $escalasAprovadas = $this->db->fetchAll(
+            "SELECT * FROM escalas WHERE unidade_id = :uid AND ano = :ano AND status = 'aprovada' ORDER BY mes DESC",
+            ['uid' => $unidadeId, 'ano' => $ano]
+        );
         
         $escalaMesAtual = $this->db->fetch(
             "SELECT * FROM escalas WHERE unidade_id = :uid AND mes = :mes AND ano = :ano",
@@ -137,9 +152,12 @@ class DashboardController {
             'orcamento_anual' => $unidade['orcamento_anual'] ?? 0,
             'total_gasto' => $totalGasto,
             'disponivel' => ($unidade['orcamento_anual'] ?? 0) - $totalGasto,
-            'horas_aprovadas' => $horasAprovadas,
+            'horas_executadas' => $horasExecutadas,
             'gastos_mensais' => $gastosMensais,
-            'escala_mes_atual' => $escalaMesAtual
+            'escala_mes_atual' => $escalaMesAtual,
+            'escalas_rejeitadas' => $escalasRejeitadas,
+            'escalas_pendentes' => $escalasPendentes,
+            'escalas_aprovadas' => $escalasAprovadas
         ];
         
         View::layout('main', 'diretor/dashboard', [

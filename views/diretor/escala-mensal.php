@@ -247,7 +247,7 @@ $podeEditar = in_array($escala['status'], ['rascunho', 'rejeitada']);
             <div class="col-md-4">
                 <label class="form-label fw-semibold">Visualizar Equipe</label>
                 <select id="equipeSelect" class="form-select" onchange="carregarServidoresEquipe()">
-                    <option value="">Escolha uma equipe para visualizar...</option>
+                    <option value="todas" selected>TODAS AS EQUIPES</option>
                     <?php foreach ($equipes as $e): ?>
                         <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['nome']) ?></option>
                     <?php endforeach; ?>
@@ -404,7 +404,8 @@ function carregarServidoresEquipe() {
     if (!equipeId) {
         document.getElementById('emptyState').style.display = 'block';
         document.getElementById('tabelaCalendario').style.display = 'none';
-        document.getElementById('btnEnviar').style.display = 'none';
+        const btnEnviar = document.getElementById('btnEnviar');
+        if (btnEnviar) btnEnviar.style.display = 'none';
         return;
     }
     
@@ -416,6 +417,13 @@ function carregarServidoresEquipe() {
         });
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    const equipeSelect = document.getElementById('equipeSelect');
+    if (equipeSelect && equipeSelect.value === 'todas') {
+        carregarServidoresEquipe();
+    }
+});
+
 function renderizarCalendario() {
     const tbody = document.getElementById('calendarioBody');
     const emptyState = document.getElementById('emptyState');
@@ -425,28 +433,30 @@ function renderizarCalendario() {
     if (servidoresEquipeAtual.length === 0) {
         emptyState.style.display = 'block';
         tabela.style.display = 'none';
-        btnEnviar.style.display = 'none';
+        if (btnEnviar) btnEnviar.style.display = 'none';
         return;
     }
     
     emptyState.style.display = 'none';
     tabela.style.display = 'table';
-    btnEnviar.style.display = 'inline-block';
+    if (btnEnviar) btnEnviar.style.display = 'inline-block';
     
     const equipeId = document.getElementById('equipeSelect')?.value;
     const moduloId = document.getElementById('moduloSelect')?.value;
+    const mostrarEquipe = (equipeId === 'todas');
     
     let html = '';
     servidoresEquipeAtual.forEach(servidor => {
         horasMap[servidor.id] = parseFloat(servidor.total_horas) || 0;
         const horasClass = horasMap[servidor.id] >= limiteHoras ? 'text-danger' : 'text-success';
+        const equipeNome = servidor.equipe_nome || '';
         
         html += `<tr class="servidor-row" data-servidor-id="${servidor.id}">
             <td class="servidor-info">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="fw-semibold small">${servidor.nome}</div>
-                        <small class="text-muted">${servidor.matricula}</small>
+                        <small class="text-muted">${servidor.matricula}${mostrarEquipe ? ' - <span class="badge bg-primary">' + equipeNome + '</span>' : ''}</small>
                     </div>
                     ${podeEditar ? `<button class="btn btn-sm btn-outline-danger btn-remover-servidor" onclick="removerServidorEquipe(${servidor.id})" title="Remover da equipe">
                         <i class="bi bi-x"></i>

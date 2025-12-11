@@ -578,19 +578,35 @@ class DiretorController {
     public function listarServidoresEquipe(): void {
         $unidadeId = Session::getUserUnidadeId();
         $escalaId = (int)($_GET['escala_id'] ?? 0);
-        $equipeId = (int)($_GET['equipe_id'] ?? 0);
+        $equipeIdParam = $_GET['equipe_id'] ?? '';
         
-        $servidores = $this->db->fetchAll(
-            "SELECT s.*, ees.is_lider,
-                    COALESCE(SUM(a.horas + a.horas_abono), 0) as total_horas
-             FROM escala_equipe_servidores ees
-             JOIN servidores s ON s.id = ees.servidor_id
-             LEFT JOIN alocacoes a ON a.escala_id = ees.escala_id AND a.servidor_id = ees.servidor_id
-             WHERE ees.escala_id = :eid AND ees.equipe_id = :eqid
-             GROUP BY s.id, ees.is_lider
-             ORDER BY s.nome",
-            ['eid' => $escalaId, 'eqid' => $equipeId]
-        );
+        if ($equipeIdParam === 'todas') {
+            $servidores = $this->db->fetchAll(
+                "SELECT s.*, ees.is_lider, eq.nome as equipe_nome,
+                        COALESCE(SUM(a.horas + a.horas_abono), 0) as total_horas
+                 FROM escala_equipe_servidores ees
+                 JOIN servidores s ON s.id = ees.servidor_id
+                 JOIN equipes eq ON eq.id = ees.equipe_id
+                 LEFT JOIN alocacoes a ON a.escala_id = ees.escala_id AND a.servidor_id = ees.servidor_id
+                 WHERE ees.escala_id = :eid
+                 GROUP BY s.id, ees.is_lider, eq.nome, ees.equipe_id
+                 ORDER BY eq.nome, s.nome",
+                ['eid' => $escalaId]
+            );
+        } else {
+            $equipeId = (int)$equipeIdParam;
+            $servidores = $this->db->fetchAll(
+                "SELECT s.*, ees.is_lider,
+                        COALESCE(SUM(a.horas + a.horas_abono), 0) as total_horas
+                 FROM escala_equipe_servidores ees
+                 JOIN servidores s ON s.id = ees.servidor_id
+                 LEFT JOIN alocacoes a ON a.escala_id = ees.escala_id AND a.servidor_id = ees.servidor_id
+                 WHERE ees.escala_id = :eid AND ees.equipe_id = :eqid
+                 GROUP BY s.id, ees.is_lider
+                 ORDER BY s.nome",
+                ['eid' => $escalaId, 'eqid' => $equipeId]
+            );
+        }
         
         View::json(['success' => true, 'servidores' => $servidores]);
     }

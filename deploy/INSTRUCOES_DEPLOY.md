@@ -1,129 +1,146 @@
-# Instruções de Deploy - SIGEEX na Hostinger
+# Instruções de Deploy - SIGEEX
 
-## Passo a Passo
+## Hospedagem na Hostinger
 
-### 1. Criar o Banco de Dados MySQL na Hostinger
+### Passo 1: Preparar os Arquivos
 
-1. Acesse o **hPanel** da Hostinger
-2. Vá em **Bancos de Dados** → **Bancos de Dados MySQL**
-3. Crie um novo banco de dados:
-   - **Nome do banco**: escolha um nome (ex: sigeex_db)
-   - **Usuário**: crie um usuário
-   - **Senha**: defina uma senha forte
-4. Anote as credenciais criadas
+1. Faça download do arquivo `sigeex_deploy.zip` do Replit
+2. Extraia o conteúdo do ZIP localmente (opcional, para verificar)
 
-### 2. Importar a Estrutura do Banco
+### Passo 2: Upload dos Arquivos
 
-1. No hPanel, vá em **Bancos de Dados** → **phpMyAdmin**
+1. Acesse o **Gerenciador de Arquivos** da Hostinger
+2. Navegue até a pasta `public_html` do domínio/subdomínio
+3. Faça upload do arquivo `sigeex_deploy.zip`
+4. Extraia o ZIP diretamente no servidor
+5. **IMPORTANTE**: Renomeie `htaccess.txt` para `.htaccess`
+
+### Passo 3: Criar o Banco de Dados
+
+1. Acesse **Bancos de Dados MySQL** no painel da Hostinger
+2. Crie um novo banco de dados (ex: `u123456789_sigeex`)
+3. Crie um usuário para o banco de dados
+4. Anote: nome do banco, usuário e senha
+
+### Passo 4: Importar a Estrutura do Banco
+
+1. Acesse o **phpMyAdmin**
 2. Selecione o banco de dados criado
-3. Clique na aba **Importar**
-4. Faça upload do arquivo `database_mysql.sql` (incluído nesta pasta)
+3. Vá em **Importar**
+4. Selecione o arquivo `deploy/database_mysql.sql`
 5. Clique em **Executar**
 
-### 3. Configurar as Credenciais
+### Passo 5: Configurar a Conexão
 
-1. Abra o arquivo `config/database.php`
-2. Preencha as credenciais do seu banco:
+Edite o arquivo `src/Config/Database.php` e configure as credenciais MySQL:
 
 ```php
-<?php
-return [
-    'host' => 'localhost',
-    'database' => 'SEU_BANCO_DE_DADOS',    // Nome do banco criado
-    'username' => 'SEU_USUARIO',            // Usuário do banco
-    'password' => 'SUA_SENHA',              // Senha do banco
-    'charset' => 'utf8mb4',
-    'collation' => 'utf8mb4_unicode_ci'
-];
+// Procure esta seção no arquivo:
+$host = 'localhost';
+$dbname = 'u123456789_sigeex';     // Seu nome de banco
+$user = 'u123456789_sigeex';        // Seu usuário
+$password = 'SuaSenhaAqui';         // Sua senha
 ```
 
-### 4. Fazer Upload via FTP
+### Passo 6: Configurar PHP
 
-1. Acesse o **Gerenciador de Arquivos** no hPanel ou use um cliente FTP (FileZilla)
-2. Navegue até a pasta `public_html` do seu subdomínio
-3. Faça upload de **todos os arquivos** do projeto:
-   - `index.php`
-   - `.htaccess`
-   - `composer.json`
-   - Pasta `config/`
-   - Pasta `src/`
-   - Pasta `views/`
+No painel da Hostinger, em **Configurações PHP**:
+- Versão do PHP: **8.0** ou superior
+- Extensões habilitadas: `pdo`, `pdo_mysql`, `mbstring`, `json`
 
-### 5. Estrutura Final de Arquivos
+### Passo 7: Verificar .htaccess
 
-Após o upload, a estrutura deve ficar assim:
+Certifique-se de que o arquivo `.htaccess` está na raiz (`public_html`) com o seguinte conteúdo:
 
-```
-public_html/sigeex.gestaoderotinas.com.br/
-├── .htaccess
-├── index.php
-├── composer.json
-├── config/
-│   ├── .htaccess
-│   └── database.php
-├── src/
-│   ├── Config/
-│   ├── Controllers/
-│   └── Core/
-└── views/
-    ├── layouts/
-    ├── auth/
-    ├── superintendente/
-    ├── diretor/
-    ├── rh/
-    └── administrativo/
+```apache
+RewriteEngine On
+RewriteBase /
+
+# Redirecionar para HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Redirecionar todas as requisições para index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [L,QSA]
+
+# Segurança
+<Files .htaccess>
+    Order Allow,Deny
+    Deny from all
+</Files>
 ```
 
-### 6. Configurar PHP (Opcional)
+### Passo 8: Testar
 
-1. No hPanel, vá em **PHP Configuration**
-2. Certifique-se de que a versão do PHP é **8.1 ou superior**
-3. Verifique se as extensões estão habilitadas:
-   - `pdo_mysql`
-   - `mbstring`
-   - `json`
-
-### 7. Testar o Sistema
-
-1. Acesse: https://sigeex.gestaoderotinas.com.br
+1. Acesse a URL do sistema (ex: `https://sigeex.gestaoderotinas.com.br`)
 2. Faça login com as credenciais padrão:
 
-| Papel           | Email                     | Senha     |
-|-----------------|---------------------------|-----------|
-| Superintendente | super@sistema.gov.br      | admin123  |
-| Diretor         | diretor@sistema.gov.br    | admin123  |
-| RH              | rh@sistema.gov.br         | admin123  |
-| Administrativo  | admin@sistema.gov.br      | admin123  |
+| Papel | Email | Senha |
+|-------|-------|-------|
+| Superintendente | super@sistema.gov.br | admin123 |
+| RH | rh@sistema.gov.br | admin123 |
+| Administrativo | admin@sistema.gov.br | admin123 |
 
-### 8. Alterar Senhas (IMPORTANTE!)
-
-Após o primeiro acesso, altere as senhas padrão para maior segurança.
+3. **IMPORTANTE**: Troque as senhas padrão após o primeiro acesso!
 
 ---
 
-## Solução de Problemas
+## Estrutura de Arquivos
 
-### Erro 500 (Internal Server Error)
-- Verifique as permissões dos arquivos (644 para arquivos, 755 para pastas)
-- Verifique o arquivo `.htaccess`
-- Veja os logs de erro no hPanel
-
-### Erro de conexão com o banco
-- Confira as credenciais em `config/database.php`
-- Verifique se o banco foi criado corretamente
-- Teste a conexão pelo phpMyAdmin
-
-### Página em branco
-- Ative exibição de erros temporariamente adicionando no início do `index.php`:
-```php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 ```
+public_html/
+├── .htaccess              # Renomear de htaccess.txt
+├── index.php              # Ponto de entrada
+├── composer.json
+├── src/
+│   ├── Config/
+│   │   ├── Database.php   # CONFIGURAR CREDENCIAIS AQUI
+│   │   └── Schema.php
+│   ├── Controllers/
+│   └── Core/
+├── views/
+├── config/
+├── deploy/
+│   ├── database_mysql.sql # Script para importar no phpMyAdmin
+│   └── INSTRUCOES_DEPLOY.md
+└── docs/
+    └── REQUISITOS_TECNICOS.md
+```
+
+---
+
+## Resolução de Problemas
+
+### Erro 500 - Internal Server Error
+1. Verifique se a versão do PHP é 8.0+
+2. Verifique se o `.htaccess` foi criado corretamente
+3. Confira as permissões dos arquivos (644 para arquivos, 755 para pastas)
+
+### Erro de Conexão com Banco
+1. Verifique as credenciais em `src/Config/Database.php`
+2. Confirme que o banco foi criado e o usuário tem permissões
+3. Verifique se o host é `localhost` (padrão da Hostinger)
+
+### Página em Branco
+1. Habilite a exibição de erros temporariamente:
+   - No painel Hostinger, vá em **Configurações PHP**
+   - Ative `display_errors`
+2. Verifique os logs de erro do PHP
+
+### Login não Funciona
+1. Verifique se a tabela `usuarios` foi criada
+2. Execute no phpMyAdmin:
+```sql
+SELECT * FROM usuarios;
+```
+3. Se vazia, reimporte o arquivo `database_mysql.sql`
 
 ---
 
 ## Suporte
 
-Em caso de dúvidas, verifique:
-- Documentação da Hostinger: https://support.hostinger.com
-- Logs de erro no hPanel
+- **Documentação**: Ver arquivo `docs/REQUISITOS_TECNICOS.md`
+- **Desenvolvimento**: https://sigh-ex--gspimenta.replit.app
+- **Produção**: https://sigeex.gestaoderotinas.com.br

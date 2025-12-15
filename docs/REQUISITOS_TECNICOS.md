@@ -164,6 +164,17 @@ O sistema abrange:
 | RF-A-S-03 | Importação via CSV | ✅ Implementado |
 | RF-A-S-04 | Ativar/desativar servidor para escala extra | ✅ Implementado |
 
+#### 2.6.3 Usuários
+| ID | Requisito | Status |
+|----|-----------|--------|
+| RF-A-USR-01 | Listar todos os usuários do sistema com perfil e unidade vinculada | ✅ Implementado |
+| RF-A-USR-02 | Criar novo usuário com definição de perfil (Superintendente, Diretor, RH, Administrativo) | ✅ Implementado |
+| RF-A-USR-03 | Vincular usuário Diretor a uma unidade prisional existente | ✅ Implementado |
+| RF-A-USR-04 | Editar dados de usuários existentes | ✅ Implementado |
+| RF-A-USR-05 | Resetar senha de usuário | ✅ Implementado |
+| RF-A-USR-06 | Excluir usuário (exceto o próprio) | ✅ Implementado |
+| RF-A-USR-07 | Ativar/desativar usuário no sistema | ✅ Implementado |
+
 ---
 
 ## 3. Requisitos Não Funcionais

@@ -105,6 +105,7 @@ $password = 'SuaSenhaAqui';
 - Cadastrar e gerenciar unidades prisionais
 - Cadastrar e gerenciar módulos/raios/setores
 - Cadastrar e gerenciar servidores/policiais penais
+- **Gerenciar usuários do sistema** (criar, editar, excluir, resetar senha)
 - Importação via CSV
 
 ## Credenciais Padrão
@@ -217,6 +218,14 @@ php -S 0.0.0.0:5000 index.php
 - [x] Gestão de servidores
 - [x] Importação de servidores via CSV
 - [x] Ativar/desativar servidor para escala extra
+- [x] **Gestão de usuários do sistema**:
+  - Listar usuários com perfil e unidade vinculada
+  - Criar usuário com definição de perfil
+  - Vincular diretor a unidade existente
+  - Editar dados de usuários
+  - Resetar senha de usuário
+  - Excluir usuário
+  - Ativar/desativar usuário
 
 ## Fluxo de Montagem de Escala (Diretor)
 
@@ -259,3 +268,4 @@ php -S 0.0.0.0:5000 index.php
 - Exportação Excel com formato compatível Office 2003-2007
 - Correção do cálculo de "Valor Disponível" no dashboard do superintendente
 - Suporte a visualização/impressão de escalas em qualquer status
+- **Gestão de usuários** no módulo Administrativo (CRUD completo)

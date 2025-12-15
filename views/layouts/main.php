@@ -196,6 +196,7 @@
             <?php if ($papel === 'administrativo'): ?>
                 <a class="nav-link" href="/admin/unidades"><i class="bi bi-building"></i> Unidades</a>
                 <a class="nav-link" href="/admin/servidores"><i class="bi bi-person-badge"></i> Servidores</a>
+                <a class="nav-link" href="/admin/usuarios"><i class="bi bi-people"></i> Usuários</a>
             <?php endif; ?>
         </nav>
         

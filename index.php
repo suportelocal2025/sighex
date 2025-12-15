@@ -96,5 +96,9 @@ $router->get('/admin/servidores', [AdminController::class, 'servidores'], [Middl
 $router->post('/admin/servidores/salvar', [AdminController::class, 'salvarServidor'], [Middleware::administrativo()]);
 $router->post('/admin/servidores/excluir', [AdminController::class, 'excluirServidor'], [Middleware::administrativo()]);
 $router->post('/admin/servidores/importar', [AdminController::class, 'importarServidores'], [Middleware::administrativo()]);
+$router->get('/admin/usuarios', [AdminController::class, 'usuarios'], [Middleware::administrativo()]);
+$router->post('/admin/usuarios/salvar', [AdminController::class, 'salvarUsuario'], [Middleware::administrativo()]);
+$router->post('/admin/usuarios/resetar-senha', [AdminController::class, 'resetarSenhaUsuario'], [Middleware::administrativo()]);
+$router->post('/admin/usuarios/excluir', [AdminController::class, 'excluirUsuario'], [Middleware::administrativo()]);
 
 $router->dispatch();

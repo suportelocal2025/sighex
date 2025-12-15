@@ -336,4 +336,162 @@ class AdminController {
         Session::flash('success', "{$count} servidor(es) importado(s) com sucesso!");
         View::redirect('/admin/servidores');
     }
+    
+    public function usuarios(): void {
+        $usuarios = $this->db->fetchAll("
+            SELECT u.id, u.nome, u.email, u.papel, u.unidade_id, u.ativo, u.created_at, u.updated_at,
+                   un.nome as unidade_nome
+            FROM usuarios u
+            LEFT JOIN unidades un ON u.unidade_id = un.id
+            ORDER BY u.papel, u.nome
+        ");
+        
+        $unidades = $this->db->fetchAll("SELECT id, nome FROM unidades ORDER BY nome");
+        
+        View::layout('main', 'administrativo/usuarios', [
+            'titulo' => 'Gestão de Usuários',
+            'usuarios' => $usuarios,
+            'unidades' => $unidades
+        ]);
+    }
+    
+    public function salvarUsuario(): void {
+        $id = (int)($_POST['id'] ?? 0);
+        $nome = trim($_POST['nome'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $senha = $_POST['senha'] ?? '';
+        $papel = $_POST['papel'] ?? '';
+        $unidadeId = !empty($_POST['unidade_id']) ? (int)$_POST['unidade_id'] : null;
+        $ativo = isset($_POST['ativo']) ? 1 : 0;
+        
+        if (empty($nome) || empty($email) || empty($papel)) {
+            Session::flash('error', 'Nome, email e perfil são obrigatórios');
+            View::redirect('/admin/usuarios');
+            return;
+        }
+        
+        if ($id === 0 && empty($senha)) {
+            Session::flash('error', 'Senha é obrigatória para novos usuários');
+            View::redirect('/admin/usuarios');
+            return;
+        }
+        
+        if ($papel === 'diretor' && empty($unidadeId)) {
+            Session::flash('error', 'Diretores devem estar vinculados a uma unidade');
+            View::redirect('/admin/usuarios');
+            return;
+        }
+        
+        try {
+            $existingEmail = $this->db->fetch(
+                "SELECT id FROM usuarios WHERE email = :email AND id != :id",
+                ['email' => $email, 'id' => $id]
+            );
+            
+            if ($existingEmail) {
+                Session::flash('error', 'Este email já está em uso por outro usuário');
+                View::redirect('/admin/usuarios');
+                return;
+            }
+            
+            if ($id > 0) {
+                $updateData = [
+                    'nome' => $nome,
+                    'email' => $email,
+                    'papel' => $papel,
+                    'unidade_id' => $unidadeId,
+                    'ativo' => $this->db->boolValue($ativo),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+                
+                if (!empty($senha)) {
+                    $updateData['senha'] = password_hash($senha, PASSWORD_DEFAULT);
+                }
+                
+                $this->db->update('usuarios', $updateData, 'id = :id', ['id' => $id]);
+                
+                if ($papel === 'diretor' && $unidadeId) {
+                    $this->db->query(
+                        "UPDATE unidades SET responsavel_id = :uid WHERE id = :unid",
+                        ['uid' => $id, 'unid' => $unidadeId]
+                    );
+                }
+                
+                Session::flash('success', 'Usuário atualizado com sucesso!');
+            } else {
+                $novoId = $this->db->insert('usuarios', [
+                    'nome' => $nome,
+                    'email' => $email,
+                    'senha' => password_hash($senha, PASSWORD_DEFAULT),
+                    'papel' => $papel,
+                    'unidade_id' => $unidadeId,
+                    'ativo' => $this->db->boolValue($ativo)
+                ]);
+                
+                if ($papel === 'diretor' && $unidadeId) {
+                    $this->db->query(
+                        "UPDATE unidades SET responsavel_id = :uid WHERE id = :unid",
+                        ['uid' => $novoId, 'unid' => $unidadeId]
+                    );
+                }
+                
+                Session::flash('success', 'Usuário criado com sucesso!');
+            }
+            
+        } catch (\Exception $e) {
+            Session::flash('error', 'Erro ao salvar usuário: ' . $e->getMessage());
+        }
+        
+        View::redirect('/admin/usuarios');
+    }
+    
+    public function resetarSenhaUsuario(): void {
+        $id = (int)($_POST['id'] ?? 0);
+        $novaSenha = $_POST['nova_senha'] ?? '';
+        
+        if (empty($novaSenha) || strlen($novaSenha) < 6) {
+            Session::flash('error', 'A nova senha deve ter no mínimo 6 caracteres');
+            View::redirect('/admin/usuarios');
+            return;
+        }
+        
+        $this->db->update('usuarios', [
+            'senha' => password_hash($novaSenha, PASSWORD_DEFAULT),
+            'updated_at' => date('Y-m-d H:i:s')
+        ], 'id = :id', ['id' => $id]);
+        
+        Session::flash('success', 'Senha resetada com sucesso!');
+        View::redirect('/admin/usuarios');
+    }
+    
+    public function excluirUsuario(): void {
+        $id = (int)($_POST['id'] ?? 0);
+        $usuarioLogado = Session::getUser();
+        
+        if ($id === (int)$usuarioLogado['id']) {
+            Session::flash('error', 'Você não pode excluir seu próprio usuário');
+            View::redirect('/admin/usuarios');
+            return;
+        }
+        
+        $usuario = $this->db->fetch("SELECT * FROM usuarios WHERE id = :id", ['id' => $id]);
+        
+        if (!$usuario) {
+            Session::flash('error', 'Usuário não encontrado');
+            View::redirect('/admin/usuarios');
+            return;
+        }
+        
+        if ($usuario['unidade_id']) {
+            $this->db->query(
+                "UPDATE unidades SET responsavel_id = NULL WHERE responsavel_id = :id",
+                ['id' => $id]
+            );
+        }
+        
+        $this->db->query("DELETE FROM usuarios WHERE id = :id", ['id' => $id]);
+        
+        Session::flash('success', 'Usuário excluído com sucesso!');
+        View::redirect('/admin/usuarios');
+    }
 }

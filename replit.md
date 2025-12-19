@@ -283,3 +283,16 @@ php -S 0.0.0.0:5000 index.php
 - Correção do cálculo de "Valor Disponível" no dashboard do superintendente
 - Suporte a visualização/impressão de escalas em qualquer status
 - **Gestão de usuários** no módulo Administrativo (CRUD completo)
+
+### Laravel Edition - Dezembro 2025
+- **Dashboard do Diretor responsivo**: Cards de orçamento, gasto, disponível e horas executadas agora adaptam-se corretamente em diferentes tamanhos de tela
+- **Calendário Escala Mensal completo**: Implementação idêntica à versão PHP puro com:
+  - Cores diferenciadas: Sábados (amarelo), Domingos (laranja), Feriados (vermelho), Dias alocados (azul escuro)
+  - Seleção de equipe e módulo
+  - Modal para adicionar servidores à equipe
+  - Clique nos dias do calendário para alocar/desalocar
+  - Legenda visual de cores
+  - Cálculo automático de horas por servidor
+  - Limite de 60 horas por servidor
+- **Gestão de Setores/Módulos/Raios**: Modal para criar e botão para excluir módulos na tela de edição de unidade
+- **Migration de alocacoes**: Novas colunas (equipe_id, modulo_id, dia, horas_abono, is_lider) para suportar funcionalidade completa

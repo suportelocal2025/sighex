@@ -285,4 +285,70 @@ class DiretorController extends Controller
         $servidores = Servidor::where('unidade_id', $user->unidade_id)->get();
         return view('diretor.servidores', compact('servidores'));
     }
+
+    public function imprimirMural(Request $request)
+    {
+        $user = Auth::user();
+        $unidadeId = $user->unidade_id;
+        $mes = (int)$request->get('mes', date('n'));
+        $ano = (int)$request->get('ano', date('Y'));
+
+        $unidade = \App\Models\Unidade::find($unidadeId);
+
+        $escala = Escala::where('unidade_id', $unidadeId)
+            ->where('mes', $mes)
+            ->where('ano', $ano)
+            ->first();
+
+        if (!$escala) {
+            return response('Escala não encontrada.', 404);
+        }
+
+        $alocacoes = Alocacao::select('alocacoes.*', 'servidores.nome as servidor_nome', 'servidores.matricula', 'equipes.nome as equipe_nome', 'modulos.nome as modulo_nome')
+            ->join('servidores', 'alocacoes.servidor_id', '=', 'servidores.id')
+            ->join('equipes', 'alocacoes.equipe_id', '=', 'equipes.id')
+            ->join('modulos', 'alocacoes.modulo_id', '=', 'modulos.id')
+            ->where('alocacoes.escala_id', $escala->id)
+            ->orderBy('modulos.nome')
+            ->orderBy('equipes.nome')
+            ->orderBy('servidores.nome')
+            ->orderBy('alocacoes.dia')
+            ->get();
+
+        $agrupado = [];
+        foreach ($alocacoes as $a) {
+            $key = $a->modulo_nome . '|' . $a->equipe_nome;
+            if (!isset($agrupado[$key])) {
+                $agrupado[$key] = [
+                    'modulo' => $a->modulo_nome,
+                    'equipe' => $a->equipe_nome,
+                    'servidores' => []
+                ];
+            }
+            $sKey = $a->servidor_id;
+            if (!isset($agrupado[$key]['servidores'][$sKey])) {
+                $agrupado[$key]['servidores'][$sKey] = [
+                    'nome' => $a->servidor_nome,
+                    'matricula' => $a->matricula,
+                    'is_lider' => $a->is_lider,
+                    'dias' => [],
+                    'horas' => 0
+                ];
+            }
+            $agrupado[$key]['servidores'][$sKey]['dias'][] = str_pad($a->dia, 2, '0', STR_PAD_LEFT);
+            $agrupado[$key]['servidores'][$sKey]['horas'] += $a->horas + ($a->horas_abono ?? 0);
+        }
+
+        foreach ($agrupado as &$grupo) {
+            foreach ($grupo['servidores'] as &$srv) {
+                sort($srv['dias']);
+            }
+        }
+        unset($grupo, $srv);
+
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        return view('diretor.imprimir-mural', compact('unidade', 'escala', 'agrupado', 'meses', 'mes', 'ano'));
+    }
 }

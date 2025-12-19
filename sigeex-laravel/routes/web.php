@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('diretor')->middleware('role:diretor')->group(function () {
         Route::get('/', [DiretorController::class, 'dashboard']);
         Route::get('/escala-mensal', [DiretorController::class, 'escalaMensal']);
+        Route::get('/escala/imprimir-mural', [DiretorController::class, 'imprimirMural']);
         Route::post('/adicionar-servidor', [DiretorController::class, 'adicionarServidor']);
         Route::post('/remover-servidor', [DiretorController::class, 'removerServidor']);
         Route::post('/alocar-dia', [DiretorController::class, 'alocarDia']);

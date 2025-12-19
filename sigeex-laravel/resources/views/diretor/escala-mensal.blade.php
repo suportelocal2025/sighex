@@ -280,6 +280,9 @@ foreach ($alocacoes as $a) {
             <span id="equipeNomeHeader">Selecione uma equipe</span>
         </h6>
         <div>
+            <a href="/diretor/escala/imprimir-mural?mes={{ $mes }}&ano={{ $ano }}" target="_blank" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-printer me-1"></i> Imprimir P/Mural
+            </a>
             @if($podeEditar)
             <form method="POST" action="/diretor/enviar-aprovacao" class="d-inline" onsubmit="return confirm('Enviar escala para aprovação?')">
                 @csrf

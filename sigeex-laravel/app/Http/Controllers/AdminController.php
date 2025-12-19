@@ -89,9 +89,13 @@ class AdminController extends Controller
 
     public function salvarServidor(Request $request)
     {
+        $uniqueRule = $request->id 
+            ? 'required|string|max:50|unique:servidores,matricula,' . $request->id
+            : 'required|string|max:50|unique:servidores,matricula';
+            
         $request->validate([
             'nome' => 'required|string|max:255',
-            'matricula' => 'required|string|max:50|unique:servidores,matricula,' . $request->id,
+            'matricula' => $uniqueRule,
             'unidade_id' => 'required|exists:unidades,id',
             'cargo' => 'nullable|string|max:100',
             'email' => 'nullable|email|max:255',
@@ -135,9 +139,13 @@ class AdminController extends Controller
 
     public function salvarUsuario(Request $request)
     {
+        $emailRule = $request->id 
+            ? 'required|email|unique:usuarios,email,' . $request->id
+            : 'required|email|unique:usuarios,email';
+            
         $rules = [
             'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:usuarios,email,' . $request->id,
+            'email' => $emailRule,
             'papel' => 'required|in:superintendente,diretor,rh,administrativo',
         ];
 

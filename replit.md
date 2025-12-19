@@ -6,6 +6,20 @@ Sistema web em PHP para gestão de escalas de servidores em unidades prisionais,
 **URL de Produção:** https://sigeex.gestaoderotinas.com.br  
 **URL de Desenvolvimento:** https://sigh-ex--gspimenta.replit.app
 
+## Versões Disponíveis
+
+### 1. PHP Puro (Original)
+- Localização: `/sigeex-php-puro/`
+- MVC manual sem frameworks
+- Sistema completo e funcional
+
+### 2. Laravel (Nova versão)
+- Localização: `/sigeex-laravel/`
+- Laravel 12.x com Eloquent ORM
+- Blade templates
+- Middleware de autenticação e autorização
+- Sistema de migrations
+
 ## Estrutura do Projeto
 
 ```

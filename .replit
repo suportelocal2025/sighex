@@ -14,10 +14,6 @@ deploymentTarget = "autoscale"
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 8000
-externalPort = 80
-
 [agent]
 expertMode = true
 
@@ -31,15 +27,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "PHP Server"
+args = "SIGEEX Laravel"
 
 [[workflows.workflow]]
-name = "PHP Server"
+name = "SIGEEX Laravel"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "php -S 0.0.0.0:5000 index.php"
+args = "cd sigeex-laravel && php artisan serve --host=0.0.0.0 --port=5000"
 waitForPort = 5000
 
 [workflows.workflow.metadata]

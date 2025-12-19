@@ -62,8 +62,9 @@ class DiretorController extends Controller
     {
         $user = Auth::user();
         $unidadeId = $user->unidade_id;
-        $mes = $request->get('mes', date('n'));
-        $ano = $request->get('ano', date('Y'));
+        $unidade = \App\Models\Unidade::find($unidadeId);
+        $mes = (int)$request->get('mes', date('n'));
+        $ano = (int)$request->get('ano', date('Y'));
 
         $escala = Escala::where('unidade_id', $unidadeId)
             ->where('mes', $mes)
@@ -92,6 +93,34 @@ class DiretorController extends Controller
             ->get();
 
         $alocacoes = Alocacao::where('escala_id', $escala->id)->get();
+        
+        $diasNoMes = cal_days_in_month(CAL_GREGORIAN, $mes, $ano);
+        $feriados = $this->getFeriados($ano);
+        $nomeDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        
+        $diasInfo = [];
+        for ($d = 1; $d <= $diasNoMes; $d++) {
+            $dataStr = sprintf('%04d-%02d-%02d', $ano, $mes, $d);
+            $timestamp = strtotime($dataStr);
+            $diaSemana = (int)date('w', $timestamp);
+            $diasInfo[$d] = [
+                'diaSemana' => $diaSemana,
+                'nomeDia' => $nomeDias[$diaSemana],
+                'isFeriado' => isset($feriados[$dataStr]),
+                'nomeFeriado' => $feriados[$dataStr] ?? null,
+            ];
+        }
+        
+        $horasPorServidor = [];
+        foreach ($alocacoes as $a) {
+            if (!isset($horasPorServidor[$a->servidor_id])) {
+                $horasPorServidor[$a->servidor_id] = 0;
+            }
+            $horasPorServidor[$a->servidor_id] += $a->horas + ($a->horas_abono ?? 0);
+        }
+
+        $podeEditar = in_array($escala->status, ['rascunho', 'rejeitada']);
+        $limiteHoras = 60;
 
         return view('diretor.escala-mensal', compact(
             'escala',
@@ -101,8 +130,42 @@ class DiretorController extends Controller
             'escalaServidores',
             'alocacoes',
             'mes',
-            'ano'
+            'ano',
+            'unidade',
+            'diasNoMes',
+            'diasInfo',
+            'feriados',
+            'horasPorServidor',
+            'podeEditar',
+            'limiteHoras'
         ));
+    }
+
+    private function getFeriados(int $ano): array
+    {
+        $feriados = [
+            "$ano-01-01" => "Confraternização Universal",
+            "$ano-04-21" => "Tiradentes",
+            "$ano-05-01" => "Dia do Trabalho",
+            "$ano-09-07" => "Independência do Brasil",
+            "$ano-10-12" => "Nossa Senhora Aparecida",
+            "$ano-11-02" => "Finados",
+            "$ano-11-15" => "Proclamação da República",
+            "$ano-12-25" => "Natal",
+        ];
+        
+        $pascoa = easter_date($ano);
+        $carnaval = date('Y-m-d', strtotime('-47 days', $pascoa));
+        $carnaval2 = date('Y-m-d', strtotime('-46 days', $pascoa));
+        $sextaSanta = date('Y-m-d', strtotime('-2 days', $pascoa));
+        $corpusChristi = date('Y-m-d', strtotime('+60 days', $pascoa));
+        
+        $feriados[$carnaval] = "Carnaval";
+        $feriados[$carnaval2] = "Carnaval";
+        $feriados[$sextaSanta] = "Sexta-Feira Santa";
+        $feriados[$corpusChristi] = "Corpus Christi";
+        
+        return $feriados;
     }
 
     public function adicionarServidor(Request $request)
@@ -156,27 +219,49 @@ class DiretorController extends Controller
         $request->validate([
             'escala_id' => 'required|exists:escalas,id',
             'servidor_id' => 'required|exists:servidores,id',
-            'data' => 'required|date',
         ]);
 
-        $alocacao = Alocacao::where('escala_id', $request->escala_id)
-            ->where('servidor_id', $request->servidor_id)
-            ->where('data', $request->data)
-            ->first();
+        if ($request->has('data')) {
+            $alocacao = Alocacao::where('escala_id', $request->escala_id)
+                ->where('servidor_id', $request->servidor_id)
+                ->where('data', $request->data)
+                ->first();
 
-        if ($alocacao) {
-            $alocacao->delete();
-            return response()->json(['removed' => true]);
+            if ($alocacao) {
+                $alocacao->delete();
+                return response()->json(['removed' => true]);
+            }
         }
 
-        Alocacao::create([
-            'escala_id' => $request->escala_id,
-            'servidor_id' => $request->servidor_id,
-            'data' => $request->data,
-            'horas' => 12,
-        ]);
+        if ($request->has('dia')) {
+            $escala = Escala::find($request->escala_id);
+            $data = sprintf('%04d-%02d-%02d', $escala->ano, $escala->mes, $request->dia);
+            
+            $alocacao = Alocacao::where('escala_id', $request->escala_id)
+                ->where('servidor_id', $request->servidor_id)
+                ->where('dia', $request->dia)
+                ->first();
 
-        return response()->json(['added' => true]);
+            if ($alocacao) {
+                $alocacao->delete();
+                return response()->json(['removed' => true]);
+            }
+
+            Alocacao::create([
+                'escala_id' => $request->escala_id,
+                'servidor_id' => $request->servidor_id,
+                'equipe_id' => $request->equipe_id,
+                'modulo_id' => $request->modulo_id,
+                'dia' => $request->dia,
+                'data' => $data,
+                'horas' => $request->horas ?? 12,
+                'horas_abono' => $request->horas_abono ?? 0,
+            ]);
+
+            return response()->json(['added' => true]);
+        }
+
+        return response()->json(['error' => 'Parâmetros inválidos'], 400);
     }
 
     public function enviarAprovacao(Request $request)

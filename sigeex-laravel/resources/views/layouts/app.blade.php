@@ -57,6 +57,23 @@
         .card-stat:hover {
             transform: translateY(-4px);
         }
+        .card-stat .card-body h4 {
+            font-size: 1.1rem;
+            word-break: break-word;
+        }
+        @media (max-width: 1200px) {
+            .card-stat .card-body h4 {
+                font-size: 1rem;
+            }
+        }
+        @media (max-width: 992px) {
+            .card-stat .card-body h4 {
+                font-size: 0.9rem;
+            }
+            .card-stat .card-body h6 {
+                font-size: 0.75rem;
+            }
+        }
         .brand-logo {
             padding: 20px;
             text-align: center;

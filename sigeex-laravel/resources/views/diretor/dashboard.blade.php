@@ -28,62 +28,62 @@
 </div>
 @endif
 
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6 col-sm-6">
         <div class="card card-stat h-100">
-            <div class="card-body">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center">
-                    <div class="bg-primary bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-wallet2 text-primary fs-4"></i>
+                    <div class="bg-primary bg-opacity-10 rounded-3 p-2 me-2 flex-shrink-0">
+                        <i class="bi bi-wallet2 text-primary"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Orçamento</h6>
-                        <h4 class="mb-0">R$ {{ number_format($orcamento, 2, ',', '.') }}</h4>
+                    <div class="min-width-0">
+                        <h6 class="text-muted mb-0 small">Orçamento</h6>
+                        <h4 class="mb-0 text-truncate">R$ {{ number_format($orcamento, 0, ',', '.') }}</h4>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-lg-3 col-md-6 col-sm-6">
         <div class="card card-stat h-100">
-            <div class="card-body">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center">
-                    <div class="bg-danger bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-graph-down text-danger fs-4"></i>
+                    <div class="bg-danger bg-opacity-10 rounded-3 p-2 me-2 flex-shrink-0">
+                        <i class="bi bi-graph-down text-danger"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Gasto</h6>
-                        <h4 class="mb-0">R$ {{ number_format($gasto, 2, ',', '.') }}</h4>
+                    <div class="min-width-0">
+                        <h6 class="text-muted mb-0 small">Gasto</h6>
+                        <h4 class="mb-0 text-truncate">R$ {{ number_format($gasto, 0, ',', '.') }}</h4>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-lg-3 col-md-6 col-sm-6">
         <div class="card card-stat h-100">
-            <div class="card-body">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center">
-                    <div class="bg-success bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-cash-coin text-success fs-4"></i>
+                    <div class="bg-success bg-opacity-10 rounded-3 p-2 me-2 flex-shrink-0">
+                        <i class="bi bi-cash-coin text-success"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Disponível</h6>
-                        <h4 class="mb-0">R$ {{ number_format($disponivel, 2, ',', '.') }}</h4>
+                    <div class="min-width-0">
+                        <h6 class="text-muted mb-0 small">Disponível</h6>
+                        <h4 class="mb-0 text-truncate">R$ {{ number_format($disponivel, 0, ',', '.') }}</h4>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-lg-3 col-md-6 col-sm-6">
         <div class="card card-stat h-100">
-            <div class="card-body">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center">
-                    <div class="bg-info bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-clock-history text-info fs-4"></i>
+                    <div class="bg-info bg-opacity-10 rounded-3 p-2 me-2 flex-shrink-0">
+                        <i class="bi bi-clock-history text-info"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Horas Executadas</h6>
-                        <h4 class="mb-0">{{ number_format($horasExecutadas, 0, ',', '.') }}h</h4>
+                    <div class="min-width-0">
+                        <h6 class="text-muted mb-0 small">Horas Exec.</h6>
+                        <h4 class="mb-0 text-truncate">{{ number_format($horasExecutadas, 0, ',', '.') }}h</h4>
                     </div>
                 </div>
             </div>

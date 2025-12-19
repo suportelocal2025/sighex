@@ -75,24 +75,74 @@
             </div>
         </div>
 
-        @if($unidade && $unidade->modulos->count())
+        @if($unidade)
         <div class="card mt-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-diagram-2 me-2"></i>Módulos/Raios</h5>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-diagram-2 me-2"></i>Setor/Módulo/Raio</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoModulo">
+                    <i class="bi bi-plus-circle"></i> Novo
+                </button>
             </div>
             <div class="card-body">
+                @if($unidade->modulos->count())
                 <ul class="list-group">
                     @foreach($unidade->modulos as $modulo)
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ $modulo->nome }}
-                        @if($modulo->ativo)
-                            <span class="badge bg-success">Ativo</span>
-                        @else
-                            <span class="badge bg-secondary">Inativo</span>
-                        @endif
+                        <span>{{ $modulo->nome }}</span>
+                        <div class="d-flex align-items-center gap-2">
+                            @if($modulo->ativo)
+                                <span class="badge bg-success">Ativo</span>
+                            @else
+                                <span class="badge bg-secondary">Inativo</span>
+                            @endif
+                            <form method="POST" action="/admin/modulo/{{ $modulo->id }}/excluir" 
+                                  onsubmit="return confirm('Excluir este setor/módulo/raio?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </li>
                     @endforeach
                 </ul>
+                @else
+                <p class="text-muted mb-0">Nenhum setor/módulo/raio cadastrado.</p>
+                @endif
+            </div>
+        </div>
+
+        <div class="modal fade" id="modalNovoModulo" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="/admin/modulo">
+                        @csrf
+                        <input type="hidden" name="unidade_id" value="{{ $unidade->id }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Novo Setor/Módulo/Raio</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nome *</label>
+                                <input type="text" name="nome" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Descrição</label>
+                                <input type="text" name="descricao" class="form-control">
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" name="ativo" class="form-check-input" value="1" checked>
+                                <label class="form-check-label">Ativo</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
         @endif

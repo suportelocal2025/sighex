@@ -37,9 +37,13 @@ class AdminController extends Controller
 
     public function salvarUnidade(Request $request)
     {
+        $codigoRule = $request->id 
+            ? 'required|string|max:50|unique:unidades,codigo,' . $request->id
+            : 'required|string|max:50|unique:unidades,codigo';
+            
         $request->validate([
             'nome' => 'required|string|max:255',
-            'codigo' => 'required|string|max:50|unique:unidades,codigo,' . $request->id,
+            'codigo' => $codigoRule,
             'endereco' => 'nullable|string|max:255',
             'telefone' => 'nullable|string|max:20',
         ]);
@@ -198,5 +202,32 @@ class AdminController extends Controller
 
         Usuario::findOrFail($id)->delete();
         return redirect('/admin/usuarios')->with('success', 'Usuário excluído!');
+    }
+
+    public function salvarModulo(Request $request)
+    {
+        $request->validate([
+            'nome' => 'required|string|max:255',
+            'unidade_id' => 'required|exists:unidades,id',
+            'descricao' => 'nullable|string|max:255',
+        ]);
+
+        Modulo::create([
+            'nome' => $request->nome,
+            'unidade_id' => $request->unidade_id,
+            'descricao' => $request->descricao,
+            'ativo' => $request->has('ativo'),
+        ]);
+
+        return redirect('/admin/unidade/' . $request->unidade_id)->with('success', 'Setor/Módulo/Raio criado!');
+    }
+
+    public function excluirModulo($id)
+    {
+        $modulo = Modulo::findOrFail($id);
+        $unidadeId = $modulo->unidade_id;
+        $modulo->delete();
+        
+        return redirect('/admin/unidade/' . $unidadeId)->with('success', 'Setor/Módulo/Raio excluído!');
     }
 }

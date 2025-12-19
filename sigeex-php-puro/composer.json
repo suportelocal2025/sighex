@@ -1,0 +1,16 @@
+{
+    "name": "escala-extra/sistema",
+    "description": "Sistema de Gestão de Escalas Extraordinárias",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "vlucas/phpdotenv": "^5.5",
+        "tecnickcom/tcpdf": "^6.6",
+        "phpoffice/phpspreadsheet": "^1.29"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}

@@ -10,84 +10,105 @@
 @endsection
 
 @section('content')
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-light p-3 me-3">
-                        <i class="bi bi-hourglass-split text-secondary fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase">Pendentes</div>
-                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['pendentes'] }}</div>
-                    </div>
-                </div>
+<style>
+    .stat-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 1.25rem;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .stat-icon.warning { background: #fff3cd; color: #856404; }
+    .stat-icon.success { background: #d1f2eb; color: #1e8449; }
+    .stat-icon.primary { background: #e8f4fd; color: #2980b9; }
+    .stat-icon.danger { background: #fadbd8; color: #c0392b; }
+    .stat-content {
+        min-width: 0;
+        overflow: hidden;
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #212529;
+        line-height: 1.2;
+    }
+    @media (max-width: 991.98px) {
+        .stat-card { padding: 1rem; gap: 0.75rem; }
+        .stat-icon { width: 40px; height: 40px; min-width: 40px; font-size: 1rem; }
+        .stat-value { font-size: 1.5rem; }
+    }
+    @media (max-width: 575.98px) {
+        .stat-card { padding: 0.875rem; }
+        .stat-value { font-size: 1.25rem; }
+        .stat-label { font-size: 0.7rem; }
+    }
+</style>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="bi bi-hourglass-split"></i>
             </div>
-            <div class="card-footer bg-transparent border-0 pt-0">
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-secondary" style="width: {{ min(100, ($estatisticas['pendentes'] ?? 0) * 10) }}%"></div>
-                </div>
+            <div class="stat-content">
+                <div class="stat-label">Pendentes</div>
+                <div class="stat-value">{{ $estatisticas['pendentes'] }}</div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-light p-3 me-3">
-                        <i class="bi bi-check-circle text-success fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase">Aprovadas</div>
-                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['aprovadas'] }}</div>
-                    </div>
-                </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="bi bi-check-circle"></i>
             </div>
-            <div class="card-footer bg-transparent border-0 pt-0">
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-success" style="width: {{ min(100, ($estatisticas['aprovadas'] ?? 0) * 10) }}%"></div>
-                </div>
+            <div class="stat-content">
+                <div class="stat-label">Aprovadas</div>
+                <div class="stat-value">{{ $estatisticas['aprovadas'] }}</div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-light p-3 me-3">
-                        <i class="bi bi-check-all text-primary fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase">Executadas</div>
-                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['executadas'] }}</div>
-                    </div>
-                </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="bi bi-check-all"></i>
             </div>
-            <div class="card-footer bg-transparent border-0 pt-0">
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-primary" style="width: {{ min(100, ($estatisticas['executadas'] ?? 0) * 10) }}%"></div>
-                </div>
+            <div class="stat-content">
+                <div class="stat-label">Executadas</div>
+                <div class="stat-value">{{ $estatisticas['executadas'] }}</div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-light p-3 me-3">
-                        <i class="bi bi-x-circle text-danger fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase">Rejeitadas</div>
-                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['rejeitadas'] }}</div>
-                    </div>
-                </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon danger">
+                <i class="bi bi-x-circle"></i>
             </div>
-            <div class="card-footer bg-transparent border-0 pt-0">
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-danger" style="width: {{ min(100, ($estatisticas['rejeitadas'] ?? 0) * 10) }}%"></div>
-                </div>
+            <div class="stat-content">
+                <div class="stat-label">Rejeitadas</div>
+                <div class="stat-value">{{ $estatisticas['rejeitadas'] }}</div>
             </div>
         </div>
     </div>

@@ -7,7 +7,7 @@ modules = ["php-8.4", "postgresql-16"]
 channel = "stable-22_11"
 
 [deployment]
-run = ["php", "-S", "0.0.0.0:5000", "index.php"]
+run = ["bash", "-c", "cd sigeex-laravel && php artisan serve --host=0.0.0.0 --port=5000"]
 deploymentTarget = "autoscale"
 
 [[ports]]

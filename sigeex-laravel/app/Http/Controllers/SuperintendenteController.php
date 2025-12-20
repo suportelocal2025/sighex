@@ -12,36 +12,46 @@ use Illuminate\Support\Facades\Auth;
 
 class SuperintendenteController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $ano = date('Y');
+        $ano = (int)$request->get('ano', date('Y'));
+        $periodo = $request->get('periodo', 'ano');
         
         $orcamento = OrcamentoGlobal::where('ano', $ano)->first();
         $valorTotal = $orcamento?->valor_total ?? 0;
-        $reservaTecnica = $valorTotal * (($orcamento?->reserva_tecnica_percentual ?? 10) / 100);
-        $valorDistribuido = DistribuicaoOrcamento::where('ano', $ano)->sum('valor_distribuido');
-        $valorGasto = DistribuicaoOrcamento::where('ano', $ano)->sum('valor_gasto');
-        $valorDisponivel = $valorTotal - $reservaTecnica - $valorDistribuido;
-
-        $unidades = Unidade::where('ativo', true)->count();
-        $escalasAprovadas = Escala::where('ano', $ano)->where('status', 'aprovada')->count();
-        $escalasExecutadas = Escala::where('ano', $ano)->where('status', 'executada')->count();
-
-        $distribuicoes = DistribuicaoOrcamento::with('unidade')
-            ->where('ano', $ano)
+        $percentualReserva = $orcamento?->reserva_tecnica_percentual ?? 10;
+        $reservaTecnica = $valorTotal * ($percentualReserva / 100);
+        
+        $totalDistribuido = DistribuicaoOrcamento::where('ano', $ano)->sum('valor_distribuido');
+        $valorDisponivel = $valorTotal - $reservaTecnica - $totalDistribuido;
+        
+        $totalGasto = Escala::where('ano', $ano)
+            ->where('status', 'executada')
+            ->sum('valor_executado');
+        
+        $totalUnidades = Unidade::where('ativo', true)->count();
+        
+        $unidadesStats = Unidade::select('unidades.id', 'unidades.nome')
+            ->selectRaw('COALESCE(d.valor_distribuido, 0) as orcamento_distribuido')
+            ->selectRaw('COALESCE((SELECT SUM(valor_executado) FROM escalas WHERE unidade_id = unidades.id AND ano = ? AND status = \'executada\'), 0) as gasto_total', [$ano])
+            ->selectRaw('COALESCE((SELECT SUM(total_horas) FROM escalas WHERE unidade_id = unidades.id AND ano = ? AND status IN (\'aprovada\', \'executada\')), 0) as horas_total', [$ano])
+            ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
+                $join->on('unidades.id', '=', 'd.unidade_id')
+                     ->where('d.ano', '=', $ano);
+            })
+            ->orderBy('unidades.nome')
             ->get();
 
         return view('superintendente.dashboard', compact(
-            'valorTotal',
+            'ano',
+            'periodo',
+            'orcamento',
             'reservaTecnica',
-            'valorDistribuido',
-            'valorGasto',
             'valorDisponivel',
-            'unidades',
-            'escalasAprovadas',
-            'escalasExecutadas',
-            'distribuicoes',
-            'ano'
+            'totalDistribuido',
+            'totalGasto',
+            'totalUnidades',
+            'unidadesStats'
         ));
     }
 

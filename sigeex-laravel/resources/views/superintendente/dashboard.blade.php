@@ -4,145 +4,271 @@
 @section('header', 'Dashboard do Superintendente')
 
 @section('sidebar')
-    <a href="/superintendente" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="/superintendente" class="nav-link active"><i class="bi bi-speedometer2"></i> Dashboard</a>
     <a href="/superintendente/orcamento" class="nav-link"><i class="bi bi-wallet2"></i> Orçamento</a>
     <a href="/superintendente/distribuicao" class="nav-link"><i class="bi bi-diagram-3"></i> Distribuição</a>
     <a href="/superintendente/relatorios" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
 @endsection
 
+@push('styles')
+<style>
+.stat-card {
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a4480;
+}
+.stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+</style>
+@endpush
+
 @section('content')
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card card-stat h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-primary bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-cash-stack text-primary fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Orçamento Total</h6>
-                        <h4 class="mb-0">R$ {{ number_format($valorTotal, 2, ',', '.') }}</h4>
-                    </div>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <label class="form-label mb-0 me-2">Filtrar por Ano:</label>
+                    <select class="form-select form-select-sm d-inline-block w-auto" onchange="window.location.href='?ano='+this.value+'&periodo={{ $periodo }}'">
+                        @for($y = date('Y') - 2; $y <= date('Y') + 1; $y++)
+                            <option value="{{ $y }}" {{ $y == $ano ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
+                    </select>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card card-stat h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-warning bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-piggy-bank text-warning fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Reserva Técnica</h6>
-                        <h4 class="mb-0">R$ {{ number_format($reservaTecnica, 2, ',', '.') }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card card-stat h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-info bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-send text-info fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Distribuído</h6>
-                        <h4 class="mb-0">R$ {{ number_format($valorDistribuido, 2, ',', '.') }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card card-stat h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-success bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-check-circle text-success fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-1">Disponível</h6>
-                        <h4 class="mb-0">R$ {{ number_format($valorDisponivel, 2, ',', '.') }}</h4>
-                    </div>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm {{ $periodo == 'mes' ? 'btn-primary' : 'btn-outline-primary' }}" onclick="filtrarPeriodo('mes')">Mês</button>
+                    <button type="button" class="btn btn-sm {{ $periodo == 'trimestre' ? 'btn-primary' : 'btn-outline-primary' }}" onclick="filtrarPeriodo('trimestre')">Trimestre</button>
+                    <button type="button" class="btn btn-sm {{ $periodo == 'ano' ? 'btn-primary' : 'btn-outline-primary' }}" onclick="filtrarPeriodo('ano')">Ano</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Distribuição por Unidade - {{ $ano }}</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="chartDistribuicao" height="200"></canvas>
+<div class="row g-4 mb-4">
+    <div class="col-md-4 col-lg-2">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ {{ number_format($orcamento?->valor_total ?? 0, 0, ',', '.') }}</div>
+                    <div class="stat-label">Orçamento Total</div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Resumo</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Unidades Ativas</span>
-                        <strong>{{ $unidades }}</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Escalas Aprovadas</span>
-                        <strong class="text-success">{{ $escalasAprovadas }}</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Escalas Executadas</span>
-                        <strong class="text-info">{{ $escalasExecutadas }}</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Valor Gasto</span>
-                        <strong class="text-danger">R$ {{ number_format($valorGasto, 2, ',', '.') }}</strong>
-                    </li>
-                </ul>
+    <div class="col-md-4 col-lg-2">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ {{ number_format($reservaTecnica, 0, ',', '.') }}</div>
+                    <div class="stat-label">Reserva Técnica</div>
+                </div>
             </div>
         </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ {{ number_format($valorDisponivel, 0, ',', '.') }}</div>
+                    <div class="stat-label">Disponível</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-info bg-opacity-10 text-info me-3">
+                    <i class="bi bi-arrow-down-up"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ {{ number_format($totalDistribuido, 0, ',', '.') }}</div>
+                    <div class="stat-label">Repassado</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-danger bg-opacity-10 text-danger me-3">
+                    <i class="bi bi-graph-down"></i>
+                </div>
+                <div>
+                    <div class="stat-value">R$ {{ number_format($totalGasto, 0, ',', '.') }}</div>
+                    <div class="stat-label">Gastos</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon bg-secondary bg-opacity-10 text-secondary me-3">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ $totalUnidades }}</div>
+                    <div class="stat-label">Unidades</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card p-4 h-100">
+            <h6 class="card-title mb-3"><i class="bi bi-bar-chart me-2"></i>Gastos x Horas por Unidade</h6>
+            <canvas id="chartGastosHoras" height="180"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card p-4 h-100 d-flex flex-column">
+            <h6 class="card-title mb-3"><i class="bi bi-pie-chart me-2"></i>Distribuição de Gastos</h6>
+            <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="max-height: 220px;">
+                <canvas id="chartDistribuicao"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Status das Unidades</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Unidade</th>
+                    <th class="text-end">Repassado (R$)</th>
+                    <th class="text-end">Gasto (R$)</th>
+                    <th class="text-end">Horas</th>
+                    <th class="text-end">Saldo (R$)</th>
+                    <th class="text-center">Uso</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($unidadesStats as $u)
+                    @php
+                        $saldo = $u->orcamento_distribuido - $u->gasto_total;
+                        $percentual = $u->orcamento_distribuido > 0 ? ($u->gasto_total / $u->orcamento_distribuido) * 100 : 0;
+                        $corBarra = $percentual > 80 ? 'danger' : ($percentual > 50 ? 'warning' : 'success');
+                    @endphp
+                    <tr>
+                        <td><strong>{{ $u->nome }}</strong></td>
+                        <td class="text-end">R$ {{ number_format($u->orcamento_distribuido, 2, ',', '.') }}</td>
+                        <td class="text-end">R$ {{ number_format($u->gasto_total, 2, ',', '.') }}</td>
+                        <td class="text-end">{{ number_format($u->horas_total, 0, ',', '.') }}h</td>
+                        <td class="text-end {{ $saldo < 0 ? 'text-danger' : 'text-success' }}">
+                            R$ {{ number_format($saldo, 2, ',', '.') }}
+                        </td>
+                        <td style="width: 150px;">
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-{{ $corBarra }}" style="width: {{ min($percentual, 100) }}%">
+                                    {{ number_format($percentual, 0) }}%
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-const ctx = document.getElementById('chartDistribuicao').getContext('2d');
-new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: {!! json_encode($distribuicoes->pluck('unidade.nome')) !!},
-        datasets: [{
-            label: 'Distribuído',
-            data: {!! json_encode($distribuicoes->pluck('valor_distribuido')) !!},
-            backgroundColor: 'rgba(26, 35, 126, 0.8)',
-        }, {
-            label: 'Gasto',
-            data: {!! json_encode($distribuicoes->pluck('valor_gasto')) !!},
-            backgroundColor: 'rgba(220, 53, 69, 0.8)',
-        }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: value => 'R$ ' + value.toLocaleString('pt-BR')
+function filtrarPeriodo(p) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('periodo', p);
+    window.location.href = url.toString();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const unidades = {!! json_encode($unidadesStats->pluck('nome')) !!};
+    const gastos = {!! json_encode($unidadesStats->pluck('gasto_total')) !!};
+    const horas = {!! json_encode($unidadesStats->pluck('horas_total')) !!};
+    
+    new Chart(document.getElementById('chartGastosHoras'), {
+        type: 'bar',
+        data: {
+            labels: unidades,
+            datasets: [
+                {
+                    label: 'Gasto (R$)',
+                    data: gastos,
+                    backgroundColor: 'rgba(26, 68, 128, 0.8)',
+                    borderRadius: 5
+                },
+                {
+                    label: 'Horas',
+                    data: horas,
+                    backgroundColor: 'rgba(0, 169, 28, 0.8)',
+                    borderRadius: 5
                 }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
             }
         }
-    }
+    });
+    
+    const cores = ['#1a4480', '#005ea2', '#00a91c', '#ffbe2e', '#d54309', '#5c5c5c', '#8168b3', '#0076d6'];
+    
+    new Chart(document.getElementById('chartDistribuicao'), {
+        type: 'doughnut',
+        data: {
+            labels: unidades,
+            datasets: [{
+                data: gastos,
+                backgroundColor: cores.slice(0, unidades.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12 } }
+            }
+        }
+    });
 });
 </script>
 @endpush

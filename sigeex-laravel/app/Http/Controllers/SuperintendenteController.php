@@ -34,7 +34,7 @@ class SuperintendenteController extends Controller
         $unidadesStats = Unidade::select('unidades.id', 'unidades.nome')
             ->selectRaw('COALESCE(d.valor_distribuido, 0) as orcamento_distribuido')
             ->selectRaw('COALESCE((SELECT SUM(valor_executado) FROM escalas WHERE unidade_id = unidades.id AND ano = ? AND status = \'executada\'), 0) as gasto_total', [$ano])
-            ->selectRaw('COALESCE((SELECT SUM(total_horas) FROM escalas WHERE unidade_id = unidades.id AND ano = ? AND status IN (\'aprovada\', \'executada\')), 0) as horas_total', [$ano])
+            ->selectRaw('COALESCE((SELECT SUM(a.horas) FROM alocacoes a INNER JOIN escalas e ON a.escala_id = e.id WHERE e.unidade_id = unidades.id AND e.ano = ? AND e.status IN (\'aprovada\', \'executada\')), 0) as horas_total', [$ano])
             ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
                 $join->on('unidades.id', '=', 'd.unidade_id')
                      ->where('d.ano', '=', $ano);

@@ -15,6 +15,15 @@ class RhController extends Controller
     {
         $ano = date('Y');
         
+        // Calcular estatísticas separadamente para performance
+        $estatisticas = [
+            'pendentes' => Escala::where('ano', $ano)->where('status', 'pendente')->count(),
+            'aprovadas' => Escala::where('ano', $ano)->where('status', 'aprovada')->count(),
+            'executadas' => Escala::where('ano', $ano)->where('status', 'executada')->count(),
+            'rejeitadas' => Escala::where('ano', $ano)->where('status', 'rejeitada')->count(),
+        ];
+
+        // Buscar apenas as 10 escalas mais recentes
         $escalas = Escala::with('unidade')
             ->whereIn('status', ['pendente', 'aprovada', 'rejeitada', 'executada'])
             ->where('ano', $ano)
@@ -25,13 +34,17 @@ class RhController extends Controller
                 WHEN 'rejeitada' THEN 4 
                 END")
             ->orderBy('mes', 'desc')
+            ->limit(10)
             ->get();
 
-        $pendentes = $escalas->where('status', 'pendente')->count();
-        $aprovadas = $escalas->where('status', 'aprovada')->count();
-        $executadas = $escalas->where('status', 'executada')->count();
+        // Calcular horas para cada escala (horas + horas_abono) com COALESCE por campo
+        foreach ($escalas as $escala) {
+            $escala->total_horas = Alocacao::where('escala_id', $escala->id)
+                ->selectRaw('SUM(COALESCE(horas, 0) + COALESCE(horas_abono, 0)) as total')
+                ->value('total') ?? 0;
+        }
 
-        return view('rh.dashboard', compact('escalas', 'pendentes', 'aprovadas', 'executadas', 'ano'));
+        return view('rh.dashboard', compact('escalas', 'estatisticas', 'ano'));
     }
 
     public function escalas(Request $request)
@@ -124,5 +137,131 @@ class RhController extends Controller
     public function relatorios()
     {
         return view('rh.relatorios');
+    }
+
+    public function exportarExcel($id)
+    {
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        $escala = Escala::with('unidade')->findOrFail($id);
+        
+        $alocacoes = Alocacao::select('alocacoes.*', 'servidores.nome as servidor_nome', 
+                'servidores.matricula', 'equipes.nome as equipe_nome', 'modulos.nome as modulo_nome')
+            ->join('servidores', 'alocacoes.servidor_id', '=', 'servidores.id')
+            ->leftJoin('equipes', 'alocacoes.equipe_id', '=', 'equipes.id')
+            ->leftJoin('modulos', 'alocacoes.modulo_id', '=', 'modulos.id')
+            ->where('alocacoes.escala_id', $id)
+            ->orderBy('servidores.nome')
+            ->orderBy('alocacoes.dia')
+            ->get();
+        
+        $alocacoesAgrupadas = [];
+        foreach ($alocacoes as $a) {
+            $key = $a->servidor_id . '_' . ($a->modulo_id ?? 0);
+            if (!isset($alocacoesAgrupadas[$key])) {
+                $alocacoesAgrupadas[$key] = [
+                    'servidor_nome' => $a->servidor_nome,
+                    'matricula' => $a->matricula,
+                    'modulo_nome' => $a->modulo_nome ?? '-',
+                    'dias' => [],
+                    'horas' => 0
+                ];
+            }
+            $alocacoesAgrupadas[$key]['dias'][] = str_pad($a->dia, 2, '0', STR_PAD_LEFT);
+            $alocacoesAgrupadas[$key]['horas'] += ($a->horas ?? 0) + ($a->horas_abono ?? 0);
+        }
+        
+        foreach ($alocacoesAgrupadas as &$ag) {
+            sort($ag['dias']);
+        }
+        unset($ag);
+        
+        $unidadeNome = $escala->unidade->nome ?? 'Unidade';
+        $mesNome = $meses[$escala->mes];
+        $ano = $escala->ano;
+        $nomeArquivo = "escala_{$escala->id}_{$mesNome}_{$ano}.xls";
+        
+        $html = "\xEF\xBB\xBF";
+        $html .= "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        $html .= "<head><meta charset='UTF-8'>";
+        $html .= "<style>";
+        $html .= "table { border-collapse: collapse; width: 100%; }";
+        $html .= "th, td { border: 1px solid #000; padding: 8px; text-align: left; }";
+        $html .= "th { background-color: #4472C4; color: white; font-weight: bold; }";
+        $html .= ".header { text-align: center; font-size: 16pt; font-weight: bold; }";
+        $html .= ".subheader { text-align: center; font-size: 12pt; }";
+        $html .= ".logo-cell { width: 100px; height: 80px; text-align: center; vertical-align: middle; }";
+        $html .= ".total-row { background-color: #D9E2F3; font-weight: bold; }";
+        $html .= ".numero { text-align: center; }";
+        $html .= ".horas { text-align: center; }";
+        $html .= "</style>";
+        $html .= "</head><body>";
+        
+        $html .= "<table>";
+        $html .= "<tr>";
+        $html .= "<td class='logo-cell' colspan='1'>[LOGO SEAP]</td>";
+        $html .= "<td class='header' colspan='4'>";
+        $html .= htmlspecialchars($unidadeNome) . "<br>";
+        $html .= "<span class='subheader'>Escala Extraordinária - {$mesNome}/{$ano}</span>";
+        $html .= "</td>";
+        $html .= "<td class='logo-cell' colspan='1'>[LOGO UNIDADE]</td>";
+        $html .= "</tr>";
+        $html .= "</table>";
+        
+        $html .= "<br>";
+        
+        $html .= "<table>";
+        $html .= "<thead>";
+        $html .= "<tr>";
+        $html .= "<th class='numero'>Núm.</th>";
+        $html .= "<th>Matrícula</th>";
+        $html .= "<th>Nome do Servidor</th>";
+        $html .= "<th class='horas'>Horas</th>";
+        $html .= "<th>Unidade</th>";
+        $html .= "<th>Dias</th>";
+        $html .= "</tr>";
+        $html .= "</thead>";
+        $html .= "<tbody>";
+        
+        $num = 1;
+        $totalHoras = 0;
+        
+        foreach ($alocacoesAgrupadas as $a) {
+            $diasStr = implode(', ', $a['dias']);
+            $totalHoras += $a['horas'];
+            
+            $html .= "<tr>";
+            $html .= "<td class='numero'>" . str_pad($num, 3, '0', STR_PAD_LEFT) . "</td>";
+            $html .= "<td>" . htmlspecialchars($a['matricula']) . "</td>";
+            $html .= "<td>" . htmlspecialchars($a['servidor_nome']) . "</td>";
+            $html .= "<td class='horas'>" . number_format($a['horas'], 0, ',', '.') . "</td>";
+            $html .= "<td>" . htmlspecialchars($a['modulo_nome']) . "</td>";
+            $html .= "<td>" . htmlspecialchars($diasStr) . "</td>";
+            $html .= "</tr>";
+            
+            $num++;
+        }
+        
+        $html .= "</tbody>";
+        $html .= "</table>";
+        
+        $html .= "<table>";
+        $html .= "<tr><td colspan='6'>&nbsp;</td></tr>";
+        $html .= "<tr><td colspan='6'>&nbsp;</td></tr>";
+        $html .= "<tr>";
+        $html .= "<td colspan='3' style='background-color: #FF0000; color: white; font-weight: bold;'>Autorização de quantitativo a maior é realizado pela SGP</td>";
+        $html .= "<td style='background-color: #FF0000; color: white; font-weight: bold; text-align: center;'>" . number_format($totalHoras, 0, ',', '.') . "</td>";
+        $html .= "<td colspan='2' style='background-color: #FF0000;'></td>";
+        $html .= "</tr>";
+        $html .= "</table>";
+        
+        $html .= "</body></html>";
+        
+        return response($html)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+            ->header('Content-Disposition', "attachment; filename=\"{$nomeArquivo}\"")
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 }

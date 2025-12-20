@@ -11,104 +11,145 @@
 
 @section('content')
 <div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="card card-stat h-100 border-start border-4 border-warning">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center">
-                    <div class="bg-warning bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-hourglass-split text-warning fs-4"></i>
+                    <div class="rounded-circle bg-light p-3 me-3">
+                        <i class="bi bi-hourglass-split text-secondary fs-4"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-1">Pendentes</h6>
-                        <h3 class="mb-0">{{ $pendentes }}</h3>
+                        <div class="text-muted small text-uppercase">Pendentes</div>
+                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['pendentes'] }}</div>
                     </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0">
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-secondary" style="width: {{ min(100, ($estatisticas['pendentes'] ?? 0) * 10) }}%"></div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card card-stat h-100 border-start border-4 border-success">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center">
-                    <div class="bg-success bg-opacity-10 rounded-3 p-3 me-3">
+                    <div class="rounded-circle bg-light p-3 me-3">
                         <i class="bi bi-check-circle text-success fs-4"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-1">Aprovadas</h6>
-                        <h3 class="mb-0">{{ $aprovadas }}</h3>
+                        <div class="text-muted small text-uppercase">Aprovadas</div>
+                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['aprovadas'] }}</div>
                     </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0">
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-success" style="width: {{ min(100, ($estatisticas['aprovadas'] ?? 0) * 10) }}%"></div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card card-stat h-100 border-start border-4 border-info">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center">
-                    <div class="bg-info bg-opacity-10 rounded-3 p-3 me-3">
-                        <i class="bi bi-cash-stack text-info fs-4"></i>
+                    <div class="rounded-circle bg-light p-3 me-3">
+                        <i class="bi bi-check-all text-primary fs-4"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-1">Executadas</h6>
-                        <h3 class="mb-0">{{ $executadas }}</h3>
+                        <div class="text-muted small text-uppercase">Executadas</div>
+                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['executadas'] }}</div>
                     </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0">
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-primary" style="width: {{ min(100, ($estatisticas['executadas'] ?? 0) * 10) }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-light p-3 me-3">
+                        <i class="bi bi-x-circle text-danger fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase">Rejeitadas</div>
+                        <div class="fs-3 fw-bold text-dark">{{ $estatisticas['rejeitadas'] }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0">
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-danger" style="width: {{ min(100, ($estatisticas['rejeitadas'] ?? 0) * 10) }}%"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Escalas {{ $ano }}</h5>
-        <a href="/rh/escalas" class="btn btn-primary">Ver Todas</a>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+        <h5 class="mb-0 fw-semibold"><i class="bi bi-list-check me-2 text-primary"></i>Escalas Recentes</h5>
+        <a href="/rh/escalas" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-right me-1"></i>Ver Todas
+        </a>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Unidade</th>
-                        <th>Mês/Ano</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($escalas->take(10) as $escala)
-                    <tr>
-                        <td>{{ $escala->unidade->nome ?? 'N/A' }}</td>
-                        <td>{{ str_pad($escala->mes, 2, '0', STR_PAD_LEFT) }}/{{ $escala->ano }}</td>
-                        <td>
-                            @switch($escala->status)
-                                @case('pendente')
-                                    <span class="badge bg-warning text-dark">Pendente</span>
-                                    @break
-                                @case('aprovada')
-                                    <span class="badge bg-success">Aprovada</span>
-                                    @break
-                                @case('rejeitada')
-                                    <span class="badge bg-danger">Rejeitada</span>
-                                    @break
-                                @case('executada')
-                                    <span class="badge bg-info">Executada</span>
-                                    @break
-                            @endswitch
-                        </td>
-                        <td>
-                            <a href="/rh/escala/{{ $escala->id }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> Detalhar
-                            </a>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">Nenhuma escala encontrada</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="border-0">Unidade</th>
+                    <th class="border-0">Mês/Ano</th>
+                    <th class="border-0 text-center">Horas</th>
+                    <th class="border-0 text-center">Status</th>
+                    <th class="border-0 text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    $meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                @endphp
+                @forelse($escalas as $escala)
+                @php
+                    $statusClass = match($escala->status) {
+                        'pendente' => 'bg-light text-secondary',
+                        'aprovada' => 'bg-success-subtle text-success',
+                        'executada' => 'bg-primary-subtle text-primary',
+                        'rejeitada' => 'bg-danger-subtle text-danger',
+                        default => 'bg-secondary-subtle text-secondary'
+                    };
+                @endphp
+                <tr>
+                    <td><strong>{{ $escala->unidade->nome ?? 'N/A' }}</strong></td>
+                    <td class="text-muted">{{ $meses[$escala->mes] }}/{{ $escala->ano }}</td>
+                    <td class="text-center">{{ number_format($escala->total_horas, 0, ',', '.') }}h</td>
+                    <td class="text-center">
+                        <span class="badge {{ $statusClass }} fw-normal px-3 py-2">
+                            {{ ucfirst($escala->status) }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <a href="/rh/escala/{{ $escala->id }}" class="btn btn-sm btn-light border">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                        Nenhuma escala encontrada
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 @endsection

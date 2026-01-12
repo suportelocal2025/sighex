@@ -284,6 +284,27 @@ php -S 0.0.0.0:5000 index.php
 - Suporte a visualização/impressão de escalas em qualquer status
 - **Gestão de usuários** no módulo Administrativo (CRUD completo)
 
+### Laravel Edition - Janeiro 2026
+- **Aba Escalas no Superintendente**: Visualização completa de escalas com mesmo fluxo do RH (todas, pendentes, aprovadas, executadas)
+- **Sistema de Margem Orçamentária Mensal**:
+  - Campo `margin_percentual` na tabela `distribuicao_orcamento`
+  - Configurável por unidade (padrão 10%)
+  - Cálculo de orçamento mensal = anual / 12
+  - Lógica de carry-forward: saldos positivos E negativos propagam para meses seguintes
+- **Infográfico de 12 meses no Dashboard do Diretor**:
+  - Cards visuais para cada mês do ano
+  - Barras de progresso coloridas (verde/amarelo/vermelho)
+  - Indicador visual de violação de margem
+  - Valores de orçamento, gasto e saldo por mês
+- **Alertas de Violação de Margem no Superintendente**:
+  - Banner de alerta quando unidades ultrapassam limite + margem
+  - Tabela detalhada com unidade, mês, limite, gasto e excedente
+  - Botão "Enviar por Email" para notificação
+- **Notificações por Email**:
+  - Classe Mailable `MarginViolationAlert`
+  - Template Markdown para emails de alerta
+  - Recálculo server-side das violações (segurança)
+
 ### Laravel Edition - Dezembro 2025
 - **Dashboard do Diretor responsivo**: Cards de orçamento, gasto, disponível e horas executadas agora adaptam-se corretamente em diferentes tamanhos de tela
 - **Calendário Escala Mensal completo**: Implementação idêntica à versão PHP puro com:

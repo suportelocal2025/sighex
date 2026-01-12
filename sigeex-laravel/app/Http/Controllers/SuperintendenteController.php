@@ -48,6 +48,12 @@ class SuperintendenteController extends Controller
             ->orderBy('unidades.nome')
             ->get();
 
+        $escalasAguardandoAprovacao = Escala::with('unidade')
+            ->where('status', 'pendente')
+            ->where('excede_margem', true)
+            ->orderBy('data_envio', 'desc')
+            ->get();
+
         $alertasViolacao = [];
         $mesAtual = date('n');
         $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -97,7 +103,8 @@ class SuperintendenteController extends Controller
             'totalGasto',
             'totalUnidades',
             'unidadesStats',
-            'alertasViolacao'
+            'alertasViolacao',
+            'escalasAguardandoAprovacao'
         ));
     }
 
@@ -267,6 +274,114 @@ class SuperintendenteController extends Controller
             Log::error('Erro ao enviar email de alerta de margem: ' . $e->getMessage());
             return redirect('/superintendente')->with('error', 'Erro ao enviar email. Verifique a configuração de email do sistema.');
         }
+    }
+
+    public function aprovarEscalaExcedente(Request $request)
+    {
+        $request->validate([
+            'escala_id' => 'required|exists:escalas,id',
+        ]);
+
+        $escala = Escala::findOrFail($request->escala_id);
+        
+        $budgetInfo = $this->recalcularBudget($escala);
+        
+        $escala->update([
+            'valor_previsto' => $budgetInfo['valor_previsto'],
+            'orcamento_mes' => $budgetInfo['orcamento_mes'],
+            'limite_margem' => $budgetInfo['limite_margem'],
+            'usa_margem' => $budgetInfo['usa_margem'],
+            'excede_margem' => $budgetInfo['excede_margem'],
+        ]);
+        
+        if (!$budgetInfo['excede_margem']) {
+            return redirect('/superintendente/escalas')->with('info', 'Os valores foram recalculados e a escala não excede mais a margem. Aprovação normal pelo RH.');
+        }
+        
+        $escala->update([
+            'status' => 'aprovada',
+            'aprovado_por' => Auth::id(),
+            'data_aprovacao' => now(),
+            'requer_aprovacao_super' => false,
+        ]);
+
+        return redirect('/superintendente/escalas')->with('success', 'Escala aprovada com exceção de margem orçamentária!');
+    }
+    
+    private function recalcularBudget(Escala $escala): array
+    {
+        $unidadeId = $escala->unidade_id;
+        $ano = $escala->ano;
+        $mes = $escala->mes;
+        
+        $totalHoras = \App\Models\Alocacao::where('escala_id', $escala->id)
+            ->sum(\DB::raw('COALESCE(horas, 0) + COALESCE(horas_abono, 0)'));
+        
+        $valorHora = 50;
+        $valorPrevisto = $totalHoras * $valorHora;
+        
+        $distribuicao = DistribuicaoOrcamento::where('unidade_id', $unidadeId)
+            ->where('ano', $ano)
+            ->first();
+        
+        $orcamentoAnual = $distribuicao?->valor_distribuido ?? 0;
+        $marginPercentual = $distribuicao?->margin_percentual ?? 10;
+        
+        $gastosPorMes = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $gastosPorMes[$m] = Escala::where('unidade_id', $unidadeId)
+                ->where('ano', $ano)
+                ->where('mes', $m)
+                ->where('id', '!=', $escala->id)
+                ->where('status', 'executada')
+                ->sum('valor_executado') ?? 0;
+        }
+        
+        $orcamentoRestante = $orcamentoAnual;
+        for ($m = 1; $m < $mes; $m++) {
+            $mesesRestantes = 12 - $m + 1;
+            $alocacaoMes = $orcamentoRestante / $mesesRestantes;
+            $gastoMes = $gastosPorMes[$m];
+            
+            if ($gastoMes > 0) {
+                $orcamentoRestante -= $gastoMes;
+            } else {
+                $orcamentoRestante -= $alocacaoMes;
+            }
+        }
+        
+        $mesesRestantes = 12 - $mes + 1;
+        $orcamentoMes = $orcamentoRestante / $mesesRestantes;
+        $limiteComMargem = $orcamentoMes * (1 + $marginPercentual / 100);
+        
+        $usaMargem = $valorPrevisto > $orcamentoMes && $valorPrevisto <= $limiteComMargem;
+        $excedeMargem = $valorPrevisto > $limiteComMargem;
+        
+        return [
+            'valor_previsto' => $valorPrevisto,
+            'orcamento_mes' => $orcamentoMes,
+            'limite_margem' => $limiteComMargem,
+            'usa_margem' => $usaMargem,
+            'excede_margem' => $excedeMargem,
+        ];
+    }
+
+    public function rejeitarEscalaExcedente(Request $request)
+    {
+        $request->validate([
+            'escala_id' => 'required|exists:escalas,id',
+            'motivo_rejeicao' => 'required|string|min:10',
+        ]);
+
+        $escala = Escala::findOrFail($request->escala_id);
+        $escala->update([
+            'status' => 'rejeitada',
+            'motivo_rejeicao' => $request->motivo_rejeicao,
+            'aprovado_por' => Auth::id(),
+            'data_aprovacao' => now(),
+        ]);
+
+        return redirect('/superintendente/escalas')->with('success', 'Escala rejeitada!');
     }
 
     private function calcularViolacoes(int $ano): array

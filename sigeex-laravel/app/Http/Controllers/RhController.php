@@ -84,6 +84,25 @@ class RhController extends Controller
         ]);
 
         $escala = Escala::findOrFail($request->escala_id);
+        
+        $budgetInfo = $this->recalcularBudget($escala);
+        
+        $escala->update([
+            'valor_previsto' => $budgetInfo['valor_previsto'],
+            'orcamento_mes' => $budgetInfo['orcamento_mes'],
+            'limite_margem' => $budgetInfo['limite_margem'],
+            'usa_margem' => $budgetInfo['usa_margem'],
+            'excede_margem' => $budgetInfo['excede_margem'],
+        ]);
+        
+        if ($budgetInfo['excede_margem']) {
+            return redirect('/rh/escalas')->with('error', 
+                'Esta escala excede a margem orçamentária e requer aprovação do Superintendente. ' .
+                'Valor previsto: R$ ' . number_format($budgetInfo['valor_previsto'], 2, ',', '.') . ' | ' .
+                'Limite com margem: R$ ' . number_format($budgetInfo['limite_margem'], 2, ',', '.')
+            );
+        }
+        
         $escala->update([
             'status' => 'aprovada',
             'aprovado_por' => Auth::id(),
@@ -91,6 +110,64 @@ class RhController extends Controller
         ]);
 
         return redirect('/rh/escalas')->with('success', 'Escala aprovada!');
+    }
+    
+    private function recalcularBudget(Escala $escala): array
+    {
+        $unidadeId = $escala->unidade_id;
+        $ano = $escala->ano;
+        $mes = $escala->mes;
+        
+        $totalHoras = Alocacao::where('escala_id', $escala->id)
+            ->sum(\DB::raw('COALESCE(horas, 0) + COALESCE(horas_abono, 0)'));
+        
+        $valorHora = 50;
+        $valorPrevisto = $totalHoras * $valorHora;
+        
+        $distribuicao = DistribuicaoOrcamento::where('unidade_id', $unidadeId)
+            ->where('ano', $ano)
+            ->first();
+        
+        $orcamentoAnual = $distribuicao?->valor_distribuido ?? 0;
+        $marginPercentual = $distribuicao?->margin_percentual ?? 10;
+        
+        $gastosPorMes = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $gastosPorMes[$m] = Escala::where('unidade_id', $unidadeId)
+                ->where('ano', $ano)
+                ->where('mes', $m)
+                ->where('id', '!=', $escala->id)
+                ->where('status', 'executada')
+                ->sum('valor_executado') ?? 0;
+        }
+        
+        $orcamentoRestante = $orcamentoAnual;
+        for ($m = 1; $m < $mes; $m++) {
+            $mesesRestantes = 12 - $m + 1;
+            $alocacaoMes = $orcamentoRestante / $mesesRestantes;
+            $gastoMes = $gastosPorMes[$m];
+            
+            if ($gastoMes > 0) {
+                $orcamentoRestante -= $gastoMes;
+            } else {
+                $orcamentoRestante -= $alocacaoMes;
+            }
+        }
+        
+        $mesesRestantes = 12 - $mes + 1;
+        $orcamentoMes = $orcamentoRestante / $mesesRestantes;
+        $limiteComMargem = $orcamentoMes * (1 + $marginPercentual / 100);
+        
+        $usaMargem = $valorPrevisto > $orcamentoMes && $valorPrevisto <= $limiteComMargem;
+        $excedeMargem = $valorPrevisto > $limiteComMargem;
+        
+        return [
+            'valor_previsto' => $valorPrevisto,
+            'orcamento_mes' => $orcamentoMes,
+            'limite_margem' => $limiteComMargem,
+            'usa_margem' => $usaMargem,
+            'excede_margem' => $excedeMargem,
+        ];
     }
 
     public function rejeitarEscala(Request $request)

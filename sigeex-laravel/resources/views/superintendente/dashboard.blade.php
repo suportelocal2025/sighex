@@ -41,6 +41,58 @@
 @endpush
 
 @section('content')
+@if(count($escalasAguardandoAprovacao) > 0)
+<div class="alert alert-warning mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <h6 class="alert-heading d-flex align-items-center mb-0">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            Escalas Aguardando Sua Aprovação ({{ count($escalasAguardandoAprovacao) }})
+        </h6>
+        <a href="/superintendente/escalas?status=pendente" class="btn btn-sm btn-warning">
+            <i class="bi bi-arrow-right-circle me-1"></i>Ver Escalas
+        </a>
+    </div>
+    <hr>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Unidade</th>
+                    <th>Período</th>
+                    <th>Orçamento Mês</th>
+                    <th>Limite (c/ margem)</th>
+                    <th>Valor Previsto</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($escalasAguardandoAprovacao as $escala)
+                <tr>
+                    <td><strong>{{ $escala->unidade->nome ?? 'N/A' }}</strong></td>
+                    <td>{{ str_pad($escala->mes, 2, '0', STR_PAD_LEFT) }}/{{ $escala->ano }}</td>
+                    <td>R$ {{ number_format($escala->orcamento_mes, 2, ',', '.') }}</td>
+                    <td>R$ {{ number_format($escala->limite_margem, 2, ',', '.') }}</td>
+                    <td class="text-danger fw-bold">R$ {{ number_format($escala->valor_previsto, 2, ',', '.') }}</td>
+                    <td>
+                        <form method="POST" action="/superintendente/aprovar-escala" class="d-inline">
+                            @csrf
+                            <input type="hidden" name="escala_id" value="{{ $escala->id }}">
+                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Aprovar escala que excede a margem?')">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                        </form>
+                        <a href="/superintendente/escala/{{ $escala->id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 @if(count($alertasViolacao) > 0)
 <div class="alert alert-danger mb-4">
     <div class="d-flex justify-content-between align-items-start">

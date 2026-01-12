@@ -27,6 +27,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/distribuicao', [SuperintendenteController::class, 'salvarDistribuicao']);
         Route::get('/escalas', [SuperintendenteController::class, 'escalas']);
         Route::get('/escala/{id}', [SuperintendenteController::class, 'detalharEscala']);
+        Route::post('/aprovar-escala', [SuperintendenteController::class, 'aprovarEscalaExcedente']);
+        Route::post('/rejeitar-escala', [SuperintendenteController::class, 'rejeitarEscalaExcedente']);
         Route::post('/enviar-alerta-email', [SuperintendenteController::class, 'enviarAlertaEmail']);
         Route::get('/relatorios', [SuperintendenteController::class, 'relatorios']);
     });

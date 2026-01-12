@@ -322,12 +322,111 @@ class DiretorController extends Controller
         ]);
 
         $escala = Escala::findOrFail($request->escala_id);
+        $unidadeId = $escala->unidade_id;
+        $ano = $escala->ano;
+        $mes = $escala->mes;
+        
+        $totalHoras = Alocacao::where('escala_id', $escala->id)
+            ->sum(\DB::raw('COALESCE(horas, 0) + COALESCE(horas_abono, 0)'));
+        
+        $valorHora = 50;
+        $valorPrevisto = $totalHoras * $valorHora;
+        
+        $distribuicao = DistribuicaoOrcamento::where('unidade_id', $unidadeId)
+            ->where('ano', $ano)
+            ->first();
+        
+        $orcamentoAnual = $distribuicao?->valor_distribuido ?? 0;
+        $marginPercentual = $distribuicao?->margin_percentual ?? 10;
+        
+        $gastosPorMes = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $gastosPorMes[$m] = Escala::where('unidade_id', $unidadeId)
+                ->where('ano', $ano)
+                ->where('mes', $m)
+                ->where('id', '!=', $escala->id)
+                ->where('status', 'executada')
+                ->sum('valor_executado') ?? 0;
+        }
+        
+        $orcamentoRestante = $orcamentoAnual;
+        for ($m = 1; $m < $mes; $m++) {
+            $mesesRestantes = 12 - $m + 1;
+            $alocacaoMes = $orcamentoRestante / $mesesRestantes;
+            $gastoMes = $gastosPorMes[$m];
+            
+            if ($gastoMes > 0) {
+                $orcamentoRestante -= $gastoMes;
+            } else {
+                $orcamentoRestante -= $alocacaoMes;
+            }
+        }
+        
+        $mesesRestantes = 12 - $mes + 1;
+        $orcamentoMes = $orcamentoRestante / $mesesRestantes;
+        $limiteComMargem = $orcamentoMes * (1 + $marginPercentual / 100);
+        
+        $usaMargem = $valorPrevisto > $orcamentoMes && $valorPrevisto <= $limiteComMargem;
+        $excedeMargem = $valorPrevisto > $limiteComMargem;
+        
         $escala->update([
             'status' => 'pendente',
             'data_envio' => now(),
+            'valor_previsto' => $valorPrevisto,
+            'orcamento_mes' => $orcamentoMes,
+            'limite_margem' => $limiteComMargem,
+            'usa_margem' => $usaMargem,
+            'excede_margem' => $excedeMargem,
+            'requer_aprovacao_super' => $excedeMargem,
         ]);
+        
+        if ($usaMargem || $excedeMargem) {
+            $this->notificarSuperintendente($escala, $usaMargem, $excedeMargem);
+        }
 
-        return redirect('/diretor')->with('success', 'Escala enviada para aprovação!');
+        $mensagem = 'Escala enviada para aprovação!';
+        if ($usaMargem) {
+            $mensagem = 'Escala enviada! ATENÇÃO: O valor previsto está dentro da margem de tolerância.';
+        } elseif ($excedeMargem) {
+            $mensagem = 'Escala enviada! ATENÇÃO: O valor previsto EXCEDE a margem. Requer aprovação do Superintendente.';
+        }
+
+        return redirect('/diretor')->with($excedeMargem ? 'warning' : 'success', $mensagem);
+    }
+    
+    private function notificarSuperintendente(Escala $escala, bool $usaMargem, bool $excedeMargem)
+    {
+        $superintendentes = \App\Models\Usuario::where('perfil', 'superintendente')
+            ->where('ativo', true)
+            ->get();
+        
+        foreach ($superintendentes as $super) {
+            if (!empty($super->email)) {
+                try {
+                    $unidade = $escala->unidade;
+                    $tipo = $excedeMargem ? 'EXCEDE MARGEM' : 'USA MARGEM';
+                    $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                              'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                    
+                    \Illuminate\Support\Facades\Mail::raw(
+                        "ALERTA DE ORÇAMENTO - SIGEEX\n\n" .
+                        "Tipo: {$tipo}\n" .
+                        "Unidade: {$unidade->nome}\n" .
+                        "Período: {$meses[$escala->mes]}/{$escala->ano}\n" .
+                        "Orçamento do mês: R$ " . number_format($escala->orcamento_mes, 2, ',', '.') . "\n" .
+                        "Limite com margem: R$ " . number_format($escala->limite_margem, 2, ',', '.') . "\n" .
+                        "Valor previsto: R$ " . number_format($escala->valor_previsto, 2, ',', '.') . "\n\n" .
+                        ($excedeMargem ? "Esta escala REQUER SUA APROVAÇÃO para prosseguir." : "Esta escala está utilizando a margem de tolerância."),
+                        function ($message) use ($super, $tipo, $unidade) {
+                            $message->to($super->email)
+                                    ->subject("[SIGEEX] {$tipo} - {$unidade->nome}");
+                        }
+                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Erro ao enviar notificação: ' . $e->getMessage());
+                }
+            }
+        }
     }
 
     public function servidores()

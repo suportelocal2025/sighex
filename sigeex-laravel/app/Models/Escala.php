@@ -21,14 +21,26 @@ class Escala extends Model
         'aprovado_por',
         'data_envio',
         'data_aprovacao',
+        'usa_margem',
+        'excede_margem',
+        'requer_aprovacao_super',
+        'valor_previsto',
+        'orcamento_mes',
+        'limite_margem',
     ];
 
     protected function casts(): array
     {
         return [
             'valor_executado' => 'decimal:2',
+            'valor_previsto' => 'decimal:2',
+            'orcamento_mes' => 'decimal:2',
+            'limite_margem' => 'decimal:2',
             'data_envio' => 'datetime',
             'data_aprovacao' => 'datetime',
+            'usa_margem' => 'boolean',
+            'excede_margem' => 'boolean',
+            'requer_aprovacao_super' => 'boolean',
         ];
     }
 

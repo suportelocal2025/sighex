@@ -290,20 +290,29 @@ php -S 0.0.0.0:5000 index.php
   - Campo `margin_percentual` na tabela `distribuicao_orcamento`
   - Configurável por unidade (padrão 10%)
   - Cálculo de orçamento mensal = anual / 12
-  - Lógica de carry-forward: saldos positivos E negativos propagam para meses seguintes
-- **Infográfico de 12 meses no Dashboard do Diretor**:
-  - Cards visuais para cada mês do ano
-  - Barras de progresso coloridas (verde/amarelo/vermelho)
-  - Indicador visual de violação de margem
-  - Valores de orçamento, gasto e saldo por mês
+  - Lógica de redistribuição: gastos abaixo/acima do previsto redistribuem saldo para meses seguintes
+- **Infográfico de 12 Barras Verticais no Dashboard do Diretor**:
+  - 12 barras representando cada mês do ano
+  - Redistribuição dinâmica: orçamento restante ÷ meses restantes
+  - Cores diferenciadas: verde (dentro do limite), vermelho (acima do limite)
+  - Indicador do mês atual e valores em "k" (milhares)
+- **Controle de Aprovação por Margem**:
+  - Ao enviar escala: calcula se usa margem ou excede margem
+  - Escala dentro do orçamento: aprovação normal pelo RH
+  - Escala usando margem: aprovação pelo RH + alerta ao superintendente
+  - Escala excedendo margem: SOMENTE superintendente pode aprovar
+  - RH é bloqueado de aprovar escalas que excedem margem
 - **Alertas de Violação de Margem no Superintendente**:
   - Banner de alerta quando unidades ultrapassam limite + margem
   - Tabela detalhada com unidade, mês, limite, gasto e excedente
   - Botão "Enviar por Email" para notificação
 - **Notificações por Email**:
   - Classe Mailable `MarginViolationAlert`
-  - Template Markdown para emails de alerta
+  - Notificação automática ao superintendente quando margem é usada
   - Recálculo server-side das violações (segurança)
+- **Validação Server-Side em Todas as Aprovações**:
+  - RH e Superintendente recalculam budget ao aprovar
+  - Proteção contra dados obsoletos ou manipulados
 
 ### Laravel Edition - Dezembro 2025
 - **Dashboard do Diretor responsivo**: Cards de orçamento, gasto, disponível e horas executadas agora adaptam-se corretamente em diferentes tamanhos de tela

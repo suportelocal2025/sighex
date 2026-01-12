@@ -14,6 +14,7 @@ class DistribuicaoOrcamento extends Model
         'ano',
         'valor_distribuido',
         'valor_gasto',
+        'margin_percentual',
     ];
 
     protected function casts(): array
@@ -21,6 +22,7 @@ class DistribuicaoOrcamento extends Model
         return [
             'valor_distribuido' => 'decimal:2',
             'valor_gasto' => 'decimal:2',
+            'margin_percentual' => 'decimal:2',
         ];
     }
 

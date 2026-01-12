@@ -91,6 +91,40 @@
     </div>
 </div>
 
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Orçamento Mensal {{ $ano }} <small class="text-muted">(Margem: {{ number_format($marginPercentual, 0) }}%)</small></h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-2">
+            @foreach($mesesInfo as $m => $info)
+            <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                <div class="card h-100 {{ $info['mesAtual'] ? 'border-primary border-2' : '' }} {{ $info['ultrapassouMargem'] ? 'bg-danger bg-opacity-10' : '' }}">
+                    <div class="card-body p-2 text-center">
+                        <div class="fw-bold {{ $info['mesAtual'] ? 'text-primary' : '' }}">{{ $info['nome'] }}</div>
+                        @if($info['ultrapassouMargem'])
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                        @endif
+                        <div class="progress my-2" style="height: 8px;">
+                            @php
+                                $barColor = $info['percentualUso'] > 100 ? 'bg-danger' : ($info['percentualUso'] > 80 ? 'bg-warning' : 'bg-success');
+                            @endphp
+                            <div class="progress-bar {{ $barColor }}" style="width: {{ min(100, $info['percentualUso']) }}%"></div>
+                        </div>
+                        <div class="small">
+                            <div class="text-muted">Orç: R$ {{ number_format($info['orcamento'], 0, ',', '.') }}</div>
+                            <div class="{{ $info['gasto'] > $info['orcamento'] ? 'text-danger fw-bold' : '' }}">
+                                Gasto: R$ {{ number_format($info['gasto'], 0, ',', '.') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Escalas {{ $ano }}</h5>

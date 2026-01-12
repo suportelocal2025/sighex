@@ -6,7 +6,8 @@
 @section('sidebar')
     <a href="/superintendente" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
     <a href="/superintendente/orcamento" class="nav-link"><i class="bi bi-wallet2"></i> Orçamento</a>
-    <a href="/superintendente/distribuicao" class="nav-link"><i class="bi bi-diagram-3"></i> Distribuição</a>
+    <a href="/superintendente/distribuicao" class="nav-link active"><i class="bi bi-diagram-3"></i> Distribuição</a>
+    <a href="/superintendente/escalas" class="nav-link"><i class="bi bi-calendar-check"></i> Escalas</a>
     <a href="/superintendente/relatorios" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
 @endsection
 
@@ -49,6 +50,7 @@
                     <tr>
                         <th>Unidade</th>
                         <th>Valor Distribuído</th>
+                        <th>Margem Mensal</th>
                         <th>Valor Gasto</th>
                         <th>Saldo</th>
                         <th>Ações</th>
@@ -59,19 +61,21 @@
                     @php
                         $dist = $distribuicoes->get($unidade->id);
                         $distribuido = $dist->valor_distribuido ?? 0;
+                        $margem = $dist->margin_percentual ?? 10;
                         $gasto = $dist->valor_gasto ?? 0;
                         $saldo = $distribuido - $gasto;
                     @endphp
                     <tr>
                         <td>{{ $unidade->nome }}</td>
                         <td>R$ {{ number_format($distribuido, 2, ',', '.') }}</td>
+                        <td><span class="badge bg-info">{{ number_format($margem, 0) }}%</span></td>
                         <td>R$ {{ number_format($gasto, 2, ',', '.') }}</td>
                         <td class="{{ $saldo < 0 ? 'text-danger' : 'text-success' }}">
                             R$ {{ number_format($saldo, 2, ',', '.') }}
                         </td>
                         <td>
                             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalDistribuir"
-                                    onclick="abrirModal({{ $unidade->id }}, '{{ $unidade->nome }}', {{ $distribuido }})">
+                                    onclick="abrirModal({{ $unidade->id }}, '{{ $unidade->nome }}', {{ $distribuido }}, {{ $margem }})">
                                 <i class="bi bi-pencil"></i> Editar
                             </button>
                         </td>
@@ -96,8 +100,17 @@
                 <div class="modal-body">
                     <p>Unidade: <strong id="modal_unidade_nome"></strong></p>
                     <div class="mb-3">
-                        <label class="form-label">Valor a Distribuir (R$)</label>
+                        <label class="form-label">Valor Anual a Distribuir (R$)</label>
                         <input type="number" name="valor" id="modal_valor" class="form-control" step="0.01" min="0" required>
+                        <small class="text-muted">Este valor será dividido por 12 meses.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Margem de Tolerância Mensal (%)</label>
+                        <div class="input-group">
+                            <input type="number" name="margin_percentual" id="modal_margem" class="form-control" step="1" min="0" max="100" value="10" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-muted">Se o diretor ultrapassar o valor mensal + margem, um alerta será gerado.</small>
                     </div>
                     <p class="text-muted small">Disponível: R$ {{ number_format($valorDisponivel, 2, ',', '.') }}</p>
                 </div>
@@ -113,10 +126,11 @@
 
 @push('scripts')
 <script>
-function abrirModal(id, nome, valor) {
+function abrirModal(id, nome, valor, margem) {
     document.getElementById('modal_unidade_id').value = id;
     document.getElementById('modal_unidade_nome').textContent = nome;
     document.getElementById('modal_valor').value = valor;
+    document.getElementById('modal_margem').value = margem || 10;
 }
 </script>
 @endpush

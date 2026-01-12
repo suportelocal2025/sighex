@@ -5,8 +5,9 @@
 
 @section('sidebar')
     <a href="/superintendente" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
-    <a href="/superintendente/orcamento" class="nav-link"><i class="bi bi-wallet2"></i> Orçamento</a>
+    <a href="/superintendente/orcamento" class="nav-link active"><i class="bi bi-wallet2"></i> Orçamento</a>
     <a href="/superintendente/distribuicao" class="nav-link"><i class="bi bi-diagram-3"></i> Distribuição</a>
+    <a href="/superintendente/escalas" class="nav-link"><i class="bi bi-calendar-check"></i> Escalas</a>
     <a href="/superintendente/relatorios" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
 @endsection
 

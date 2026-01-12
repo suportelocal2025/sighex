@@ -7,6 +7,7 @@
     <a href="/superintendente" class="nav-link active"><i class="bi bi-speedometer2"></i> Dashboard</a>
     <a href="/superintendente/orcamento" class="nav-link"><i class="bi bi-wallet2"></i> Orçamento</a>
     <a href="/superintendente/distribuicao" class="nav-link"><i class="bi bi-diagram-3"></i> Distribuição</a>
+    <a href="/superintendente/escalas" class="nav-link"><i class="bi bi-calendar-check"></i> Escalas</a>
     <a href="/superintendente/relatorios" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
 @endsection
 
@@ -40,6 +41,49 @@
 @endpush
 
 @section('content')
+@if(count($alertasViolacao) > 0)
+<div class="alert alert-danger mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <h6 class="alert-heading d-flex align-items-center mb-0">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Alertas de Margem Ultrapassada ({{ count($alertasViolacao) }})
+        </h6>
+        <form method="POST" action="/superintendente/enviar-alerta-email" class="d-inline">
+            @csrf
+            <input type="hidden" name="ano" value="{{ $ano }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-envelope me-1"></i>Enviar por Email
+            </button>
+        </form>
+    </div>
+    <hr>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Unidade</th>
+                    <th>Mês</th>
+                    <th>Limite</th>
+                    <th>Gasto</th>
+                    <th>Excedente</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($alertasViolacao as $alerta)
+                <tr>
+                    <td><strong>{{ $alerta['unidade_nome'] }}</strong></td>
+                    <td>{{ $alerta['mes_nome'] }}/{{ $ano }}</td>
+                    <td>R$ {{ number_format($alerta['limite'], 2, ',', '.') }}</td>
+                    <td class="text-danger fw-bold">R$ {{ number_format($alerta['gasto'], 2, ',', '.') }}</td>
+                    <td class="text-danger">+R$ {{ number_format($alerta['excedente'], 2, ',', '.') }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 <div class="row mb-4">
     <div class="col-12">
         <div class="card p-3">

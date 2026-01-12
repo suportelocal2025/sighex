@@ -28,6 +28,7 @@ class DiretorController extends Controller
         $orcamento = $distribuicao?->valor_distribuido ?? 0;
         $gasto = $distribuicao?->valor_gasto ?? 0;
         $disponivel = $orcamento - $gasto;
+        $marginPercentual = $distribuicao?->margin_percentual ?? 10;
 
         $horasExecutadas = Escala::where('unidade_id', $unidadeId)
             ->where('status', 'executada')
@@ -44,6 +45,41 @@ class DiretorController extends Controller
         $escalasAprovadas = $escalas->where('status', 'aprovada')->count();
         $escalasPendentes = $escalas->where('status', 'pendente')->count();
 
+        $orcamentoMensal = $orcamento / 12;
+        $limiteComMargem = $orcamentoMensal * (1 + $marginPercentual / 100);
+        
+        $mesesInfo = [];
+        $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        $saldoAcumulado = 0;
+        
+        for ($m = 1; $m <= 12; $m++) {
+            $gastoMes = Escala::where('unidade_id', $unidadeId)
+                ->where('ano', $ano)
+                ->where('mes', $m)
+                ->where('status', 'executada')
+                ->sum('valor_executado') ?? 0;
+            
+            $orcamentoAjustado = $orcamentoMensal + $saldoAcumulado;
+            $limiteAjustado = $orcamentoAjustado * (1 + $marginPercentual / 100);
+            
+            $saldoMes = $orcamentoAjustado - $gastoMes;
+            $saldoAcumulado = $saldoMes;
+            
+            $ultrapassouMargem = $gastoMes > $limiteAjustado;
+            $percentualUso = $orcamentoAjustado > 0 ? min(150, ($gastoMes / $orcamentoAjustado) * 100) : 0;
+            
+            $mesesInfo[$m] = [
+                'nome' => $nomesMeses[$m],
+                'orcamento' => $orcamentoAjustado,
+                'gasto' => $gastoMes,
+                'saldo' => $saldoMes,
+                'limite' => $limiteAjustado,
+                'ultrapassouMargem' => $ultrapassouMargem,
+                'percentualUso' => $percentualUso,
+                'mesAtual' => ($m == $mes),
+            ];
+        }
+
         return view('diretor.dashboard', compact(
             'orcamento',
             'gasto',
@@ -54,7 +90,9 @@ class DiretorController extends Controller
             'escalasAprovadas',
             'escalasPendentes',
             'ano',
-            'mes'
+            'mes',
+            'mesesInfo',
+            'marginPercentual'
         ));
     }
 

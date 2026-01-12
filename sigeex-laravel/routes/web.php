@@ -25,6 +25,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/orcamento', [SuperintendenteController::class, 'salvarOrcamento']);
         Route::get('/distribuicao', [SuperintendenteController::class, 'distribuicao']);
         Route::post('/distribuicao', [SuperintendenteController::class, 'salvarDistribuicao']);
+        Route::get('/escalas', [SuperintendenteController::class, 'escalas']);
+        Route::get('/escala/{id}', [SuperintendenteController::class, 'detalharEscala']);
+        Route::post('/enviar-alerta-email', [SuperintendenteController::class, 'enviarAlertaEmail']);
         Route::get('/relatorios', [SuperintendenteController::class, 'relatorios']);
     });
 

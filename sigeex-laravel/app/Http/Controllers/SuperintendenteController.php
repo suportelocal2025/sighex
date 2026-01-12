@@ -4,11 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Unidade;
+use App\Models\Usuario;
 use App\Models\OrcamentoGlobal;
 use App\Models\DistribuicaoOrcamento;
 use App\Models\LogDistribuicao;
 use App\Models\Escala;
+use App\Mail\MarginViolationAlert;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class SuperintendenteController extends Controller
 {
@@ -33,14 +37,55 @@ class SuperintendenteController extends Controller
         
         $unidadesStats = Unidade::select('unidades.id', 'unidades.nome')
             ->selectRaw('COALESCE(d.valor_distribuido, 0) as orcamento_distribuido')
+            ->selectRaw('COALESCE(d.margin_percentual, 10) as margin_percentual')
             ->selectRaw('COALESCE((SELECT SUM(valor_executado) FROM escalas WHERE unidade_id = unidades.id AND ano = ? AND status = \'executada\'), 0) as gasto_total', [$ano])
             ->selectRaw('COALESCE((SELECT SUM(a.horas) FROM alocacoes a INNER JOIN escalas e ON a.escala_id = e.id WHERE e.unidade_id = unidades.id AND e.ano = ? AND e.status IN (\'aprovada\', \'executada\')), 0) as horas_total', [$ano])
             ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
                 $join->on('unidades.id', '=', 'd.unidade_id')
                      ->where('d.ano', '=', $ano);
             })
+            ->where('unidades.ativo', true)
             ->orderBy('unidades.nome')
             ->get();
+
+        $alertasViolacao = [];
+        $mesAtual = date('n');
+        $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        
+        foreach ($unidadesStats as $unidade) {
+            if ($unidade->orcamento_distribuido <= 0) continue;
+            
+            $orcamentoMensal = $unidade->orcamento_distribuido / 12;
+            $marginPerc = $unidade->margin_percentual;
+            $saldoAcumulado = 0;
+            
+            for ($m = 1; $m <= $mesAtual; $m++) {
+                $gastoMes = Escala::where('unidade_id', $unidade->id)
+                    ->where('ano', $ano)
+                    ->where('mes', $m)
+                    ->where('status', 'executada')
+                    ->sum('valor_executado') ?? 0;
+                
+                $orcamentoAjustado = $orcamentoMensal + $saldoAcumulado;
+                $limiteAjustado = $orcamentoAjustado * (1 + $marginPerc / 100);
+                
+                $saldoMes = $orcamentoAjustado - $gastoMes;
+                $saldoAcumulado = $saldoMes;
+                
+                if ($gastoMes > $limiteAjustado) {
+                    $alertasViolacao[] = [
+                        'unidade_id' => $unidade->id,
+                        'unidade_nome' => $unidade->nome,
+                        'mes' => $m,
+                        'mes_nome' => $nomesMeses[$m],
+                        'orcamento' => $orcamentoAjustado,
+                        'limite' => $limiteAjustado,
+                        'gasto' => $gastoMes,
+                        'excedente' => $gastoMes - $limiteAjustado,
+                    ];
+                }
+            }
+        }
 
         return view('superintendente.dashboard', compact(
             'ano',
@@ -51,7 +96,8 @@ class SuperintendenteController extends Controller
             'totalDistribuido',
             'totalGasto',
             'totalUnidades',
-            'unidadesStats'
+            'unidadesStats',
+            'alertasViolacao'
         ));
     }
 
@@ -113,6 +159,7 @@ class SuperintendenteController extends Controller
         $request->validate([
             'unidade_id' => 'required|exists:unidades,id',
             'valor' => 'required|numeric|min:0',
+            'margin_percentual' => 'required|numeric|min:0|max:100',
         ]);
 
         $ano = date('Y');
@@ -125,6 +172,7 @@ class SuperintendenteController extends Controller
 
         $valorAnterior = $distribuicao->valor_distribuido ?? 0;
         $distribuicao->valor_distribuido = $request->valor;
+        $distribuicao->margin_percentual = $request->margin_percentual;
         $distribuicao->save();
 
         LogDistribuicao::create([
@@ -142,5 +190,136 @@ class SuperintendenteController extends Controller
     {
         $anos = OrcamentoGlobal::pluck('ano')->unique()->sort()->reverse();
         return view('superintendente.relatorios', compact('anos'));
+    }
+
+    public function escalas(Request $request)
+    {
+        $ano = (int)$request->get('ano', date('Y'));
+        $status = $request->get('status', 'todos');
+
+        $query = Escala::with('unidade')
+            ->where('ano', $ano)
+            ->whereIn('status', ['pendente', 'aprovada', 'executada', 'rejeitada']);
+
+        if ($status !== 'todos') {
+            $query->where('status', $status);
+        }
+
+        $escalas = $query->orderByDesc('updated_at')->get();
+
+        return view('superintendente.escalas', compact('escalas', 'ano', 'status'));
+    }
+
+    public function detalharEscala(string $id)
+    {
+        $escala = Escala::with(['unidade', 'alocacoes.servidor', 'alocacoes.equipe', 'alocacoes.modulo'])
+            ->findOrFail($id);
+
+        $alocacoes = \DB::table('alocacoes')
+            ->join('servidores', 'alocacoes.servidor_id', '=', 'servidores.id')
+            ->leftJoin('equipes', 'alocacoes.equipe_id', '=', 'equipes.id')
+            ->leftJoin('modulos', 'alocacoes.modulo_id', '=', 'modulos.id')
+            ->where('alocacoes.escala_id', $id)
+            ->select(
+                'alocacoes.*',
+                'servidores.nome as servidor_nome',
+                'servidores.matricula',
+                'equipes.nome as equipe_nome',
+                'modulos.nome as modulo_nome'
+            )
+            ->orderBy('servidores.nome')
+            ->orderBy('alocacoes.dia')
+            ->get();
+
+        $resumoPorServidor = $alocacoes->groupBy('servidor_id')->map(function ($alocacoesServidor) {
+            $primeiro = $alocacoesServidor->first();
+            return [
+                'nome' => $primeiro->servidor_nome,
+                'matricula' => $primeiro->matricula,
+                'dias' => $alocacoesServidor->pluck('dia')->sort()->values()->toArray(),
+                'total_horas' => $alocacoesServidor->sum(fn($a) => ($a->horas ?? 0) + ($a->horas_abono ?? 0)),
+            ];
+        });
+
+        return view('superintendente.detalhar-escala', compact('escala', 'alocacoes', 'resumoPorServidor'));
+    }
+
+    public function enviarAlertaEmail(Request $request)
+    {
+        $ano = (int)$request->get('ano', date('Y'));
+        
+        $alertas = $this->calcularViolacoes($ano);
+        
+        if (empty($alertas)) {
+            return redirect('/superintendente')->with('info', 'Nenhum alerta para enviar.');
+        }
+        
+        $superintendente = Auth::user();
+        
+        if (empty($superintendente->email)) {
+            return redirect('/superintendente')->with('error', 'Configure seu email no perfil para receber alertas.');
+        }
+        
+        try {
+            Mail::to($superintendente->email)->send(new MarginViolationAlert($alertas, $ano));
+            return redirect('/superintendente')->with('success', 'Email de alerta enviado para ' . $superintendente->email);
+        } catch (\Exception $e) {
+            Log::error('Erro ao enviar email de alerta de margem: ' . $e->getMessage());
+            return redirect('/superintendente')->with('error', 'Erro ao enviar email. Verifique a configuração de email do sistema.');
+        }
+    }
+
+    private function calcularViolacoes(int $ano): array
+    {
+        $unidades = Unidade::select('unidades.id', 'unidades.nome')
+            ->selectRaw('COALESCE(d.valor_distribuido, 0) as orcamento_distribuido')
+            ->selectRaw('COALESCE(d.margin_percentual, 10) as margin_percentual')
+            ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
+                $join->on('unidades.id', '=', 'd.unidade_id')
+                     ->where('d.ano', '=', $ano);
+            })
+            ->where('unidades.ativo', true)
+            ->get();
+
+        $alertasViolacao = [];
+        $mesAtual = date('n');
+        $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        
+        foreach ($unidades as $unidade) {
+            if ($unidade->orcamento_distribuido <= 0) continue;
+            
+            $orcamentoMensal = $unidade->orcamento_distribuido / 12;
+            $marginPerc = $unidade->margin_percentual;
+            $saldoAcumulado = 0;
+            
+            for ($m = 1; $m <= $mesAtual; $m++) {
+                $gastoMes = Escala::where('unidade_id', $unidade->id)
+                    ->where('ano', $ano)
+                    ->where('mes', $m)
+                    ->where('status', 'executada')
+                    ->sum('valor_executado') ?? 0;
+                
+                $orcamentoAjustado = $orcamentoMensal + $saldoAcumulado;
+                $limiteAjustado = $orcamentoAjustado * (1 + $marginPerc / 100);
+                
+                $saldoMes = $orcamentoAjustado - $gastoMes;
+                $saldoAcumulado = $saldoMes;
+                
+                if ($gastoMes > $limiteAjustado) {
+                    $alertasViolacao[] = [
+                        'unidade_id' => $unidade->id,
+                        'unidade_nome' => $unidade->nome,
+                        'mes' => $m,
+                        'mes_nome' => $nomesMeses[$m],
+                        'orcamento' => $orcamentoAjustado,
+                        'limite' => $limiteAjustado,
+                        'gasto' => $gastoMes,
+                        'excedente' => $gastoMes - $limiteAjustado,
+                    ];
+                }
+            }
+        }
+        
+        return $alertasViolacao;
     }
 }

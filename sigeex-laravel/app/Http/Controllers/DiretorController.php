@@ -45,40 +45,51 @@ class DiretorController extends Controller
         $escalasAprovadas = $escalas->where('status', 'aprovada')->count();
         $escalasPendentes = $escalas->where('status', 'pendente')->count();
 
-        $orcamentoMensal = $orcamento / 12;
-        $limiteComMargem = $orcamentoMensal * (1 + $marginPercentual / 100);
+        $orcamentoMensalBase = $orcamento / 12;
         
         $mesesInfo = [];
         $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        $saldoAcumulado = 0;
         
+        $gastosPorMes = [];
         for ($m = 1; $m <= 12; $m++) {
-            $gastoMes = Escala::where('unidade_id', $unidadeId)
+            $gastosPorMes[$m] = Escala::where('unidade_id', $unidadeId)
                 ->where('ano', $ano)
                 ->where('mes', $m)
                 ->where('status', 'executada')
                 ->sum('valor_executado') ?? 0;
+        }
+        
+        $orcamentoRestante = $orcamento;
+        $mesesRestantes = 12;
+        $maxOrcamentoMes = $orcamentoMensalBase;
+        
+        for ($m = 1; $m <= 12; $m++) {
+            $orcamentoMes = $mesesRestantes > 0 ? $orcamentoRestante / $mesesRestantes : 0;
+            $gastoMes = $gastosPorMes[$m];
+            $saldoMes = $orcamentoMes - $gastoMes;
             
-            $orcamentoAjustado = $orcamentoMensal + $saldoAcumulado;
-            $limiteAjustado = $orcamentoAjustado * (1 + $marginPercentual / 100);
+            $orcamentoRestante -= $gastoMes;
+            $mesesRestantes--;
             
-            $saldoMes = $orcamentoAjustado - $gastoMes;
-            $saldoAcumulado = $saldoMes;
+            $limiteComMargem = $orcamentoMes * (1 + $marginPercentual / 100);
+            $ultrapassouMargem = $gastoMes > $limiteComMargem;
             
-            $ultrapassouMargem = $gastoMes > $limiteAjustado;
-            $percentualUso = $orcamentoAjustado > 0 ? min(150, ($gastoMes / $orcamentoAjustado) * 100) : 0;
+            if ($orcamentoMes > $maxOrcamentoMes) {
+                $maxOrcamentoMes = $orcamentoMes;
+            }
             
             $mesesInfo[$m] = [
                 'nome' => $nomesMeses[$m],
-                'orcamento' => $orcamentoAjustado,
+                'orcamento' => $orcamentoMes,
                 'gasto' => $gastoMes,
                 'saldo' => $saldoMes,
-                'limite' => $limiteAjustado,
+                'limite' => $limiteComMargem,
                 'ultrapassouMargem' => $ultrapassouMargem,
-                'percentualUso' => $percentualUso,
                 'mesAtual' => ($m == $mes),
             ];
         }
+        
+        $orcamentoMensalBase = $orcamento / 12;
 
         return view('diretor.dashboard', compact(
             'orcamento',
@@ -92,7 +103,9 @@ class DiretorController extends Controller
             'ano',
             'mes',
             'mesesInfo',
-            'marginPercentual'
+            'marginPercentual',
+            'maxOrcamentoMes',
+            'orcamentoMensalBase'
         ));
     }
 

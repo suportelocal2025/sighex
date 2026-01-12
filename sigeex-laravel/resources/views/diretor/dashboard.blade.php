@@ -96,31 +96,67 @@
         <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Orçamento Mensal {{ $ano }} <small class="text-muted">(Margem: {{ number_format($marginPercentual, 0) }}%)</small></h5>
     </div>
     <div class="card-body">
-        <div class="row g-2">
+        <div class="d-flex justify-content-between align-items-end" style="height: 200px; gap: 4px;">
+            @php
+                $alturaMaxima = 180;
+                $maxValor = max($maxOrcamentoMes, $orcamentoMensalBase) * 1.2;
+            @endphp
             @foreach($mesesInfo as $m => $info)
-            <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                <div class="card h-100 {{ $info['mesAtual'] ? 'border-primary border-2' : '' }} {{ $info['ultrapassouMargem'] ? 'bg-danger bg-opacity-10' : '' }}">
-                    <div class="card-body p-2 text-center">
-                        <div class="fw-bold {{ $info['mesAtual'] ? 'text-primary' : '' }}">{{ $info['nome'] }}</div>
-                        @if($info['ultrapassouMargem'])
-                            <i class="bi bi-exclamation-triangle-fill text-danger"></i>
-                        @endif
-                        <div class="progress my-2" style="height: 8px;">
-                            @php
-                                $barColor = $info['percentualUso'] > 100 ? 'bg-danger' : ($info['percentualUso'] > 80 ? 'bg-warning' : 'bg-success');
-                            @endphp
-                            <div class="progress-bar {{ $barColor }}" style="width: {{ min(100, $info['percentualUso']) }}%"></div>
-                        </div>
-                        <div class="small">
-                            <div class="text-muted">Orç: R$ {{ number_format($info['orcamento'], 0, ',', '.') }}</div>
-                            <div class="{{ $info['gasto'] > $info['orcamento'] ? 'text-danger fw-bold' : '' }}">
-                                Gasto: R$ {{ number_format($info['gasto'], 0, ',', '.') }}
-                            </div>
-                        </div>
+            @php
+                $alturaOrcamento = $maxValor > 0 ? ($info['orcamento'] / $maxValor) * $alturaMaxima : 0;
+                $alturaGasto = $maxValor > 0 ? ($info['gasto'] / $maxValor) * $alturaMaxima : 0;
+                $alturaDiferenca = abs($alturaOrcamento - $alturaGasto);
+                
+                if ($info['gasto'] > $info['orcamento']) {
+                    $corBarra = '#dc3545';
+                    $corFundo = '#28a745';
+                } else {
+                    $corBarra = '#28a745';
+                    $corFundo = '#e9ecef';
+                }
+            @endphp
+            <div class="text-center flex-fill" style="min-width: 0;">
+                <div class="position-relative mx-auto" style="width: 100%; max-width: 50px; height: {{ $alturaMaxima }}px;">
+                    <div class="position-absolute bottom-0 start-0 end-0 rounded-top" 
+                         style="height: {{ max($alturaOrcamento, $alturaGasto) }}px; background-color: {{ $corFundo }};"
+                         title="Orçamento: R$ {{ number_format($info['orcamento'], 0, ',', '.') }}">
                     </div>
+                    <div class="position-absolute bottom-0 start-0 end-0 rounded-top" 
+                         style="height: {{ $alturaGasto }}px; background-color: {{ $info['gasto'] > $info['orcamento'] ? '#dc3545' : '#28a745' }};"
+                         title="Gasto: R$ {{ number_format($info['gasto'], 0, ',', '.') }}">
+                    </div>
+                    @if($info['ultrapassouMargem'])
+                    <div class="position-absolute top-0 start-50 translate-middle-x">
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 0.7rem;"></i>
+                    </div>
+                    @endif
+                    @if($info['mesAtual'])
+                    <div class="position-absolute" style="bottom: -2px; left: 50%; transform: translateX(-50%);">
+                        <div class="bg-primary rounded-circle" style="width: 6px; height: 6px;"></div>
+                    </div>
+                    @endif
                 </div>
+                <div class="mt-1 {{ $info['mesAtual'] ? 'fw-bold text-primary' : '' }}" style="font-size: 0.7rem;">{{ $info['nome'] }}</div>
+                <div class="text-muted" style="font-size: 0.6rem;">{{ number_format($info['orcamento']/1000, 0) }}k</div>
             </div>
             @endforeach
+        </div>
+        <div class="mt-3 d-flex justify-content-center gap-4">
+            <div class="d-flex align-items-center">
+                <div class="rounded me-2" style="width: 12px; height: 12px; background-color: #e9ecef;"></div>
+                <small class="text-muted">Orçamento</small>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="rounded me-2" style="width: 12px; height: 12px; background-color: #28a745;"></div>
+                <small class="text-muted">Gasto (dentro do limite)</small>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="rounded me-2" style="width: 12px; height: 12px; background-color: #dc3545;"></div>
+                <small class="text-muted">Gasto (acima do limite)</small>
+            </div>
+        </div>
+        <div class="mt-2 text-center">
+            <small class="text-muted">Base mensal: R$ {{ number_format($orcamentoMensalBase, 0, ',', '.') }} | Total anual: R$ {{ number_format($orcamento, 0, ',', '.') }}</small>
         </div>
     </div>
 </div>

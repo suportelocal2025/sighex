@@ -60,16 +60,16 @@ class DiretorController extends Controller
         }
         
         $orcamentoRestante = $orcamento;
-        $mesesRestantes = 12;
+        $totalGastoAteAgora = 0;
         $maxOrcamentoMes = $orcamentoMensalBase;
         
         for ($m = 1; $m <= 12; $m++) {
-            $orcamentoMes = $mesesRestantes > 0 ? $orcamentoRestante / $mesesRestantes : 0;
             $gastoMes = $gastosPorMes[$m];
-            $saldoMes = $orcamentoMes - $gastoMes;
+            $mesesRestantesAposEste = 12 - $m;
             
-            $orcamentoRestante -= $gastoMes;
-            $mesesRestantes--;
+            $orcamentoMes = ($orcamento - $totalGastoAteAgora) / (12 - $m + 1);
+            
+            $totalGastoAteAgora += $gastoMes;
             
             $limiteComMargem = $orcamentoMes * (1 + $marginPercentual / 100);
             $ultrapassouMargem = $gastoMes > $limiteComMargem;
@@ -82,14 +82,12 @@ class DiretorController extends Controller
                 'nome' => $nomesMeses[$m],
                 'orcamento' => $orcamentoMes,
                 'gasto' => $gastoMes,
-                'saldo' => $saldoMes,
+                'saldo' => $orcamentoMes - $gastoMes,
                 'limite' => $limiteComMargem,
                 'ultrapassouMargem' => $ultrapassouMargem,
                 'mesAtual' => ($m == $mes),
             ];
         }
-        
-        $orcamentoMensalBase = $orcamento / 12;
 
         return view('diretor.dashboard', compact(
             'orcamento',

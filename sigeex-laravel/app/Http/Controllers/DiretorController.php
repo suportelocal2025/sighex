@@ -60,16 +60,18 @@ class DiretorController extends Controller
         }
         
         $orcamentoRestante = $orcamento;
-        $totalGastoAteAgora = 0;
         $maxOrcamentoMes = $orcamentoMensalBase;
         
         for ($m = 1; $m <= 12; $m++) {
+            $mesesRestantes = 12 - $m + 1;
+            $orcamentoMes = $orcamentoRestante / $mesesRestantes;
             $gastoMes = $gastosPorMes[$m];
-            $mesesRestantesAposEste = 12 - $m;
             
-            $orcamentoMes = ($orcamento - $totalGastoAteAgora) / (12 - $m + 1);
-            
-            $totalGastoAteAgora += $gastoMes;
+            if ($gastoMes > 0) {
+                $orcamentoRestante -= $gastoMes;
+            } else {
+                $orcamentoRestante -= $orcamentoMes;
+            }
             
             $limiteComMargem = $orcamentoMes * (1 + $marginPercentual / 100);
             $ultrapassouMargem = $gastoMes > $limiteComMargem;

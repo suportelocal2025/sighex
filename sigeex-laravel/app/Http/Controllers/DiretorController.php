@@ -427,7 +427,19 @@ class DiretorController extends Controller
     public function servidores()
     {
         $user = Auth::user();
-        $servidores = Servidor::where('unidade_id', $user->unidade_id)->get();
+        $unidadeId = $user->unidade_id;
+        
+        $servidorIdsEscalados = EscalaEquipeServidor::select('escala_equipe_servidores.servidor_id')
+            ->join('escalas', 'escala_equipe_servidores.escala_id', '=', 'escalas.id')
+            ->where('escalas.unidade_id', $unidadeId)
+            ->where('escalas.created_at', '>=', now()->subMonths(6))
+            ->distinct()
+            ->pluck('servidor_id');
+        
+        $servidores = Servidor::whereIn('id', $servidorIdsEscalados)
+            ->orderBy('nome')
+            ->get();
+        
         return view('diretor.servidores', compact('servidores'));
     }
 

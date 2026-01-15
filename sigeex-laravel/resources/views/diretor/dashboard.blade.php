@@ -111,64 +111,105 @@
         <div class="d-flex justify-content-between align-items-end" style="height: 200px; gap: 4px;">
             @php
                 $alturaMaxima = 180;
-                $maxValor = max($maxOrcamentoMes, $orcamentoMensalBase) * 1.2;
+                $maxValor = 0;
+                foreach($mesesInfo as $info) {
+                    $maxValor = max($maxValor, $info['limite'], $info['gasto'], $info['orcamento']);
+                }
+                $maxValor = $maxValor * 1.1;
             @endphp
             @foreach($mesesInfo as $m => $info)
             @php
-                $alturaOrcamento = $maxValor > 0 ? ($info['orcamento'] / $maxValor) * $alturaMaxima : 0;
-                $alturaGasto = $maxValor > 0 ? ($info['gasto'] / $maxValor) * $alturaMaxima : 0;
-                $alturaDiferenca = abs($alturaOrcamento - $alturaGasto);
+                $orcMes = $info['orcamento'];
+                $gastoMes = $info['gasto'];
+                $limiteMes = $info['limite'];
+                $margemValor = $limiteMes - $orcMes;
                 
-                if ($info['gasto'] > $info['orcamento']) {
-                    $corBarra = '#dc3545';
-                    $corFundo = '#28a745';
+                if ($gastoMes <= 0) {
+                    $alturaVerde = 0;
+                    $alturaLaranja = 0;
+                    $alturaVermelho = 0;
+                    $alturaCinza = $maxValor > 0 ? ($orcMes / $maxValor) * $alturaMaxima : 0;
+                } elseif ($gastoMes <= $orcMes) {
+                    $alturaVerde = $maxValor > 0 ? ($gastoMes / $maxValor) * $alturaMaxima : 0;
+                    $alturaLaranja = 0;
+                    $alturaVermelho = 0;
+                    $alturaCinza = $maxValor > 0 ? (($orcMes - $gastoMes) / $maxValor) * $alturaMaxima : 0;
+                } elseif ($gastoMes <= $limiteMes) {
+                    $alturaVerde = $maxValor > 0 ? ($orcMes / $maxValor) * $alturaMaxima : 0;
+                    $alturaLaranja = $maxValor > 0 ? (($gastoMes - $orcMes) / $maxValor) * $alturaMaxima : 0;
+                    $alturaVermelho = 0;
+                    $alturaCinza = 0;
                 } else {
-                    $corBarra = '#28a745';
-                    $corFundo = '#e9ecef';
+                    $alturaVerde = $maxValor > 0 ? ($orcMes / $maxValor) * $alturaMaxima : 0;
+                    $alturaLaranja = $maxValor > 0 ? ($margemValor / $maxValor) * $alturaMaxima : 0;
+                    $alturaVermelho = $maxValor > 0 ? (($gastoMes - $limiteMes) / $maxValor) * $alturaMaxima : 0;
+                    $alturaCinza = 0;
                 }
+                
+                $alturaTotal = $alturaVerde + $alturaLaranja + $alturaVermelho + $alturaCinza;
             @endphp
             <div class="text-center flex-fill" style="min-width: 0;">
                 <div class="position-relative mx-auto" style="width: 100%; max-width: 50px; height: {{ $alturaMaxima }}px;">
-                    <div class="position-absolute bottom-0 start-0 end-0 rounded-top" 
-                         style="height: {{ max($alturaOrcamento, $alturaGasto) }}px; background-color: {{ $corFundo }};"
-                         title="Orçamento: R$ {{ number_format($info['orcamento'], 0, ',', '.') }}">
+                    @if($alturaVerde > 0)
+                    <div class="position-absolute start-0 end-0" 
+                         style="bottom: 0; height: {{ $alturaVerde }}px; background-color: #28a745; border-radius: 0 0 0 0;"
+                         title="Dentro do previsto: R$ {{ number_format(min($gastoMes, $orcMes), 0, ',', '.') }}">
                     </div>
-                    <div class="position-absolute bottom-0 start-0 end-0 rounded-top" 
-                         style="height: {{ $alturaGasto }}px; background-color: {{ $info['gasto'] > $info['orcamento'] ? '#dc3545' : '#28a745' }};"
-                         title="Gasto: R$ {{ number_format($info['gasto'], 0, ',', '.') }}">
+                    @endif
+                    @if($alturaCinza > 0)
+                    <div class="position-absolute start-0 end-0" 
+                         style="bottom: {{ $alturaVerde }}px; height: {{ $alturaCinza }}px; background-color: #e9ecef; border-radius: 4px 4px 0 0;"
+                         title="Não utilizado: R$ {{ number_format($orcMes - max($gastoMes, 0), 0, ',', '.') }}">
                     </div>
+                    @endif
+                    @if($alturaLaranja > 0)
+                    <div class="position-absolute start-0 end-0" 
+                         style="bottom: {{ $alturaVerde }}px; height: {{ $alturaLaranja }}px; background-color: #fd7e14; border-radius: {{ $alturaVermelho == 0 ? '4px 4px' : '0 0' }} 0 0;"
+                         title="Acima do previsto (dentro da margem): R$ {{ number_format($gastoMes <= $limiteMes ? $gastoMes - $orcMes : $margemValor, 0, ',', '.') }}">
+                    </div>
+                    @endif
+                    @if($alturaVermelho > 0)
+                    <div class="position-absolute start-0 end-0" 
+                         style="bottom: {{ $alturaVerde + $alturaLaranja }}px; height: {{ $alturaVermelho }}px; background-color: #dc3545; border-radius: 4px 4px 0 0;"
+                         title="Excedeu a margem: R$ {{ number_format($gastoMes - $limiteMes, 0, ',', '.') }}">
+                    </div>
+                    @endif
                     @if($info['ultrapassouMargem'])
-                    <div class="position-absolute top-0 start-50 translate-middle-x">
+                    <div class="position-absolute" style="top: -12px; left: 50%; transform: translateX(-50%);">
                         <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 0.7rem;"></i>
                     </div>
                     @endif
-                    @if($info['mesAtual'])
-                    <div class="position-absolute" style="bottom: -2px; left: 50%; transform: translateX(-50%);">
-                        <div class="bg-primary rounded-circle" style="width: 6px; height: 6px;"></div>
-                    </div>
-                    @endif
                 </div>
+                @if($info['mesAtual'])
+                <div class="mx-auto" style="width: 6px; height: 6px; margin-top: 2px;">
+                    <div class="bg-primary rounded-circle" style="width: 6px; height: 6px;"></div>
+                </div>
+                @endif
                 <div class="mt-1 {{ $info['mesAtual'] ? 'fw-bold text-primary' : '' }}" style="font-size: 0.7rem;">{{ $info['nome'] }}</div>
                 <div class="text-muted" style="font-size: 0.6rem;">{{ number_format($info['orcamento']/1000, 0) }}k</div>
             </div>
             @endforeach
         </div>
-        <div class="mt-3 d-flex justify-content-center gap-4">
+        <div class="mt-3 d-flex flex-wrap justify-content-center gap-3">
             <div class="d-flex align-items-center">
                 <div class="rounded me-2" style="width: 12px; height: 12px; background-color: #e9ecef;"></div>
-                <small class="text-muted">Orçamento</small>
+                <small class="text-muted">Não utilizado</small>
             </div>
             <div class="d-flex align-items-center">
                 <div class="rounded me-2" style="width: 12px; height: 12px; background-color: #28a745;"></div>
-                <small class="text-muted">Gasto (dentro do limite)</small>
+                <small class="text-muted">Dentro do previsto</small>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="rounded me-2" style="width: 12px; height: 12px; background-color: #fd7e14;"></div>
+                <small class="text-muted">Acima (dentro da margem)</small>
             </div>
             <div class="d-flex align-items-center">
                 <div class="rounded me-2" style="width: 12px; height: 12px; background-color: #dc3545;"></div>
-                <small class="text-muted">Gasto (acima do limite)</small>
+                <small class="text-muted">Excedeu a margem</small>
             </div>
         </div>
         <div class="mt-2 text-center">
-            <small class="text-muted">Base mensal: R$ {{ number_format($orcamentoMensalBase, 0, ',', '.') }} | Total anual: R$ {{ number_format($orcamento, 0, ',', '.') }}</small>
+            <small class="text-muted">Base mensal: R$ {{ number_format($orcamentoMensalBase, 0, ',', '.') }} | Total anual: R$ {{ number_format($orcamento, 0, ',', '.') }} | Margem: {{ number_format($marginPercentual, 0) }}%</small>
         </div>
     </div>
 </div>

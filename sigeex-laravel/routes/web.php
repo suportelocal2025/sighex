@@ -8,6 +8,7 @@ use App\Http\Controllers\DiretorController;
 use App\Http\Controllers\RhController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\ServidorController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -23,6 +24,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/perfil', [PerfilController::class, 'index']);
     Route::post('/perfil/atualizar', [PerfilController::class, 'update']);
     Route::post('/perfil/alterar-senha', [PerfilController::class, 'alterarSenha']);
+    
+    Route::get('/servidores', [ServidorController::class, 'index']);
+    Route::get('/servidores/buscar', [ServidorController::class, 'buscar']);
+    Route::post('/servidores/alterar-status', [ServidorController::class, 'alterarStatus']);
+    Route::post('/servidores/importar-csv', [ServidorController::class, 'importarCsv']);
+    Route::post('/servidores/cadastrar', [ServidorController::class, 'cadastrar']);
 
     Route::prefix('superintendente')->middleware('role:superintendente')->group(function () {
         Route::get('/', [SuperintendenteController::class, 'dashboard']);

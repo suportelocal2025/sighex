@@ -138,3 +138,11 @@ Avoid making changes that would break the dual-database compatibility (PostgreSQ
 - Tabela: alertas_diretor (migration: 2026_01_15_213639)
 - Comandos agendados: escalas:verificar-prazo-envio (diário às 08:00), escalas:verificar-prazo-correcao (por hora)
 - Campo data_rejeicao adicionado à tabela escalas para rastrear momento da rejeição
+
+### Vinculação de Servidores a Módulo+Equipe
+- Nova tabela modulo_equipe_servidores para vincular servidores a combinações específicas de módulo e equipe
+- Interface administrativa em /admin/vinculos-modulo-equipe para gerenciar associações
+- Página escala-mensal atualizada: primeiro seleciona Módulo, depois Equipe (ordem invertida)
+- API /diretor/servidores-modulo-equipe retorna apenas servidores vinculados à combinação selecionada
+- Validação de unidade: módulo e equipe devem pertencer à unidade do diretor
+- Filtro de servidores ativos e aptos para escala extra

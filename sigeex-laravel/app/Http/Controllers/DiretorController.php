@@ -346,7 +346,7 @@ class DiretorController extends Controller
             }
 
             $tipoExtra = $request->tipo_extra ?? 'diurna';
-            $horas = $request->horas ?? 10;
+            $horas = 10;
             
             $horasDiurnas = Alocacao::where('escala_id', $request->escala_id)
                 ->where('servidor_id', $request->servidor_id)

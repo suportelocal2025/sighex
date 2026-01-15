@@ -1,327 +1,94 @@
 # SIGEEX - Sistema de Gestão de Escalas Extraordinárias
 
-## Visão Geral
-Sistema web em PHP para gestão de escalas de servidores em unidades prisionais, com controle de orçamento, aprovação de escalas e geração de relatórios. O sistema suporta múltiplos ambientes de banco de dados (PostgreSQL para desenvolvimento no Replit e MySQL para produção na Hostinger).
+## Overview
+SIGEEX is a web-based system developed in PHP for managing extraordinary duty rosters (escalas) for correctional officers in prison units. Its core purpose is to streamline the process of staff scheduling, budget control, roster approval, and reporting. The system aims to enhance efficiency in resource allocation, ensure compliance with budgetary constraints, and provide transparency in the management of extraordinary shifts.
 
-**URL de Produção:** https://sigeex.gestaoderotinas.com.br  
-**URL de Desenvolvimento:** https://sigh-ex--gspimenta.replit.app
+Key capabilities include:
+- Multi-user role management (Superintendent, Director, HR, Administrative)
+- Budget allocation and tracking for extraordinary scales
+- Interactive roster creation and approval workflows
+- Automated alerts and notifications
+- Comprehensive reporting, including Excel export for HR
+- Dual-database support for PostgreSQL (development) and MySQL (production) environments.
 
-## Versões Disponíveis
+The project seeks to provide a robust and scalable solution for public security institutions, improving operational oversight and reducing manual workload associated with complex scheduling.
 
-### 1. PHP Puro (Original)
-- Localização: `/sigeex-php-puro/`
-- MVC manual sem frameworks
-- Sistema completo e funcional
+## User Preferences
+I prefer clear, concise explanations and direct answers.
+I value an iterative development approach, where changes are proposed and discussed before implementation.
+Please ask for confirmation before making significant architectural changes or adding new external dependencies.
+When implementing features, focus on maintainability and adherence to established design patterns.
+I expect the agent to prioritize security and data integrity in all development tasks.
+Please provide code examples for complex logic or new features.
+Do not make changes to the `/deploy/` folder.
+Do not modify the core database connection logic in `src/Config/Database.php` unless explicitly instructed.
+Avoid making changes that would break the dual-database compatibility (PostgreSQL/MySQL).
 
-### 2. Laravel (Nova versão)
-- Localização: `/sigeex-laravel/`
-- Laravel 12.x com Eloquent ORM
-- Blade templates
-- Middleware de autenticação e autorização
-- Sistema de migrations
+## System Architecture
 
-## Estrutura do Projeto
+**Core Design Principles:**
+- **MVC Pattern:** The system is structured using a custom Model-View-Controller (MVC) pattern, particularly in the PHP Pure version, to separate concerns and improve maintainability. The Laravel version leverages Laravel's inherent MVC structure.
+- **Dual-Database Support:** Automatically detects and connects to PostgreSQL (development, Replit) or MySQL (production, Hostinger) based on environment variables, ensuring flexibility without code changes.
+- **Role-Based Access Control (RBAC):** Implemented via middleware to restrict access to functionalities based on user roles (Superintendent, Director, RH, Administrative).
 
-```
-/
-├── index.php                    # Ponto de entrada e rotas
-├── htaccess.txt                 # Configuração Apache (renomear para .htaccess)
-├── composer.json                # Dependências PHP
-├── src/
-│   ├── Config/
-│   │   ├── Database.php         # Conexão PostgreSQL/MySQL (dual-database)
-│   │   └── Schema.php           # Criação de tabelas e seed
-│   ├── Controllers/
-│   │   ├── AuthController.php   # Autenticação e login
-│   │   ├── DashboardController.php
-│   │   ├── SuperintendenteController.php
-│   │   ├── DiretorController.php
-│   │   ├── RhController.php
-│   │   └── AdminController.php
-│   └── Core/
-│       ├── Router.php           # Sistema de rotas
-│       ├── Session.php          # Gerenciamento de sessões
-│       ├── View.php             # Renderização de views
-│       └── Middleware.php       # Autenticação e autorização
-├── views/
-│   ├── layouts/main.php         # Layout principal
-│   ├── auth/login.php
-│   ├── superintendente/
-│   │   ├── dashboard.php
-│   │   ├── orcamento.php
-│   │   ├── distribuicao.php
-│   │   └── relatorios.php
-│   ├── diretor/
-│   │   ├── dashboard.php        # Com alertas de status das escalas
-│   │   ├── escala-mensal.php    # Calendário interativo
-│   │   ├── enviar-escala.php
-│   │   └── servidores.php
-│   ├── rh/
-│   │   ├── dashboard.php
-│   │   ├── detalhar-escala.php  # Com exportação Excel
-│   │   ├── escalas.php
-│   │   ├── relatorios.php
-│   │   └── relatorio-resultado.php
-│   └── administrativo/
-│       ├── dashboard.php
-│       ├── unidades.php
-│       ├── form-unidade.php
-│       └── servidores.php
-├── deploy/
-│   ├── database_mysql.sql       # Script SQL para MySQL/Hostinger
-│   └── INSTRUCOES_DEPLOY.md     # Guia de deploy
-├── config/
-│   └── database.php             # Configuração alternativa
-└── attached_assets/             # Arquivos anexados
-```
+**UI/UX Decisions:**
+- **Framework:** Bootstrap 5.3 for a responsive and modern interface.
+- **Theming:** Clean, professional interface with distinct color coding for calendar elements (weekends, holidays, allocated days) and status alerts (e.g., green for approved, red for rejected, yellow/red for budget alerts).
+- **Interactive Elements:** Chart.js for data visualization, interactive calendars for roster creation, and modal windows for user input.
+- **Print Optimization:** Specific layouts for printing rosters (e.g., "Imprimir P/Mural") are designed for readability on physical displays.
 
-## Arquitetura Dual-Database
+**Technical Implementations:**
+- **Backend:** PHP 8.x (PHP Pure version built without external frameworks, Laravel version uses Laravel 12.x).
+- **Routing:** Custom `Router.php` in PHP Pure, Laravel routing in the Laravel version.
+- **Session Management:** Custom `Session.php` for handling user sessions.
+- **View Rendering:** Custom `View.php` for template rendering (PHP Pure), Blade templates (Laravel).
+- **Authentication:** Custom `AuthController.php` (PHP Pure), Laravel's built-in authentication system (Laravel).
+- **Database Migrations:** Laravel's migration system in the Laravel version.
+- **Export Functionality:** HTML Table with specific MIME type for Excel (`.xls`) compatibility (Office 2003-2007+).
 
-O sistema detecta automaticamente o driver de banco de dados:
-- **PostgreSQL**: Quando a variável `PGHOST` está definida (ambiente Replit)
-- **MySQL**: Quando `PGHOST` não existe (ambiente Hostinger)
+**Key Feature Specifications:**
 
-### Conexão MySQL (Hostinger)
-Configurar no `src/Config/Database.php`:
-```php
-$host = 'localhost';
-$dbname = 'u123456789_sigeex';
-$user = 'u123456789_sigeex';
-$password = 'SuaSenhaAqui';
-```
+1.  **Budget Management (Superintendent):**
+    *   Annual budget configuration with technical reserve.
+    *   Distribution of budget to units.
+    *   Monthly budgetary margin control (`margin_percentual`) per unit.
+    *   Dynamic redistribution of remaining budget across months.
+    *   Logging of budget allocation history.
 
-## Papéis de Usuário
+2.  **Roster Creation & Management (Director/Gestor):**
+    *   Interactive monthly calendar for staff allocation.
+    *   Allocation of servers to teams (A, B, C, D) and modules.
+    *   Limit of 60 hours per server with conflict detection.
+    *   Visual alerts for roster status (rejected, approved, pending) and budget overruns (yellow/red).
+    *   Option to view "ALL TEAMS" for a consolidated roster.
 
-### 1. Superintendente - Visão global e gestão estratégica
-- Configurar orçamento anual e reserva técnica
-- Distribuir orçamento entre unidades
-- Visualizar histórico de aportes por unidade (data, hora, valor anterior, valor novo)
-- Visualizar dashboards consolidados
-- Gerar relatórios por período
+3.  **Roster Approval & Execution (RH):**
+    *   Approval/rejection of rosters with mandatory reasons.
+    *   Marking rosters as "executed" with financial value input.
+    *   Validation against monthly budget margins, triggering alerts for Superintendents and Directors.
+    *   Detailed roster view with calendar.
+    *   Excel export of rosters, including logos and authorization texts.
 
-### 2. Diretor/Gestor - Gestor da unidade prisional
-- Montar escalas mensais com calendário interativo
-- Alocar servidores em equipes (A, B, C, D) e módulos
-- Definir líderes de equipe
-- Enviar escalas para aprovação
-- **Alertas visuais** no dashboard: escalas rejeitadas, aprovadas e pendentes
-- Visualizar horas executadas
-- Imprimir escalas (P/Mural)
+4.  **Administrative Functions:**
+    *   CRUD operations for prison units, modules/sectors, and correctional officers.
+    *   CSV import for officers.
+    *   Comprehensive user management (create, edit, delete, reset password, activate/deactivate users) with role assignment and unit linking.
 
-### 3. RH - Gestor de aprovações e execução
-- Aprovar/rejeitar escalas com motivo
-- Marcar escalas como executadas com valor financeiro
-- Gerar relatórios de horas e valores
-- **Exportar para Excel** (.xls compatível com Office 2003-2007+)
-- Visualizar detalhes de escalas com calendário
+5.  **Alerts and Notifications:**
+    *   Automated email notifications to Superintendents and Directors when executed scales exceed budgetary limits.
+    *   Dedicated "Alerts Center" with filters for reviewing budget-related alerts (yellow/red).
 
-### 4. Administrativo - Suporte operacional
-- Cadastrar e gerenciar unidades prisionais
-- Cadastrar e gerenciar módulos/raios/setores
-- Cadastrar e gerenciar servidores/policiais penais
-- **Gerenciar usuários do sistema** (criar, editar, excluir, resetar senha)
-- Importação via CSV
+## External Dependencies
 
-## Credenciais Padrão
-
-| Papel           | Email                     | Senha     |
-|-----------------|---------------------------|-----------|
-| Superintendente | super@sistema.gov.br      | admin123  |
-| Diretor         | diretor@sistema.gov.br    | admin123  |
-| RH              | rh@sistema.gov.br         | admin123  |
-| Administrativo  | admin@sistema.gov.br      | admin123  |
-
-## Banco de Dados
-
-### Tabelas Principais
-| Tabela | Descrição |
-|--------|-----------|
-| `usuarios` | Usuários do sistema com papéis |
-| `unidades` | Unidades prisionais |
-| `equipes` | Equipes por unidade (A, B, C, D) |
-| `modulos` | Módulos/setores por unidade |
-| `servidores` | Policiais penais |
-| `orcamento_global` | Orçamento anual com reserva técnica |
-| `distribuicao_orcamento` | Distribuição por unidade |
-| `log_distribuicao` | Histórico de aportes |
-| `escalas` | Escalas mensais com status |
-| `alocacoes` | Alocações de servidores nas escalas |
-| `escala_equipe_servidores` | Vínculo servidor-equipe |
-| `horas_aprovadas` | Horas aprovadas por servidor |
-
-### Status das Escalas
-- `rascunho` - Em montagem pelo diretor
-- `pendente` - Enviada para aprovação do RH
-- `aprovada` - Aprovada pelo RH
-- `rejeitada` - Rejeitada pelo RH (com motivo)
-- `executada` - Executada com valor financeiro lançado
-
-## Executando o Projeto
-
-### Desenvolvimento (Replit)
-```bash
-php -S 0.0.0.0:5000 index.php
-```
-
-### Produção (Hostinger)
-1. Fazer upload de todos os arquivos para `public_html`
-2. Renomear `htaccess.txt` para `.htaccess`
-3. Importar `deploy/database_mysql.sql` no phpMyAdmin
-4. Configurar credenciais MySQL em `src/Config/Database.php`
-
-## Tecnologias
-
-- **Backend**: PHP 8.x (sem frameworks externos)
-- **Banco de Dados**: PostgreSQL (Replit) / MySQL (Hostinger)
-- **Frontend**: HTML5, CSS3, JavaScript ES6+
-- **UI Framework**: Bootstrap 5.3
-- **Ícones**: Bootstrap Icons
-- **Gráficos**: Chart.js
-- **Exportação**: HTML Table com MIME type Excel
-
-## Funcionalidades Implementadas
-
-### Autenticação e Autorização
-- [x] Login com email e senha
-- [x] Controle de acesso por papéis
-- [x] Sessão segura com gerenciamento de estado
-- [x] Logout
-
-### Superintendente
-- [x] Dashboard com visão consolidada
-- [x] Configuração de orçamento anual
-- [x] Definição de reserva técnica (%)
-- [x] Distribuição de orçamento para unidades
-- [x] Histórico de aportes com data/hora
-- [x] Gráficos de gastos por unidade
-- [x] Cálculo de valor disponível (total - reserva - distribuído)
-
-### Diretor/Gestor
-- [x] Dashboard com cards: Orçamento, Gasto, Disponível, **Horas Executadas**
-- [x] **Alertas de status**: escalas rejeitadas, aprovadas e pendentes
-- [x] Montagem de escala mensal com calendário interativo
-- [x] Alocação direta por clique no dia
-- [x] Cores diferenciadas: sábados (amarelo), domingos (laranja), feriados (vermelho)
-- [x] Limite de 60 horas por servidor
-- [x] Detecção de conflito de alocação
-- [x] Seleção de servidores via modal
-- [x] Definição de líder de equipe
-- [x] Edição de escalas rejeitadas
-- [x] Visualização de escalas aprovadas/executadas/pendentes (modo leitura)
-- [x] **Opção "TODAS AS EQUIPES"** para visualização consolidada
-- [x] Imprimir P/Mural - Layout otimizado para impressão
-- [x] Envio para aprovação
-
-### RH
-- [x] Dashboard com lista de escalas
-- [x] Filtro por status
-- [x] Aprovar escalas
-- [x] Rejeitar escalas com motivo obrigatório
-- [x] Marcar como executada com valor financeiro
-- [x] Detalhar escala com calendário
-- [x] **Exportar para Excel** (.xls) com:
-  - Espaços para logos (SEAP e Unidade)
-  - Texto de autorização em vermelho
-  - Totalizador de horas
-  - Formato compatível com Office 2003-2007+
-
-### Administrativo
-- [x] Gestão de unidades prisionais
-- [x] Criação automática de 4 equipes (A, B, C, D)
-- [x] Gestão de módulos/raios/setores
-- [x] Gestão de servidores
-- [x] Importação de servidores via CSV
-- [x] Ativar/desativar servidor para escala extra
-- [x] **Gestão de usuários do sistema**:
-  - Listar usuários com perfil e unidade vinculada
-  - Criar usuário com definição de perfil
-  - Vincular diretor a unidade existente
-  - Editar dados de usuários
-  - Resetar senha de usuário
-  - Excluir usuário
-  - Ativar/desativar usuário
-
-## Fluxo de Montagem de Escala (Diretor)
-
-1. Selecione a **Equipe** (A, B, C ou D)
-2. Selecione o **Módulo/Raio** onde os servidores trabalharão
-3. Clique em **"Add Servidor"** para abrir o modal de seleção
-4. No modal, selecione os servidores (checkbox)
-   - Servidores já vinculados a outras equipes aparecem desabilitados
-5. Clique em **"Adicionar Selecionados"**
-6. Marque o checkbox **"Líder"** para mesários/líderes
-7. **Clique nos dias** do calendário para alocar (dia fica azul escuro)
-8. Para remover alocação, clique no dia alocado e confirme
-9. Para remover servidor da equipe, clique no botão X
-10. Clique em **"Enviar para Aprovação"**
-
-### Visualização de Escalas (Não Editáveis)
-- Escalas aprovadas, executadas ou pendentes abrem em modo leitura
-- Opção "TODAS AS EQUIPES" pré-selecionada
-- Calendário carrega automaticamente com todos os servidores
-- Badge colorido indica a equipe de cada servidor
-- Botão "Imprimir P/Mural" disponível
-
-## Visual e Interface
-
-- Cards compactos e uniformes no dashboard
-- Gráficos Chart.js responsivos
-- Calendário com cores temáticas
-- Alertas visuais para status das escalas
-- Layout de impressão otimizado
-- Interface responsiva (Bootstrap 5)
-
-## Changelog Recente
-
-### Dezembro 2025
-- Adicionado card "Horas Executadas" no dashboard do diretor (substituiu "Horas Aprovadas")
-- Adicionados alertas visuais para escalas rejeitadas, aprovadas e pendentes
-- Implementada opção "TODAS AS EQUIPES" para visualização consolidada
-- Carregamento automático do calendário para escalas não editáveis
-- Badge indicando equipe de cada servidor na visualização "TODAS"
-- Exportação Excel com formato compatível Office 2003-2007
-- Correção do cálculo de "Valor Disponível" no dashboard do superintendente
-- Suporte a visualização/impressão de escalas em qualquer status
-- **Gestão de usuários** no módulo Administrativo (CRUD completo)
-
-### Laravel Edition - Janeiro 2026
-- **Aba Escalas no Superintendente**: Visualização completa de escalas com mesmo fluxo do RH (todas, pendentes, aprovadas, executadas)
-- **Sistema de Margem Orçamentária Mensal**:
-  - Campo `margin_percentual` na tabela `distribuicao_orcamento`
-  - Configurável por unidade (padrão 10%)
-  - Cálculo de orçamento mensal = anual / 12
-  - Lógica de redistribuição: gastos abaixo/acima do previsto redistribuem saldo para meses seguintes
-- **Infográfico de 12 Barras Verticais no Dashboard do Diretor**:
-  - 12 barras representando cada mês do ano
-  - Redistribuição dinâmica: orçamento restante ÷ meses restantes
-  - Cores diferenciadas: verde (dentro do limite), vermelho (acima do limite)
-  - Indicador do mês atual e valores em "k" (milhares)
-- **Controle de Margem na Execução**:
-  - Verificação de margem ocorre quando RH marca escala como EXECUTADA
-  - RH informa o valor real executado
-  - Sistema compara com orçamento previsto do mês
-  - Dois tipos de alerta:
-    - AMARELO: Valor acima do previsto mas dentro da margem
-    - VERMELHO: Valor excedeu a margem orçamentária
-- **Alertas Visuais Diferenciados**:
-  - Dashboard do Diretor: alertas amarelo e vermelho para escalas executadas
-  - Dashboard do Superintendente: alertas amarelo e vermelho por unidade/mês
-  - Cores diferenciadas para fácil identificação
-- **Notificações por Email**:
-  - Enviadas automaticamente quando escala executada ultrapassa previsão
-  - Destinatários: Superintendente E Diretor da unidade
-  - Email inclui detalhes de orçamento, limite, valor executado e excedente
-  - Botão "Enviar por Email" separado para cada tipo de alerta
-
-### Laravel Edition - Dezembro 2025
-- **Dashboard do Diretor responsivo**: Cards de orçamento, gasto, disponível e horas executadas agora adaptam-se corretamente em diferentes tamanhos de tela
-- **Calendário Escala Mensal completo**: Implementação idêntica à versão PHP puro com:
-  - Cores diferenciadas: Sábados (amarelo), Domingos (laranja), Feriados (vermelho), Dias alocados (azul escuro)
-  - Seleção de equipe e módulo
-  - Modal para adicionar servidores à equipe
-  - Clique nos dias do calendário para alocar/desalocar
-  - Legenda visual de cores
-  - Cálculo automático de horas por servidor
-  - Limite de 60 horas por servidor
-- **Gestão de Setores/Módulos/Raios**: Modal para criar e botão para excluir módulos na tela de edição de unidade
-- **Migration de alocacoes**: Novas colunas (equipe_id, modulo_id, dia, horas_abono, is_lider) para suportar funcionalidade completa
+-   **Backend Language:** PHP 8.x
+-   **Database Systems:**
+    *   PostgreSQL (for Replit development environment)
+    *   MySQL (for Hostinger production environment)
+-   **PHP Frameworks:**
+    *   Laravel 12.x (for the new version)
+-   **Frontend Libraries/Frameworks:**
+    *   Bootstrap 5.3 (CSS Framework)
+    *   HTML5, CSS3, JavaScript ES6+
+    *   Chart.js (for data visualization)
+    *   Bootstrap Icons (for iconography)
+-   **Composer:** For PHP dependency management (e.g., Laravel's dependencies).

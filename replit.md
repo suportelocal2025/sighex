@@ -129,3 +129,12 @@ Avoid making changes that would break the dual-database compatibility (PostgreSQ
 - Solicitação fica pendente para aprovação do RH
 - RH pode aprovar (cria servidor automaticamente) ou rejeitar (com motivo)
 - Tabela: solicitacao_servidores (migration: 2026_01_15_021352)
+
+### Sistema de Alertas de Prazo para Diretores
+- Alertas automáticos de prazo de envio de escala (10 dias e 5 dias antes do dia 1 do mês)
+- Alertas automáticos de prazo de correção de escala rejeitada (imediato e 6 horas antes do limite de 24h)
+- Exibição no dashboard e página de alertas do diretor com badges de urgência (Expirado/Urgente)
+- Envio de emails para diretores da unidade com detalhes do alerta
+- Tabela: alertas_diretor (migration: 2026_01_15_213639)
+- Comandos agendados: escalas:verificar-prazo-envio (diário às 08:00), escalas:verificar-prazo-correcao (por hora)
+- Campo data_rejeicao adicionado à tabela escalas para rastrear momento da rejeição

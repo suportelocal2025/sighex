@@ -9,3 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('servidores:reativar')->daily()->at('00:05');
+
+Schedule::command('escalas:verificar-prazo-envio')->daily()->at('08:00');
+Schedule::command('escalas:verificar-prazo-correcao')->hourly();

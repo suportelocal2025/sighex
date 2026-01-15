@@ -7,6 +7,9 @@ use App\Models\Unidade;
 use App\Models\Escala;
 use App\Models\AlertaDiretor;
 use App\Models\User;
+use App\Mail\AlertaDiretorMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class VerificarPrazoEnvioEscala extends Command
@@ -96,6 +99,16 @@ class VerificarPrazoEnvioEscala extends Command
     
     private function enviarEmailDiretores(Unidade $unidade, string $tipo, int $diasRestantes, int $mes, int $ano): void
     {
+        $alerta = AlertaDiretor::where('unidade_id', $unidade->id)
+            ->where('tipo', $tipo)
+            ->where('mes', $mes)
+            ->where('ano', $ano)
+            ->first();
+        
+        if (!$alerta) {
+            return;
+        }
+        
         $diretores = User::where('unidade_id', $unidade->id)
             ->where('perfil', 'diretor')
             ->where('ativo', true)
@@ -103,7 +116,20 @@ class VerificarPrazoEnvioEscala extends Command
             ->get();
         
         foreach ($diretores as $diretor) {
-            $this->info("Enviando email para {$diretor->email} sobre {$tipo}");
+            try {
+                Mail::to($diretor->email)->send(new AlertaDiretorMail($alerta));
+                $this->info("Email enviado para {$diretor->email} sobre {$tipo}");
+                
+                if (!$alerta->email_enviado) {
+                    $alerta->update([
+                        'email_enviado' => true,
+                        'email_enviado_em' => now(),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error("Erro ao enviar email para {$diretor->email}: " . $e->getMessage());
+                $this->error("Erro ao enviar email para {$diretor->email}: " . $e->getMessage());
+            }
         }
     }
 }

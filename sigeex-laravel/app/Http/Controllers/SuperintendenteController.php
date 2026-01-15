@@ -547,4 +547,45 @@ class SuperintendenteController extends Controller
         
         return $alertasViolacao;
     }
+
+    public function alertas(Request $request)
+    {
+        $ano = (int)$request->get('ano', date('Y'));
+        $mes = $request->get('mes');
+        $unidadeId = $request->get('unidade_id');
+        $tipo = $request->get('tipo');
+        
+        $unidades = Unidade::where('ativo', true)->orderBy('nome')->get();
+        
+        $result = $this->calcularAlertasPorTipo($ano);
+        
+        $alertasAmarelo = collect($result['amarelo']);
+        $alertasVermelho = collect($result['vermelho']);
+        
+        if ($mes) {
+            $alertasAmarelo = $alertasAmarelo->filter(fn($a) => $a['mes'] == $mes);
+            $alertasVermelho = $alertasVermelho->filter(fn($a) => $a['mes'] == $mes);
+        }
+        
+        if ($unidadeId) {
+            $alertasAmarelo = $alertasAmarelo->filter(fn($a) => $a['unidade_id'] == $unidadeId);
+            $alertasVermelho = $alertasVermelho->filter(fn($a) => $a['unidade_id'] == $unidadeId);
+        }
+        
+        if ($tipo === 'amarelo') {
+            $alertasVermelho = collect();
+        } elseif ($tipo === 'vermelho') {
+            $alertasAmarelo = collect();
+        }
+        
+        return view('superintendente.alertas', [
+            'ano' => $ano,
+            'mes' => $mes,
+            'unidadeId' => $unidadeId,
+            'tipo' => $tipo,
+            'unidades' => $unidades,
+            'alertasAmarelo' => $alertasAmarelo->values()->toArray(),
+            'alertasVermelho' => $alertasVermelho->values()->toArray(),
+        ]);
+    }
 }

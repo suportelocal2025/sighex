@@ -420,4 +420,50 @@ class DiretorController extends Controller
 
         return view('diretor.imprimir-mural', compact('unidade', 'escala', 'agrupado', 'meses', 'mes', 'ano'));
     }
+
+    public function alertas(Request $request)
+    {
+        $user = Auth::user();
+        $unidadeId = $user->unidade_id;
+        $ano = (int)$request->get('ano', date('Y'));
+        $mes = $request->get('mes');
+        $tipo = $request->get('tipo');
+
+        $escalas = Escala::where('unidade_id', $unidadeId)
+            ->where('ano', $ano)
+            ->where('status', 'executada')
+            ->get();
+        
+        if ($mes) {
+            $escalas = $escalas->filter(fn($e) => $e->mes == $mes);
+        }
+        
+        $alertasMargemAmarelo = $escalas->filter(function($e) {
+            return $e->usa_margem && !$e->excede_margem;
+        });
+        
+        $alertasMargemVermelho = $escalas->filter(function($e) {
+            return $e->excede_margem;
+        });
+        
+        if ($tipo === 'amarelo') {
+            $alertasMargemVermelho = collect();
+        } elseif ($tipo === 'vermelho') {
+            $alertasMargemAmarelo = collect();
+        }
+
+        $escalasRejeitadas = Escala::where('unidade_id', $unidadeId)
+            ->where('ano', $ano)
+            ->where('status', 'rejeitada')
+            ->count();
+
+        return view('diretor.alertas', [
+            'ano' => $ano,
+            'mes' => $mes,
+            'tipo' => $tipo,
+            'alertasAmarelo' => $alertasMargemAmarelo,
+            'alertasVermelho' => $alertasMargemVermelho,
+            'escalasRejeitadas' => $escalasRejeitadas,
+        ]);
+    }
 }

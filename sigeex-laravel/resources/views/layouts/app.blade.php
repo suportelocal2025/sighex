@@ -112,6 +112,9 @@
                     <small class="text-capitalize">{{ Auth::user()->papel }}</small>
                 </div>
             </div>
+            <a href="/perfil" class="btn btn-sm btn-outline-light w-100 mt-2">
+                <i class="bi bi-person-gear"></i> Meu Perfil
+            </a>
             <form action="{{ route('logout') }}" method="POST" class="mt-2">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-outline-light w-100">

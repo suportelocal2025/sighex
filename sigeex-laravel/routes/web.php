@@ -7,6 +7,7 @@ use App\Http\Controllers\SuperintendenteController;
 use App\Http\Controllers\DiretorController;
 use App\Http\Controllers\RhController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\PerfilController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -18,6 +19,10 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    
+    Route::get('/perfil', [PerfilController::class, 'index']);
+    Route::post('/perfil/atualizar', [PerfilController::class, 'update']);
+    Route::post('/perfil/alterar-senha', [PerfilController::class, 'alterarSenha']);
 
     Route::prefix('superintendente')->middleware('role:superintendente')->group(function () {
         Route::get('/', [SuperintendenteController::class, 'dashboard']);
@@ -27,6 +32,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/distribuicao', [SuperintendenteController::class, 'salvarDistribuicao']);
         Route::get('/escalas', [SuperintendenteController::class, 'escalas']);
         Route::get('/escala/{id}', [SuperintendenteController::class, 'detalharEscala']);
+        Route::get('/alertas', [SuperintendenteController::class, 'alertas']);
         Route::post('/aprovar-escala', [SuperintendenteController::class, 'aprovarEscalaExcedente']);
         Route::post('/rejeitar-escala', [SuperintendenteController::class, 'rejeitarEscalaExcedente']);
         Route::post('/enviar-alerta-email', [SuperintendenteController::class, 'enviarAlertaEmail']);
@@ -37,6 +43,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [DiretorController::class, 'dashboard']);
         Route::get('/escala-mensal', [DiretorController::class, 'escalaMensal']);
         Route::get('/escala/imprimir-mural', [DiretorController::class, 'imprimirMural']);
+        Route::get('/alertas', [DiretorController::class, 'alertas']);
         Route::post('/adicionar-servidor', [DiretorController::class, 'adicionarServidor']);
         Route::post('/remover-servidor', [DiretorController::class, 'removerServidor']);
         Route::post('/alocar-dia', [DiretorController::class, 'alocarDia']);

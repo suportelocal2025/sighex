@@ -7,62 +7,40 @@
     <a href="/diretor" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
     <a href="/diretor/escala-mensal" class="nav-link"><i class="bi bi-calendar3"></i> Escala Mensal</a>
     <a href="/diretor/servidores" class="nav-link"><i class="bi bi-people"></i> Servidores</a>
+    <a href="/diretor/alertas" class="nav-link"><i class="bi bi-bell"></i> Alertas 
+        @php $totalAlertas = $alertasMargemVermelho->count() + $alertasMargemAmarelo->count() + $escalasRejeitadas; @endphp
+        @if($totalAlertas > 0)<span class="badge bg-danger">{{ $totalAlertas }}</span>@endif
+    </a>
 @endsection
 
 @section('content')
-@if($alertasMargemVermelho->count() > 0)
-<div class="alert alert-danger d-flex align-items-center mb-3">
-    <i class="bi bi-exclamation-octagon-fill fs-4 me-3"></i>
-    <div>
-        <strong>ALERTA VERMELHO!</strong> {{ $alertasMargemVermelho->count() }} escala(s) executada(s) EXCEDERAM a margem orçamentária:
-        <ul class="mb-0 mt-1">
-        @foreach($alertasMargemVermelho as $alerta)
-            @php
-                $meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-            @endphp
-            <li>{{ $meses[$alerta->mes] }}/{{ $alerta->ano }}: Executado R$ {{ number_format($alerta->valor_executado, 2, ',', '.') }} / Limite R$ {{ number_format($alerta->limite_margem ?? 0, 2, ',', '.') }}</li>
-        @endforeach
-        </ul>
-    </div>
-</div>
-@endif
-
-@if($alertasMargemAmarelo->count() > 0)
-<div class="alert alert-warning d-flex align-items-center mb-3">
-    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-    <div>
-        <strong>ALERTA AMARELO!</strong> {{ $alertasMargemAmarelo->count() }} escala(s) executada(s) ultrapassaram a previsão (mas dentro da margem):
-        <ul class="mb-0 mt-1">
-        @foreach($alertasMargemAmarelo as $alerta)
-            @php
-                $meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-            @endphp
-            <li>{{ $meses[$alerta->mes] }}/{{ $alerta->ano }}: Executado R$ {{ number_format($alerta->valor_executado, 2, ',', '.') }} / Previsto R$ {{ number_format($alerta->orcamento_mes ?? 0, 2, ',', '.') }}</li>
-        @endforeach
-        </ul>
-    </div>
-</div>
-@endif
-
-@if($escalasRejeitadas > 0)
-<div class="alert alert-danger d-flex align-items-center mb-3">
-    <i class="bi bi-x-circle-fill fs-4 me-3"></i>
-    <div>
-        <strong>Atenção!</strong> Você tem {{ $escalasRejeitadas }} escala(s) rejeitada(s) que precisa(m) de correção.
-    </div>
-</div>
-@endif
-
-@if($escalasAprovadas > 0)
-<div class="alert alert-success d-flex align-items-center mb-3">
-    <i class="bi bi-check-circle-fill fs-4 me-3"></i>
-    <div>
-        {{ $escalasAprovadas }} escala(s) aprovada(s) neste ano.
-    </div>
-</div>
-@endif
-
 <div class="row g-3 mb-4">
+    @php $totalAlertas = $alertasMargemVermelho->count() + $alertasMargemAmarelo->count() + $escalasRejeitadas; @endphp
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="/diretor/alertas" class="text-decoration-none">
+            <div class="card card-stat h-100 {{ $totalAlertas > 0 ? 'border-danger border-2' : '' }}">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-danger bg-opacity-10 rounded-3 p-2 me-2 flex-shrink-0">
+                                <i class="bi bi-bell text-danger"></i>
+                            </div>
+                            <div class="min-width-0">
+                                <h6 class="text-muted mb-0 small">Alertas</h6>
+                                <h4 class="mb-0">{{ $totalAlertas }}</h4>
+                            </div>
+                        </div>
+                        @if($alertasMargemVermelho->count() > 0)
+                        <span class="badge bg-danger rounded-pill">{{ $alertasMargemVermelho->count() }}</span>
+                        @endif
+                        @if($alertasMargemAmarelo->count() > 0)
+                        <span class="badge bg-warning text-dark rounded-pill">{{ $alertasMargemAmarelo->count() }}</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
     <div class="col-lg-3 col-md-6 col-sm-6">
         <div class="card card-stat h-100">
             <div class="card-body p-3">

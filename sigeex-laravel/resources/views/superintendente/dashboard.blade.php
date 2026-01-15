@@ -8,6 +8,10 @@
     <a href="/superintendente/orcamento" class="nav-link"><i class="bi bi-wallet2"></i> Orçamento</a>
     <a href="/superintendente/distribuicao" class="nav-link"><i class="bi bi-diagram-3"></i> Distribuição</a>
     <a href="/superintendente/escalas" class="nav-link"><i class="bi bi-calendar-check"></i> Escalas</a>
+    <a href="/superintendente/alertas" class="nav-link"><i class="bi bi-bell"></i> Alertas 
+        @php $totalAlertas = count($alertasVermelho) + count($alertasAmarelo); @endphp
+        @if($totalAlertas > 0)<span class="badge bg-danger">{{ $totalAlertas }}</span>@endif
+    </a>
     <a href="/superintendente/relatorios" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
 @endsection
 
@@ -41,93 +45,36 @@
 @endpush
 
 @section('content')
-@if(count($alertasVermelho) > 0)
-<div class="alert alert-danger mb-4">
-    <div class="d-flex justify-content-between align-items-start">
-        <h6 class="alert-heading d-flex align-items-center mb-0">
-            <i class="bi bi-exclamation-octagon-fill me-2"></i>
-            ALERTA VERMELHO - Margem Excedida ({{ count($alertasVermelho) }})
-        </h6>
-        <form method="POST" action="/superintendente/enviar-alerta-email" class="d-inline">
-            @csrf
-            <input type="hidden" name="ano" value="{{ $ano }}">
-            <input type="hidden" name="tipo" value="vermelho">
-            <button type="submit" class="btn btn-sm btn-outline-danger">
-                <i class="bi bi-envelope me-1"></i>Enviar por Email
-            </button>
-        </form>
-    </div>
-    <hr>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0">
-            <thead>
-                <tr>
-                    <th>Unidade</th>
-                    <th>Mês</th>
-                    <th>Limite c/ Margem</th>
-                    <th>Gasto</th>
-                    <th>Excedente</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($alertasVermelho as $alerta)
-                <tr>
-                    <td><strong>{{ $alerta['unidade_nome'] }}</strong></td>
-                    <td>{{ $alerta['mes_nome'] }}/{{ $ano }}</td>
-                    <td>R$ {{ number_format($alerta['limite'], 2, ',', '.') }}</td>
-                    <td class="text-danger fw-bold">R$ {{ number_format($alerta['gasto'], 2, ',', '.') }}</td>
-                    <td class="text-danger">+R$ {{ number_format($alerta['excedente'], 2, ',', '.') }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+@php $totalAlertas = count($alertasVermelho) + count($alertasAmarelo); @endphp
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="/superintendente/alertas" class="text-decoration-none">
+            <div class="card h-100 {{ $totalAlertas > 0 ? 'border-danger border-2' : '' }}">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon bg-danger bg-opacity-10 me-3">
+                                <i class="bi bi-bell text-danger"></i>
+                            </div>
+                            <div>
+                                <div class="stat-label">Alertas</div>
+                                <div class="stat-value">{{ $totalAlertas }}</div>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-1">
+                            @if(count($alertasVermelho) > 0)
+                            <span class="badge bg-danger rounded-pill">{{ count($alertasVermelho) }} vermelho</span>
+                            @endif
+                            @if(count($alertasAmarelo) > 0)
+                            <span class="badge bg-warning text-dark rounded-pill">{{ count($alertasAmarelo) }} amarelo</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
     </div>
 </div>
-@endif
-
-@if(count($alertasAmarelo) > 0)
-<div class="alert alert-warning mb-4">
-    <div class="d-flex justify-content-between align-items-start">
-        <h6 class="alert-heading d-flex align-items-center mb-0">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            ALERTA AMARELO - Acima do Previsto ({{ count($alertasAmarelo) }})
-        </h6>
-        <form method="POST" action="/superintendente/enviar-alerta-email" class="d-inline">
-            @csrf
-            <input type="hidden" name="ano" value="{{ $ano }}">
-            <input type="hidden" name="tipo" value="amarelo">
-            <button type="submit" class="btn btn-sm btn-outline-warning">
-                <i class="bi bi-envelope me-1"></i>Enviar por Email
-            </button>
-        </form>
-    </div>
-    <hr>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0">
-            <thead>
-                <tr>
-                    <th>Unidade</th>
-                    <th>Mês</th>
-                    <th>Previsto</th>
-                    <th>Gasto</th>
-                    <th>Acima</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($alertasAmarelo as $alerta)
-                <tr>
-                    <td><strong>{{ $alerta['unidade_nome'] }}</strong></td>
-                    <td>{{ $alerta['mes_nome'] }}/{{ $ano }}</td>
-                    <td>R$ {{ number_format($alerta['orcamento'], 2, ',', '.') }}</td>
-                    <td class="text-warning fw-bold">R$ {{ number_format($alerta['gasto'], 2, ',', '.') }}</td>
-                    <td class="text-warning">+R$ {{ number_format($alerta['excedente'], 2, ',', '.') }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
-@endif
 
 <div class="row mb-4">
     <div class="col-12">

@@ -42,18 +42,23 @@ class Servidor extends Model
             return false;
         }
         
+        return true;
+    }
+    
+    public function getStatusInatividade(): ?string
+    {
         if ($this->inativo_indefinido) {
-            return false;
+            return 'Inativo por tempo indeterminado' . ($this->motivo_inativo ? ': ' . $this->motivo_inativo : '');
         }
         
         if ($this->inativo_inicio && $this->inativo_fim) {
-            $hoje = now()->toDateString();
-            if ($hoje >= $this->inativo_inicio->toDateString() && $hoje <= $this->inativo_fim->toDateString()) {
-                return false;
+            $hoje = now();
+            if ($hoje >= $this->inativo_inicio && $hoje <= $this->inativo_fim) {
+                return 'Inativo até ' . $this->inativo_fim->format('d/m/Y') . ($this->motivo_inativo ? ': ' . $this->motivo_inativo : '');
             }
         }
         
-        return true;
+        return null;
     }
 
     public function unidade(): BelongsTo

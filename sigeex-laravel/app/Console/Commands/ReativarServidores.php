@@ -15,8 +15,7 @@ class ReativarServidores extends Command
     {
         $hoje = now()->toDateString();
         
-        $servidores = Servidor::where('ativo', true)
-            ->where('inativo_indefinido', false)
+        $servidores = Servidor::where('inativo_indefinido', false)
             ->whereNotNull('inativo_fim')
             ->where('inativo_fim', '<', $hoje)
             ->get();
@@ -25,6 +24,7 @@ class ReativarServidores extends Command
         
         foreach ($servidores as $servidor) {
             $servidor->update([
+                'ativo' => true,
                 'inativo_inicio' => null,
                 'inativo_fim' => null,
                 'motivo_inativo' => null,

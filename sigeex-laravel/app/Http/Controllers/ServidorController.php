@@ -18,8 +18,8 @@ class ServidorController extends Controller
         if ($busca && strlen($busca) >= 3) {
             $servidores = Servidor::with('unidade')
                 ->where(function($q) use ($busca) {
-                    $q->where('nome', 'ilike', "%{$busca}%")
-                      ->orWhere('matricula', 'ilike', "%{$busca}%");
+                    $q->whereRaw('LOWER(nome) LIKE ?', ['%' . strtolower($busca) . '%'])
+                      ->orWhereRaw('LOWER(matricula) LIKE ?', ['%' . strtolower($busca) . '%']);
                 })
                 ->orderBy('nome')
                 ->limit(50)
@@ -43,8 +43,8 @@ class ServidorController extends Controller
         
         $servidores = Servidor::with('unidade')
             ->where(function($q) use ($busca) {
-                $q->where('nome', 'ilike', "%{$busca}%")
-                  ->orWhere('matricula', 'ilike', "%{$busca}%");
+                $q->whereRaw('LOWER(nome) LIKE ?', ['%' . strtolower($busca) . '%'])
+                  ->orWhereRaw('LOWER(matricula) LIKE ?', ['%' . strtolower($busca) . '%']);
             })
             ->orderBy('nome')
             ->limit(20)
@@ -158,7 +158,7 @@ class ServidorController extends Controller
             
             $unidadeId = $unidades[$unidadeNome] ?? null;
             if (!$unidadeId) {
-                $unidade = Unidade::where('nome', 'ilike', "%{$unidadeNome}%")->first();
+                $unidade = Unidade::whereRaw('LOWER(nome) LIKE ?', ['%' . strtolower($unidadeNome) . '%'])->first();
                 $unidadeId = $unidade?->id;
             }
             

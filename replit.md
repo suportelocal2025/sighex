@@ -92,3 +92,20 @@ Avoid making changes that would break the dual-database compatibility (PostgreSQ
     *   Chart.js (for data visualization)
     *   Bootstrap Icons (for iconography)
 -   **Composer:** For PHP dependency management (e.g., Laravel's dependencies).
+
+## Recent Features (January 2026)
+
+### Sistema Global de Servidores (/servidores)
+- Página acessível por todos os perfis
+- Busca por matrícula e nome (sem listagem visível inicial)
+- Importação CSV para administradores (Matrícula, Nome, Unidade, Cargo, Escala Extra, Status)
+- Modal de alteração de status para RH/Superintendente/Admin
+- Controle de inatividade: período definido (data início/fim) ou indefinido
+- Motivos: Férias, Licença Médica, Licença Prêmio, Afastamento, Outro
+- Reativação automática após período de inatividade expirar (comando agendado: servidores:reativar)
+- Validação no Diretor: só pode alocar servidor ATIVO e APTO para escala extra
+
+### Barras de Orçamento Mensal (Dashboard Diretor)
+- Barras com 4 cores: cinza (não utilizado), verde (dentro do previsto), laranja (acima mas dentro da margem), vermelho (excedeu margem)
+- Valor disponível exibido dentro da barra cinza
+- Valor base mensal original exibido abaixo de cada barra

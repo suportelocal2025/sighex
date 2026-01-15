@@ -161,7 +161,7 @@
                          style="bottom: {{ $alturaVerde }}px; height: {{ $alturaCinza }}px; background-color: #e9ecef; border-radius: 4px 4px 0 0; overflow: hidden;"
                          title="Disponível: R$ {{ number_format($orcMes - max($gastoMes, 0), 0, ',', '.') }}">
                         @if($alturaCinza >= 30)
-                        <span class="fw-bold text-dark" style="font-size: 0.7rem; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">
+                        <span class="fw-bold text-dark" style="font-size: 14px; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">
                             {{ number_format(($orcMes - max($gastoMes, 0))/1000, 1) }}k
                         </span>
                         @endif

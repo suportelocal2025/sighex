@@ -229,7 +229,7 @@ class RhController extends Controller
                 ? "O valor executado EXCEDEU a margem orçamentária permitida." 
                 : "O valor executado está DENTRO da margem de tolerância.");
         
-        $superintendentes = \App\Models\Usuario::where('perfil', 'superintendente')
+        $superintendentes = \App\Models\Usuario::where('papel', 'superintendente')
             ->where('ativo', true)
             ->get();
         
@@ -246,7 +246,7 @@ class RhController extends Controller
             }
         }
         
-        $diretores = \App\Models\Usuario::where('perfil', 'diretor')
+        $diretores = \App\Models\Usuario::where('papel', 'diretor')
             ->where('unidade_id', $escala->unidade_id)
             ->where('ativo', true)
             ->get();

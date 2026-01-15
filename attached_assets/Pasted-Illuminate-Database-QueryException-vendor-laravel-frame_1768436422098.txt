@@ -1,0 +1,154 @@
+Illuminate\Database\QueryException
+vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+SQLSTATE[42703]: Undefined column: 7 ERROR: column "perfil" does not exist LINE 1: select * from "usuarios" where "perfil" = $1 and "ativo" = $... ^ HINT: Perhaps you meant to reference the column "usuarios.email". (Connection: pgsql, SQL: select * from "usuarios" where "perfil" = superintendente and "ativo" = 1)
+
+LARAVEL
+12.43.1
+PHP
+8.4.10
+UNHANDLED
+CODE 42703
+500
+POST
+https://342850e5-4ff1-4a8e-9972-5c36bc2c5628-00-1ij0mws0vd7b7.riker.replit.dev/rh/executar
+
+Exception trace
+9 vendor frames
+
+app/Http/Controllers/RhController.php
+app/Http/Controllers/RhController.php:234
+
+229                ? "O valor executado EXCEDEU a margem orçamentária permitida." 
+230                : "O valor executado está DENTRO da margem de tolerância.");
+231        
+232        $superintendentes = \App\Models\Usuario::where('perfil', 'superintendente')
+233            ->where('ativo', true)
+234            ->get();
+235        
+236        foreach ($superintendentes as $super) {
+237            if (!empty($super->email)) {
+238                try {
+239                    \Illuminate\Support\Facades\Mail::raw($mensagem, function ($message) use ($super, $tipoAlerta, $unidade) {
+240                        $message->to($super->email)
+241                                ->subject("[SIGEEX] {$tipoAlerta} - {$unidade->nome}");
+242                    });
+243                } catch (\Exception $e) {
+244                    \Illuminate\Support\Facades\Log::error('Erro ao enviar email para superintendente: ' . $e->getMessage());
+245                }
+246
+app/Http/Controllers/RhController.php
+app/Http/Controllers/RhController.php:151
+
+5 vendor frames
+
+app/Http/Middleware/CheckRole.php
+app/Http/Middleware/CheckRole.php:21
+
+45 vendor frames
+
+public/index.php
+public/index.php:20
+
+1 vendor frame
+
+Queries
+1-10 of 20
+pgsql
+select * from "usuarios" where "id" = 3 limit 1
+504.94ms
+pgsql
+select count(*) as aggregate from "escalas" where "id" = '2'
+129.85ms
+pgsql
+select * from "escalas" where "escalas"."id" = '2' limit 1
+120.16ms
+pgsql
+select * from "distribuicao_orcamento" where "unidade_id" = 1 and "ano" = 2026 limit 1
+122.4ms
+pgsql
+select sum("valor_executado") as aggregate from "escalas" where "unidade_id" = 1 and "ano" = 2026 and "mes" = 1 and "id" != 2 and "status" = 'executada'
+121.06ms
+pgsql
+select sum("valor_executado") as aggregate from "escalas" where "unidade_id" = 1 and "ano" = 2026 and "mes" = 2 and "id" != 2 and "status" = 'executada'
+119.89ms
+pgsql
+select sum("valor_executado") as aggregate from "escalas" where "unidade_id" = 1 and "ano" = 2026 and "mes" = 3 and "id" != 2 and "status" = 'executada'
+119.86ms
+pgsql
+select sum("valor_executado") as aggregate from "escalas" where "unidade_id" = 1 and "ano" = 2026 and "mes" = 4 and "id" != 2 and "status" = 'executada'
+119.76ms
+pgsql
+select sum("valor_executado") as aggregate from "escalas" where "unidade_id" = 1 and "ano" = 2026 and "mes" = 5 and "id" != 2 and "status" = 'executada'
+119.77ms
+pgsql
+select sum("valor_executado") as aggregate from "escalas" where "unidade_id" = 1 and "ano" = 2026 and "mes" = 6 and "id" != 2 and "status" = 'executada'
+119.65ms
+
+
+1
+2
+
+
+Headers
+host
+342850e5-4ff1-4a8e-9972-5c36bc2c5628-00-1ij0mws0vd7b7.riker.replit.dev
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36
+content-length
+81
+accept
+text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7
+cache-control
+max-age=0
+content-type
+application/x-www-form-urlencoded
+cookie
+XSRF-TOKEN=eyJpdiI6ImJTcFdXVlZGa0djWm91MHByeGo2d0E9PSIsInZhbHVlIjoiSGNWQXJiait2TUVCcUNabXB3dDhXeVB0dStiNVB5M3o5aTVOUFluSFYwSW8zcUpndXByWjlDUEE5SVlmTTdxNlg1WWN4WXNmbW1NdjYrOGxZbGttazJJbHZ3cHlsUFpoM093cUFoLzB2SmFGa2RQV3YrTkl0Ly9ZOUM5TmFKdU4iLCJtYWMiOiIwMzg5ZWNhMjk3NTUzZGM1MDkyOGFlNjQyZTk5YzAwMzE2ZmQ4NWE4MDg4YWM5NDUyYTVhMTMyMTBlZjRkNWM5IiwidGFnIjoiIn0%3D; sigeex-session=eyJpdiI6ImRNVWpmT3M4WEJtdFFjU01VMGsxaGc9PSIsInZhbHVlIjoia2VMRGY4Y2thczVwWkN6SnVydVkxU2EyY0UvTEdDWFVZd2dlRElpMjFGSitjb2ZSdDhiWkwxbmVZQWhFVEZvYmthZWRVRG9qUFFNakN4bFh1NlpCamU4dmtHZWhneXAwUUtmRVVoNzJMOHRaYUVVMUxOaVRaTnpUY3U4eUZUUGciLCJtYWMiOiJmZTIyMGMyYmRhM2IyMDY3NzI0NDY4NjU5MmEwNTUwMDAzODU0NDI0MzkyYWM3OGFhMWQ1N2E2M2ZmZWY3OWQ0IiwidGFnIjoiIn0%3D
+origin
+https://342850e5-4ff1-4a8e-9972-5c36bc2c5628-00-1ij0mws0vd7b7.riker.replit.dev
+referer
+https://342850e5-4ff1-4a8e-9972-5c36bc2c5628-00-1ij0mws0vd7b7.riker.replit.dev/rh/escala/2
+sec-ch-ua
+"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+document
+sec-fetch-mode
+navigate
+sec-fetch-site
+same-origin
+sec-fetch-user
+?1
+upgrade-insecure-requests
+1
+x-forwarded-for
+179.49.180.196, 10.81.6.192
+x-forwarded-proto
+https
+x-replit-user-bio
+x-replit-user-id
+x-replit-user-name
+x-replit-user-profile-image
+x-replit-user-roles
+x-replit-user-teams
+x-replit-user-url
+Body
+{
+    "_token": "SbUc9ZLEBsxdzLqGUvoqG12I2uSs75HbBAO3zuFB",
+    "escala_id": "2",
+    "valor_executado": "10250"
+}
+Routing
+controller
+App\Http\Controllers\RhController@executarEscala
+middleware
+web, auth, role:rh
+Routing parameters
+// No routing parameters

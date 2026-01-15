@@ -18,6 +18,7 @@ class Alocacao extends Model
         'data',
         'horas',
         'horas_abono',
+        'tipo_extra',
         'is_lider',
     ];
 

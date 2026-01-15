@@ -345,6 +345,44 @@ class DiretorController extends Controller
                 ], 422);
             }
 
+            $tipoExtra = $request->tipo_extra ?? 'diurna';
+            $horas = $request->horas ?? 10;
+            
+            $horasDiurnas = Alocacao::where('escala_id', $request->escala_id)
+                ->where('servidor_id', $request->servidor_id)
+                ->where('tipo_extra', 'diurna')
+                ->sum('horas');
+            
+            $horasNoturnas = Alocacao::where('escala_id', $request->escala_id)
+                ->where('servidor_id', $request->servidor_id)
+                ->where('tipo_extra', 'noturna')
+                ->sum('horas');
+            
+            $horasTotal = $horasDiurnas + $horasNoturnas;
+            
+            if ($tipoExtra === 'diurna') {
+                if ($horasDiurnas + $horas > 60) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Limite de 60h diurnas atingido para este servidor.'
+                    ], 422);
+                }
+            } else {
+                if ($horasNoturnas + $horas > 20) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Limite de 20h noturnas atingido para este servidor.'
+                    ], 422);
+                }
+            }
+            
+            if ($horasTotal + $horas > 60) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Limite total de 60h atingido para este servidor.'
+                ], 422);
+            }
+
             Alocacao::create([
                 'escala_id' => $request->escala_id,
                 'servidor_id' => $request->servidor_id,
@@ -352,8 +390,9 @@ class DiretorController extends Controller
                 'modulo_id' => $request->modulo_id,
                 'dia' => $request->dia,
                 'data' => $data,
-                'horas' => $request->horas ?? 12,
+                'horas' => $horas,
                 'horas_abono' => $request->horas_abono ?? 0,
+                'tipo_extra' => $tipoExtra,
             ]);
 
             return response()->json(['added' => true]);

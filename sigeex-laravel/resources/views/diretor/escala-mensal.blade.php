@@ -223,11 +223,18 @@ foreach ($alocacoes as $a) {
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label fw-semibold">Horas/dia</label>
-                <input type="number" id="horasInput" class="form-control" min="1" max="24" value="12">
+                <label class="form-label fw-semibold">Tipo Extra</label>
+                <select id="tipoExtraSelect" class="form-select">
+                    <option value="diurna" selected>DIURNA</option>
+                    <option value="noturna">NOTURNA</option>
+                </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label fw-semibold">Abono (h)</label>
+            <div class="col-md-1">
+                <label class="form-label fw-semibold">Horas/dia</label>
+                <input type="number" id="horasInput" class="form-control bg-light" value="10" readonly disabled>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label fw-semibold">Abono</label>
                 <input type="number" id="abonoInput" class="form-control" min="0" max="24" value="0">
             </div>
             <div class="col-md-2">
@@ -238,8 +245,8 @@ foreach ($alocacoes as $a) {
         </div>
         <div class="mt-3 small text-muted">
             <i class="bi bi-lightbulb me-1"></i>
-            <strong>Como usar:</strong> Selecione a Equipe e Módulo, clique em "Add Servidor" para adicionar servidores à equipe. 
-            Depois, clique nos dias do calendário para alocar.
+            <strong>Como usar:</strong> Selecione Módulo e Equipe, escolha o tipo de extra (DIURNA ou NOTURNA), adicione servidores e clique nos dias para alocar.
+            <br><strong>Limites:</strong> Máx. 60h diurnas (6 dias), máx. 20h noturnas (2 dias), total máx. 60h por servidor.
         </div>
     </div>
 </div>
@@ -266,8 +273,9 @@ foreach ($alocacoes as $a) {
     </div>
 </div>
 <input type="hidden" id="moduloSelect" value="">
-<input type="hidden" id="horasInput" value="12">
+<input type="hidden" id="horasInput" value="10">
 <input type="hidden" id="abonoInput" value="0">
+<input type="hidden" id="tipoExtraSelect" value="diurna">
 @endif
 
 <div class="card border-0 shadow-sm">
@@ -302,7 +310,7 @@ foreach ($alocacoes as $a) {
             <thead class="sticky-top bg-white">
                 <tr>
                     <th class="servidor-info bg-light text-muted">Servidor</th>
-                    <th class="text-center bg-light text-muted" style="min-width:45px;">Horas</th>
+                    <th class="text-center bg-light text-muted" style="min-width:80px;">D / N / Total</th>
                     <th class="text-center bg-light text-muted" style="min-width:50px;">Líder</th>
                     @for($d = 1; $d <= $diasNoMes; $d++)
                         @php $info = $diasInfo[$d]; @endphp
@@ -509,6 +517,17 @@ function calcularHorasServidor(servidorId) {
         .reduce((sum, a) => sum + (parseFloat(a.horas) || 0) + (parseFloat(a.horas_abono) || 0), 0);
 }
 
+function calcularHorasPorTipo(servidorId) {
+    const alocacoes = alocacoesData.filter(a => a.servidor_id == servidorId);
+    const diurna = alocacoes
+        .filter(a => (a.tipo_extra || 'diurna') === 'diurna')
+        .reduce((sum, a) => sum + (parseFloat(a.horas) || 0), 0);
+    const noturna = alocacoes
+        .filter(a => a.tipo_extra === 'noturna')
+        .reduce((sum, a) => sum + (parseFloat(a.horas) || 0), 0);
+    return { diurna, noturna, total: diurna + noturna };
+}
+
 function renderizarCalendario() {
     const tbody = document.getElementById('calendarioBody');
     const emptyState = document.getElementById('emptyState');
@@ -531,8 +550,10 @@ function renderizarCalendario() {
     
     let html = '';
     servidoresEquipeAtual.forEach(servidor => {
-        horasMap[servidor.id] = parseFloat(servidor.total_horas) || 0;
-        const horasClass = horasMap[servidor.id] >= limiteHoras ? 'text-danger' : 'text-success';
+        const horasPorTipo = calcularHorasPorTipo(servidor.id);
+        horasMap[servidor.id] = horasPorTipo.total;
+        const horasClass = horasPorTipo.total >= limiteHoras ? 'text-danger' : 'text-success';
+        const noturnasClass = horasPorTipo.noturna >= 20 ? 'text-danger' : 'text-primary';
         const equipeNome = servidor.equipe_nome || '';
         
         html += `<tr class="servidor-row" data-servidor-id="${servidor.id}">
@@ -548,7 +569,9 @@ function renderizarCalendario() {
                 </div>
             </td>
             <td class="text-center">
-                <span class="badge bg-light ${horasClass} horas-servidor" id="horas-${servidor.id}">${horasMap[servidor.id]}h</span>
+                <span class="badge bg-light horas-servidor" id="horas-${servidor.id}">
+                    <span class="text-warning">${horasPorTipo.diurna}</span>/<span class="${noturnasClass}">${horasPorTipo.noturna}</span>/<span class="${horasClass}">${horasPorTipo.total}h</span>
+                </span>
             </td>
             <td class="text-center">
                 <input type="checkbox" class="form-check-input" ${servidor.is_lider ? 'checked' : ''} 
@@ -594,8 +617,9 @@ async function toggleDia(el) {
     
     const equipe = document.getElementById('equipeSelect')?.value;
     const modulo = document.getElementById('moduloSelect')?.value;
-    const horas = parseFloat(document.getElementById('horasInput')?.value || 12);
+    const horas = parseFloat(document.getElementById('horasInput')?.value || 10);
     const abono = parseFloat(document.getElementById('abonoInput')?.value || 0);
+    const tipoExtra = document.getElementById('tipoExtraSelect')?.value || 'diurna';
     
     if (!equipe || equipe === 'todas') {
         alert('Selecione uma equipe primeiro.');
@@ -614,6 +638,20 @@ async function toggleDia(el) {
         return;
     }
     
+    const horasServidor = calcularHorasPorTipo(servidorId);
+    if (tipoExtra === 'diurna' && horasServidor.diurna + horas > 60) {
+        alert('Limite de 60h diurnas atingido para este servidor.');
+        return;
+    }
+    if (tipoExtra === 'noturna' && horasServidor.noturna + horas > 20) {
+        alert('Limite de 20h noturnas atingido para este servidor.');
+        return;
+    }
+    if (horasServidor.total + horas > 60) {
+        alert('Limite total de 60h atingido para este servidor.');
+        return;
+    }
+    
     el.style.opacity = '0.5';
     el.style.pointerEvents = 'none';
     
@@ -625,6 +663,7 @@ async function toggleDia(el) {
     form.append('dia', dia);
     form.append('horas', horas);
     form.append('horas_abono', abono);
+    form.append('tipo_extra', tipoExtra);
     
     try {
         const response = await fetch('/diretor/alocar-dia', {
@@ -642,7 +681,7 @@ async function toggleDia(el) {
         } else if (result.added) {
             el.dataset.alocado = '1';
             el.classList.add('alocado');
-            el.title = `Alocado: ${horas}h`;
+            el.title = `Alocado: ${horas}h (${tipoExtra.toUpperCase()})`;
             
             horasMap[servidorId] = (horasMap[servidorId] || 0) + horas + abono;
             atualizarHorasDisplay(servidorId);
@@ -651,7 +690,8 @@ async function toggleDia(el) {
                 servidor_id: servidorId,
                 dia: dia,
                 horas: horas,
-                horas_abono: abono
+                horas_abono: abono,
+                tipo_extra: tipoExtra
             });
         } else {
             alert('Erro ao alocar dia.');
@@ -701,9 +741,11 @@ async function removerAlocacaoDia(servidorId, dia, el, horas, abono) {
 function atualizarHorasDisplay(servidorId) {
     const el = document.getElementById(`horas-${servidorId}`);
     if (el) {
-        const horas = horasMap[servidorId] || 0;
-        el.textContent = `${horas}h`;
-        el.className = `badge bg-light horas-servidor ${horas >= limiteHoras ? 'text-danger' : 'text-success'}`;
+        const horasPorTipo = calcularHorasPorTipo(servidorId);
+        horasMap[servidorId] = horasPorTipo.total;
+        const horasClass = horasPorTipo.total >= limiteHoras ? 'text-danger' : 'text-success';
+        const noturnasClass = horasPorTipo.noturna >= 20 ? 'text-danger' : 'text-primary';
+        el.innerHTML = `<span class="text-warning">${horasPorTipo.diurna}</span>/<span class="${noturnasClass}">${horasPorTipo.noturna}</span>/<span class="${horasClass}">${horasPorTipo.total}h</span>`;
     }
 }
 

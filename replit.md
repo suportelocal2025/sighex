@@ -109,3 +109,23 @@ Avoid making changes that would break the dual-database compatibility (PostgreSQ
 - Barras com 4 cores: cinza (não utilizado), verde (dentro do previsto), laranja (acima mas dentro da margem), vermelho (excedeu margem)
 - Valor disponível exibido dentro da barra cinza
 - Valor base mensal original exibido abaixo de cada barra
+
+### Importação CSV (/admin)
+- Botões "Importar Unidades" e "Importar Servidores" no dashboard administrativo
+- Formato Unidades: Codigo,Nome
+- Formato Servidores: Matricula,Nome,Unidade(codigo),Cargo,Escala Extra(SIM/NÃO),Status(ATIVO/INATIVO)
+- Validação de duplicatas e códigos de unidade
+
+### Gestão de Servidores - RH (/rh/servidores)
+- Aba dedicada para RH gerenciar status de servidores
+- Busca por matrícula e nome
+- Alteração de status: ativo/inativo, apto/inapto para escala extra
+- Controle de período de inatividade (definido ou indefinido)
+- Motivos: Férias, Licença Médica, Licença Prêmio, Afastamento, Outro
+
+### Solicitação de Inclusão de Servidor (Diretor → RH)
+- Botão "Incluir Servidor" no popup de adicionar servidor do Diretor
+- Diretor preenche matrícula, nome e cargo do novo servidor
+- Solicitação fica pendente para aprovação do RH
+- RH pode aprovar (cria servidor automaticamente) ou rejeitar (com motivo)
+- Tabela: solicitacao_servidores (migration: 2026_01_15_021352)

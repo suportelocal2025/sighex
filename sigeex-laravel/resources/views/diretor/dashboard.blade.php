@@ -8,14 +8,14 @@
     <a href="/diretor/escala-mensal" class="nav-link"><i class="bi bi-calendar3"></i> Escala Mensal</a>
     <a href="/diretor/servidores" class="nav-link"><i class="bi bi-people"></i> Servidores</a>
     <a href="/diretor/alertas" class="nav-link"><i class="bi bi-bell"></i> Alertas 
-        @php $totalAlertas = $alertasMargemVermelho->count() + $alertasMargemAmarelo->count() + $escalasRejeitadas; @endphp
+        @php $totalAlertas = $alertasMargemVermelho->count() + $alertasMargemAmarelo->count() + $escalasRejeitadas + $alertasPrazo->count(); @endphp
         @if($totalAlertas > 0)<span class="badge bg-danger">{{ $totalAlertas }}</span>@endif
     </a>
 @endsection
 
 @section('content')
 <div class="row g-3 mb-4">
-    @php $totalAlertas = $alertasMargemVermelho->count() + $alertasMargemAmarelo->count() + $escalasRejeitadas; @endphp
+    @php $totalAlertas = $alertasMargemVermelho->count() + $alertasMargemAmarelo->count() + $escalasRejeitadas + $alertasPrazo->count(); @endphp
     <div class="col-lg-3 col-md-6 col-sm-6">
         <a href="/diretor/alertas" class="text-decoration-none">
             <div class="card card-stat h-100 {{ $totalAlertas > 0 ? 'border-danger border-2' : '' }}">
@@ -30,6 +30,9 @@
                                 <h4 class="mb-0">{{ $totalAlertas }}</h4>
                             </div>
                         </div>
+                        @if($alertasPrazo->count() > 0)
+                        <span class="badge bg-primary rounded-pill">{{ $alertasPrazo->count() }}</span>
+                        @endif
                         @if($alertasMargemVermelho->count() > 0)
                         <span class="badge bg-danger rounded-pill">{{ $alertasMargemVermelho->count() }}</span>
                         @endif

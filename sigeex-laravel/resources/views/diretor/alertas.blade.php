@@ -56,7 +56,16 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h3>{{ $alertasPrazo->count() }}</h3>
+                <p class="mb-0">Alertas de Prazo</p>
+                <small>Prazos e Correções</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="card bg-danger text-white">
             <div class="card-body text-center">
                 <h3>{{ $alertasVermelho->count() }}</h3>
@@ -65,7 +74,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card bg-warning">
             <div class="card-body text-center">
                 <h3>{{ $alertasAmarelo->count() }}</h3>
@@ -74,7 +83,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card bg-info text-white">
             <div class="card-body text-center">
                 <h3>{{ $escalasRejeitadas }}</h3>
@@ -84,6 +93,51 @@
         </div>
     </div>
 </div>
+
+@if($alertasPrazo->count() > 0)
+<div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-clock me-2"></i>Alertas de Prazo</h5>
+    </div>
+    <div class="card-body">
+        <div class="list-group">
+            @foreach($alertasPrazo as $alerta)
+            <div class="list-group-item list-group-item-action {{ str_contains($alerta->tipo, '5dias') || str_contains($alerta->tipo, '6horas') ? 'list-group-item-danger' : '' }}">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">
+                        @if(str_contains($alerta->tipo, 'correcao'))
+                            <i class="bi bi-exclamation-triangle text-danger me-1"></i>
+                        @else
+                            <i class="bi bi-clock text-primary me-1"></i>
+                        @endif
+                        {{ $alerta->titulo }}
+                    </h6>
+                    <small class="text-muted">{{ $alerta->created_at->diffForHumans() }}</small>
+                </div>
+                <p class="mb-1">{{ $alerta->mensagem }}</p>
+                @if($alerta->prazo_limite)
+                <small class="text-muted">
+                    <i class="bi bi-calendar me-1"></i>Prazo: {{ $alerta->prazo_limite->format('d/m/Y H:i') }}
+                    @if($alerta->prazo_limite->isPast())
+                        <span class="badge bg-danger ms-2">Expirado</span>
+                    @elseif($alerta->prazo_limite->diffInHours(now()) < 6)
+                        <span class="badge bg-warning text-dark ms-2">Urgente</span>
+                    @endif
+                </small>
+                @endif
+                @if($alerta->escala_id)
+                <div class="mt-2">
+                    <a href="/diretor/escala-mensal?mes={{ $alerta->mes }}&ano={{ $alerta->ano }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye me-1"></i>Ver Escala
+                    </a>
+                </div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+@endif
 
 @if($alertasVermelho->count() > 0)
 <div class="card mb-4 border-danger">
@@ -177,7 +231,7 @@
 </div>
 @endif
 
-@if($alertasVermelho->count() == 0 && $alertasAmarelo->count() == 0 && $escalasRejeitadas == 0)
+@if($alertasVermelho->count() == 0 && $alertasAmarelo->count() == 0 && $escalasRejeitadas == 0 && $alertasPrazo->count() == 0)
 <div class="alert alert-success">
     <i class="bi bi-check-circle me-2"></i>Nenhum alerta encontrado para os filtros selecionados.
 </div>

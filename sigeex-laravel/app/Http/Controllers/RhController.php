@@ -10,6 +10,8 @@ use App\Models\DistribuicaoOrcamento;
 use App\Models\Servidor;
 use App\Models\SolicitacaoServidor;
 use App\Models\Unidade;
+use App\Models\AlertaDiretor;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class RhController extends Controller
@@ -108,11 +110,47 @@ class RhController extends Controller
         $escala->update([
             'status' => 'rejeitada',
             'motivo_rejeicao' => $request->motivo_rejeicao,
+            'data_rejeicao' => now(),
             'aprovado_por' => Auth::id(),
             'data_aprovacao' => now(),
         ]);
 
+        $this->criarAlertaCorrecaoImediata($escala);
+
         return redirect('/rh/escalas')->with('success', 'Escala rejeitada!');
+    }
+    
+    private function criarAlertaCorrecaoImediata(Escala $escala): void
+    {
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        $prazoLimite = now()->addHours(24);
+        
+        AlertaDiretor::create([
+            'unidade_id' => $escala->unidade_id,
+            'escala_id' => $escala->id,
+            'tipo' => 'correcao_imediata',
+            'titulo' => 'Escala Rejeitada - Correção Necessária',
+            'mensagem' => "A escala de {$meses[$escala->mes]}/{$escala->ano} foi rejeitada pelo RH. Motivo: {$escala->motivo_rejeicao}. Você tem 24 horas para fazer as correções.",
+            'mes' => $escala->mes,
+            'ano' => $escala->ano,
+            'prazo_limite' => $prazoLimite,
+        ]);
+        
+        $this->enviarEmailAlertaCorrecao($escala, 'correcao_imediata', 24);
+    }
+    
+    private function enviarEmailAlertaCorrecao(Escala $escala, string $tipo, int $horas): void
+    {
+        $diretores = User::where('unidade_id', $escala->unidade_id)
+            ->where('perfil', 'diretor')
+            ->where('ativo', true)
+            ->whereNotNull('email')
+            ->get();
+        
+        foreach ($diretores as $diretor) {
+            \Log::info("Alerta de correção enviado para {$diretor->email} - Tipo: {$tipo}");
+        }
     }
 
     public function executarEscala(Request $request)

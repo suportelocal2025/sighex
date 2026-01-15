@@ -11,6 +11,7 @@ use App\Models\Alocacao;
 use App\Models\EscalaEquipeServidor;
 use App\Models\DistribuicaoOrcamento;
 use App\Models\SolicitacaoServidor;
+use App\Models\AlertaDiretor;
 use Illuminate\Support\Facades\Auth;
 
 class DiretorController extends Controller
@@ -53,6 +54,11 @@ class DiretorController extends Controller
         $alertasMargemVermelho = $escalas->filter(function($e) {
             return $e->status === 'executada' && $e->excede_margem;
         });
+
+        $alertasPrazo = AlertaDiretor::where('unidade_id', $unidadeId)
+            ->where('lido', false)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $orcamentoMensalBase = $orcamento / 12;
         
@@ -111,6 +117,7 @@ class DiretorController extends Controller
             'escalasPendentes',
             'alertasMargemAmarelo',
             'alertasMargemVermelho',
+            'alertasPrazo',
             'ano',
             'mes',
             'mesesInfo',
@@ -486,6 +493,11 @@ class DiretorController extends Controller
             ->where('status', 'rejeitada')
             ->count();
 
+        $alertasPrazo = AlertaDiretor::where('unidade_id', $unidadeId)
+            ->where('lido', false)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('diretor.alertas', [
             'ano' => $ano,
             'mes' => $mes,
@@ -493,6 +505,7 @@ class DiretorController extends Controller
             'alertasAmarelo' => $alertasMargemAmarelo,
             'alertasVermelho' => $alertasMargemVermelho,
             'escalasRejeitadas' => $escalasRejeitadas,
+            'alertasPrazo' => $alertasPrazo,
         ]);
     }
 

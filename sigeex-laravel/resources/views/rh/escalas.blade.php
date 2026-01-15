@@ -5,7 +5,8 @@
 
 @section('sidebar')
     <a href="/rh" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
-    <a href="/rh/escalas" class="nav-link"><i class="bi bi-calendar-check"></i> Escalas</a>
+    <a href="/rh/escalas" class="nav-link active"><i class="bi bi-calendar-check"></i> Escalas</a>
+    <a href="/rh/servidores" class="nav-link"><i class="bi bi-people"></i> Servidores</a>
     <a href="/rh/relatorios" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
 @endsection
 

@@ -7,6 +7,9 @@ use App\Models\Escala;
 use App\Models\Alocacao;
 use App\Models\EscalaEquipeServidor;
 use App\Models\DistribuicaoOrcamento;
+use App\Models\Servidor;
+use App\Models\SolicitacaoServidor;
+use App\Models\Unidade;
 use Illuminate\Support\Facades\Auth;
 
 class RhController extends Controller
@@ -268,6 +271,131 @@ class RhController extends Controller
     public function relatorios()
     {
         return view('rh.relatorios');
+    }
+
+    public function servidores()
+    {
+        $unidades = Unidade::where('ativo', true)->orderBy('nome')->get();
+        $solicitacoesPendentes = SolicitacaoServidor::where('status', 'pendente')->count();
+        return view('rh.servidores', compact('unidades', 'solicitacoesPendentes'));
+    }
+
+    public function buscarServidores(Request $request)
+    {
+        $termo = $request->get('termo', '');
+        
+        if (strlen($termo) < 3) {
+            return response()->json([]);
+        }
+        
+        $servidores = Servidor::with('unidade')
+            ->where(function ($q) use ($termo) {
+                $q->where(\DB::raw('LOWER(nome)'), 'like', '%' . strtolower($termo) . '%')
+                  ->orWhere(\DB::raw('LOWER(matricula)'), 'like', '%' . strtolower($termo) . '%');
+            })
+            ->limit(50)
+            ->get();
+        
+        return response()->json($servidores);
+    }
+
+    public function alterarStatusServidor(Request $request)
+    {
+        $request->validate([
+            'servidor_id' => 'required|exists:servidores,id',
+            'ativo' => 'required|boolean',
+        ]);
+
+        $servidor = Servidor::findOrFail($request->servidor_id);
+        
+        $dados = [
+            'ativo' => $request->ativo,
+            'apto_escala_extra' => $request->has('apto_escala_extra') ? $request->apto_escala_extra : $servidor->apto_escala_extra,
+        ];
+        
+        if (!$request->ativo) {
+            $dados['motivo_inativo'] = $request->motivo_inativo;
+            $dados['inativo_indefinido'] = $request->has('inativo_indefinido') && $request->inativo_indefinido;
+            
+            if (!$dados['inativo_indefinido']) {
+                $dados['inativo_inicio'] = $request->inativo_inicio;
+                $dados['inativo_fim'] = $request->inativo_fim;
+            } else {
+                $dados['inativo_inicio'] = null;
+                $dados['inativo_fim'] = null;
+            }
+        } else {
+            $dados['motivo_inativo'] = null;
+            $dados['inativo_indefinido'] = false;
+            $dados['inativo_inicio'] = null;
+            $dados['inativo_fim'] = null;
+        }
+        
+        $servidor->update($dados);
+        
+        return redirect('/rh/servidores')->with('success', 'Status do servidor atualizado!');
+    }
+
+    public function solicitacoesServidores()
+    {
+        $solicitacoes = SolicitacaoServidor::with(['unidade', 'solicitante'])
+            ->orderByRaw("CASE status WHEN 'pendente' THEN 1 WHEN 'aprovada' THEN 2 ELSE 3 END")
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('rh.solicitacoes-servidores', compact('solicitacoes'));
+    }
+
+    public function aprovarSolicitacaoServidor(Request $request)
+    {
+        $request->validate([
+            'solicitacao_id' => 'required|exists:solicitacao_servidores,id',
+        ]);
+
+        $solicitacao = SolicitacaoServidor::findOrFail($request->solicitacao_id);
+        
+        if (Servidor::where('matricula', $solicitacao->matricula)->exists()) {
+            return redirect('/rh/solicitacoes-servidores')
+                ->with('error', 'Já existe um servidor com esta matrícula.');
+        }
+        
+        Servidor::create([
+            'matricula' => $solicitacao->matricula,
+            'nome' => $solicitacao->nome,
+            'unidade_id' => $solicitacao->unidade_id,
+            'cargo' => $solicitacao->cargo,
+            'ativo' => true,
+            'apto_escala_extra' => true,
+        ]);
+        
+        $solicitacao->update([
+            'status' => 'aprovada',
+            'aprovador_id' => Auth::id(),
+            'data_aprovacao' => now(),
+        ]);
+        
+        return redirect('/rh/solicitacoes-servidores')
+            ->with('success', 'Servidor aprovado e cadastrado com sucesso!');
+    }
+
+    public function rejeitarSolicitacaoServidor(Request $request)
+    {
+        $request->validate([
+            'solicitacao_id' => 'required|exists:solicitacao_servidores,id',
+            'motivo_rejeicao' => 'required|string|min:5',
+        ]);
+
+        $solicitacao = SolicitacaoServidor::findOrFail($request->solicitacao_id);
+        
+        $solicitacao->update([
+            'status' => 'rejeitada',
+            'aprovador_id' => Auth::id(),
+            'data_aprovacao' => now(),
+            'motivo_rejeicao' => $request->motivo_rejeicao,
+        ]);
+        
+        return redirect('/rh/solicitacoes-servidores')
+            ->with('success', 'Solicitação rejeitada.');
     }
 
     public function exportarExcel($id)

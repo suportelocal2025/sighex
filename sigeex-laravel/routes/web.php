@@ -67,6 +67,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/rejeitar', [RhController::class, 'rejeitarEscala']);
         Route::post('/executar', [RhController::class, 'executarEscala']);
         Route::get('/relatorios', [RhController::class, 'relatorios']);
+        Route::get('/servidores', [RhController::class, 'servidores']);
+        Route::get('/servidores/buscar', [RhController::class, 'buscarServidores']);
+        Route::post('/servidores/alterar-status', [RhController::class, 'alterarStatusServidor']);
+        Route::get('/solicitacoes-servidores', [RhController::class, 'solicitacoesServidores']);
+        Route::post('/aprovar-solicitacao-servidor', [RhController::class, 'aprovarSolicitacaoServidor']);
+        Route::post('/rejeitar-solicitacao-servidor', [RhController::class, 'rejeitarSolicitacaoServidor']);
     });
 
     Route::prefix('admin')->middleware('role:administrativo')->group(function () {
@@ -84,5 +90,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/usuario', [AdminController::class, 'salvarUsuario']);
         Route::post('/usuario/resetar-senha', [AdminController::class, 'resetarSenha']);
         Route::delete('/usuario/{id}', [AdminController::class, 'excluirUsuario']);
+        Route::post('/importar-unidades', [AdminController::class, 'importarUnidades']);
+        Route::post('/importar-servidores', [AdminController::class, 'importarServidores']);
+    });
+
+    Route::prefix('diretor')->middleware('role:diretor')->group(function () {
+        Route::post('/solicitar-inclusao-servidor', [DiretorController::class, 'solicitarInclusaoServidor']);
     });
 });

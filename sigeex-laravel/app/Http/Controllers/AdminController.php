@@ -230,4 +230,130 @@ class AdminController extends Controller
         
         return redirect('/admin/unidade/' . $unidadeId)->with('success', 'Setor/Módulo/Raio excluído!');
     }
+
+    public function importarUnidades(Request $request)
+    {
+        $request->validate([
+            'arquivo' => 'required|file|mimes:csv,txt',
+        ]);
+
+        $arquivo = $request->file('arquivo');
+        $conteudo = file_get_contents($arquivo->getPathname());
+        $linhas = array_filter(explode("\n", $conteudo));
+        
+        $importados = 0;
+        $erros = [];
+        
+        foreach ($linhas as $i => $linha) {
+            if ($i === 0 && stripos($linha, 'codigo') !== false) continue;
+            
+            $linha = trim($linha);
+            if (empty($linha)) continue;
+            
+            $dados = str_getcsv($linha, ',');
+            if (count($dados) < 2) {
+                $erros[] = "Linha " . ($i + 1) . ": formato inválido";
+                continue;
+            }
+            
+            $codigo = trim($dados[0]);
+            $nome = trim($dados[1]);
+            $endereco = isset($dados[2]) ? trim($dados[2]) : null;
+            $telefone = isset($dados[3]) ? trim($dados[3]) : null;
+            
+            if (Unidade::where('codigo', $codigo)->exists()) {
+                $erros[] = "Linha " . ($i + 1) . ": Código '{$codigo}' já existe";
+                continue;
+            }
+            
+            $unidade = Unidade::create([
+                'codigo' => $codigo,
+                'nome' => $nome,
+                'endereco' => $endereco,
+                'telefone' => $telefone,
+                'ativo' => true,
+            ]);
+            
+            foreach (['A', 'B', 'C', 'D'] as $letra) {
+                Equipe::create([
+                    'unidade_id' => $unidade->id,
+                    'nome' => "Equipe $letra",
+                ]);
+            }
+            
+            $importados++;
+        }
+        
+        $mensagem = "Importação concluída: {$importados} unidade(s) importada(s).";
+        if (!empty($erros)) {
+            $mensagem .= " Erros: " . implode('; ', array_slice($erros, 0, 5));
+            if (count($erros) > 5) $mensagem .= "... e mais " . (count($erros) - 5) . " erros.";
+        }
+        
+        return redirect('/admin')->with($erros ? 'warning' : 'success', $mensagem);
+    }
+
+    public function importarServidores(Request $request)
+    {
+        $request->validate([
+            'arquivo' => 'required|file|mimes:csv,txt',
+        ]);
+
+        $arquivo = $request->file('arquivo');
+        $conteudo = file_get_contents($arquivo->getPathname());
+        $linhas = array_filter(explode("\n", $conteudo));
+        
+        $importados = 0;
+        $erros = [];
+        
+        foreach ($linhas as $i => $linha) {
+            if ($i === 0 && stripos($linha, 'matricula') !== false) continue;
+            
+            $linha = trim($linha);
+            if (empty($linha)) continue;
+            
+            $dados = str_getcsv($linha, ',');
+            if (count($dados) < 4) {
+                $erros[] = "Linha " . ($i + 1) . ": formato inválido";
+                continue;
+            }
+            
+            $matricula = trim($dados[0]);
+            $nome = trim($dados[1]);
+            $codigoUnidade = trim($dados[2]);
+            $cargo = trim($dados[3]);
+            $escalaExtra = isset($dados[4]) ? (strtolower(trim($dados[4])) === 'sim') : true;
+            $ativo = isset($dados[5]) ? (strtolower(trim($dados[5])) === 'ativo') : true;
+            
+            $unidade = Unidade::where('codigo', $codigoUnidade)->first();
+            if (!$unidade) {
+                $erros[] = "Linha " . ($i + 1) . ": Unidade '{$codigoUnidade}' não encontrada";
+                continue;
+            }
+            
+            if (Servidor::where('matricula', $matricula)->exists()) {
+                $erros[] = "Linha " . ($i + 1) . ": Matrícula '{$matricula}' já existe";
+                continue;
+            }
+            
+            Servidor::create([
+                'matricula' => $matricula,
+                'nome' => $nome,
+                'unidade_id' => $unidade->id,
+                'cargo' => $cargo,
+                'apto_escala_extra' => $escalaExtra,
+                'ativo' => $ativo,
+            ]);
+            
+            $importados++;
+        }
+        
+        $mensagem = "Importação concluída: {$importados} servidor(es) importado(s).";
+        if (!empty($erros)) {
+            $mensagem .= " Erros: " . implode('; ', array_slice($erros, 0, 5));
+            if (count($erros) > 5) $mensagem .= "... e mais " . (count($erros) - 5) . " erros.";
+        }
+        
+        return redirect('/admin')->with($erros ? 'warning' : 'success', $mensagem);
+    }
 }

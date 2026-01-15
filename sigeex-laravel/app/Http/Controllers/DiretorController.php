@@ -10,6 +10,7 @@ use App\Models\Modulo;
 use App\Models\Alocacao;
 use App\Models\EscalaEquipeServidor;
 use App\Models\DistribuicaoOrcamento;
+use App\Models\SolicitacaoServidor;
 use Illuminate\Support\Facades\Auth;
 
 class DiretorController extends Controller
@@ -483,6 +484,47 @@ class DiretorController extends Controller
             'alertasAmarelo' => $alertasMargemAmarelo,
             'alertasVermelho' => $alertasMargemVermelho,
             'escalasRejeitadas' => $escalasRejeitadas,
+        ]);
+    }
+
+    public function solicitarInclusaoServidor(Request $request)
+    {
+        $request->validate([
+            'matricula' => 'required|string|max:50',
+            'nome' => 'required|string|max:255',
+            'cargo' => 'nullable|string|max:100',
+        ]);
+
+        $user = Auth::user();
+        
+        if (Servidor::where('matricula', $request->matricula)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Já existe um servidor cadastrado com esta matrícula.'
+            ], 400);
+        }
+        
+        if (SolicitacaoServidor::where('matricula', $request->matricula)
+            ->where('status', 'pendente')
+            ->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Já existe uma solicitação pendente para esta matrícula.'
+            ], 400);
+        }
+
+        SolicitacaoServidor::create([
+            'matricula' => $request->matricula,
+            'nome' => $request->nome,
+            'cargo' => $request->cargo,
+            'unidade_id' => $user->unidade_id,
+            'solicitante_id' => $user->id,
+            'status' => 'pendente',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solicitação enviada com sucesso! Aguarde a aprovação do RH.'
         ]);
     }
 }

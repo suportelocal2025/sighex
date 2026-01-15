@@ -338,10 +338,53 @@ foreach ($alocacoes as $a) {
                 <div id="listaServidoresModal" style="max-height: 400px; overflow-y: auto;">
                 </div>
             </div>
+            <div class="modal-footer border-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-success" onclick="abrirModalIncluirServidor()">
+                    <i class="bi bi-person-plus me-1"></i> Incluir Servidor
+                </button>
+                <div>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="salvarServidoresSelecionados()">
+                        <i class="bi bi-check-lg me-1"></i> Adicionar Selecionados
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalIncluirServidor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white border-0">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-person-plus me-2"></i>Solicitar Inclusão de Servidor
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Se o servidor não está na lista, preencha os dados abaixo para solicitar sua inclusão. 
+                    A solicitação será enviada ao RH para aprovação.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Matrícula <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoServidorMatricula" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoServidorNome" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Cargo</label>
+                    <input type="text" class="form-control" id="novoServidorCargo" placeholder="Ex: Policial Penal">
+                </div>
+            </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="salvarServidoresSelecionados()">
-                    <i class="bi bi-check-lg me-1"></i> Adicionar Selecionados
+                <button type="button" class="btn btn-success" onclick="enviarSolicitacaoServidor()">
+                    <i class="bi bi-send me-1"></i> Enviar Solicitação
                 </button>
             </div>
         </div>
@@ -730,5 +773,54 @@ document.addEventListener('DOMContentLoaded', function() {
         carregarServidoresEquipe();
     }
 });
+
+function abrirModalIncluirServidor() {
+    document.getElementById('novoServidorMatricula').value = '';
+    document.getElementById('novoServidorNome').value = '';
+    document.getElementById('novoServidorCargo').value = '';
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalServidores'))?.hide();
+    
+    setTimeout(() => {
+        new bootstrap.Modal(document.getElementById('modalIncluirServidor')).show();
+    }, 300);
+}
+
+async function enviarSolicitacaoServidor() {
+    const matricula = document.getElementById('novoServidorMatricula').value.trim();
+    const nome = document.getElementById('novoServidorNome').value.trim();
+    const cargo = document.getElementById('novoServidorCargo').value.trim();
+    
+    if (!matricula || !nome) {
+        alert('Preencha a matrícula e o nome do servidor.');
+        return;
+    }
+    
+    const form = new FormData();
+    form.append('matricula', matricula);
+    form.append('nome', nome);
+    form.append('cargo', cargo);
+    
+    try {
+        const response = await fetch('/diretor/solicitar-inclusao-servidor', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: form
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('modalIncluirServidor'))?.hide();
+        } else {
+            alert(data.message || 'Erro ao enviar solicitação.');
+        }
+    } catch (error) {
+        alert('Erro ao enviar solicitação. Tente novamente.');
+    }
+}
 </script>
 @endpush

@@ -54,8 +54,14 @@
     color: #991b1b;
 }
 .dia-cell.alocado {
-    background-color: #1e3a5f !important;
     color: white !important;
+}
+.dia-cell.alocado-diurna {
+    background-color: #60a5fa !important;
+    border-color: #3b82f6 !important;
+}
+.dia-cell.alocado-noturna {
+    background-color: #1e3a5f !important;
     border-color: #1e3a5f !important;
 }
 .servidor-row {
@@ -198,7 +204,8 @@ foreach ($alocacoes as $a) {
             <span class="legenda-item"><span class="legenda-cor" style="background:#fef9c3; border:1px solid #fde047;"></span> Sábado</span>
             <span class="legenda-item"><span class="legenda-cor" style="background:#fed7aa; border:1px solid #fdba74;"></span> Domingo</span>
             <span class="legenda-item"><span class="legenda-cor" style="background:#fecaca; border:1px solid #fca5a5;"></span> Feriado</span>
-            <span class="legenda-item"><span class="legenda-cor" style="background:#1e3a5f;"></span> Alocado</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#60a5fa;"></span> Diurna</span>
+            <span class="legenda-item"><span class="legenda-cor" style="background:#1e3a5f;"></span> Noturna</span>
         </div>
     </div>
 </div>
@@ -588,14 +595,19 @@ function renderizarCalendario() {
             
             const alocacao = alocacoesData.find(a => a.servidor_id == servidor.id && a.dia == d);
             const isAlocado = !!alocacao;
-            if (isAlocado) classe += ' alocado';
+            const tipoAlocado = alocacao?.tipo_extra || 'diurna';
+            if (isAlocado) {
+                classe += ' alocado';
+                classe += tipoAlocado === 'diurna' ? ' alocado-diurna' : ' alocado-noturna';
+            }
             
             html += `<td>
                 <div class="dia-cell ${classe}" 
                      data-dia="${d}" 
                      data-servidor="${servidor.id}"
                      data-alocado="${isAlocado ? '1' : '0'}"
-                     title="${info.isFeriado ? info.nomeFeriado : info.nomeDia + ', dia ' + d}${isAlocado ? ' - Alocado: ' + alocacao.horas + 'h' : ''}"
+                     data-tipo-extra="${isAlocado ? tipoAlocado : ''}"
+                     title="${info.isFeriado ? info.nomeFeriado : info.nomeDia + ', dia ' + d}${isAlocado ? ' - Alocado: ' + alocacao.horas + 'h (' + tipoAlocado.toUpperCase() + ')' : ''}"
                      onclick="${podeEditar ? 'toggleDia(this)' : ''}">
                     ${d}
                 </div>
@@ -680,11 +692,11 @@ async function toggleDia(el) {
             alert(result.message || 'Erro ao alocar dia.');
         } else if (result.added) {
             el.dataset.alocado = '1';
+            el.dataset.tipoExtra = tipoExtra;
             el.classList.add('alocado');
+            el.classList.remove('alocado-diurna', 'alocado-noturna');
+            el.classList.add(tipoExtra === 'diurna' ? 'alocado-diurna' : 'alocado-noturna');
             el.title = `Alocado: ${horas}h (${tipoExtra.toUpperCase()})`;
-            
-            horasMap[servidorId] = (horasMap[servidorId] || 0) + horas + abono;
-            atualizarHorasDisplay(servidorId);
             
             alocacoesData.push({
                 servidor_id: servidorId,
@@ -693,6 +705,9 @@ async function toggleDia(el) {
                 horas_abono: abono,
                 tipo_extra: tipoExtra
             });
+            
+            horasMap[servidorId] = (horasMap[servidorId] || 0) + horas + abono;
+            atualizarHorasDisplay(servidorId);
         } else {
             alert('Erro ao alocar dia.');
         }
@@ -723,11 +738,11 @@ async function removerAlocacaoDia(servidorId, dia, el, horas, abono) {
         
         if (result.removed) {
             el.dataset.alocado = '0';
-            el.classList.remove('alocado');
+            el.dataset.tipoExtra = '';
+            el.classList.remove('alocado', 'alocado-diurna', 'alocado-noturna');
             
             const alocacao = alocacoesData.find(a => a.servidor_id == servidorId && a.dia == dia);
             if (alocacao) {
-                horasMap[servidorId] = Math.max(0, (horasMap[servidorId] || 0) - (alocacao.horas || 0) - (alocacao.horas_abono || 0));
                 const idx = alocacoesData.indexOf(alocacao);
                 if (idx > -1) alocacoesData.splice(idx, 1);
             }

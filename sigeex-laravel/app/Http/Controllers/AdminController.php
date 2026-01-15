@@ -8,6 +8,7 @@ use App\Models\Servidor;
 use App\Models\Usuario;
 use App\Models\Equipe;
 use App\Models\Modulo;
+use App\Models\ModuloEquipeServidor;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
@@ -355,5 +356,65 @@ class AdminController extends Controller
         }
         
         return redirect('/admin')->with($erros ? 'warning' : 'success', $mensagem);
+    }
+
+    public function vinculosModuloEquipe(Request $request)
+    {
+        $unidades = Unidade::with(['modulos', 'equipes', 'servidores' => function($q) {
+            $q->where('ativo', true);
+        }])->get();
+        
+        $unidadeId = $request->get('unidade_id');
+        $moduloId = $request->get('modulo_id');
+        $equipeId = $request->get('equipe_id');
+        
+        $vinculos = collect();
+        
+        if ($unidadeId && $moduloId && $equipeId) {
+            $vinculos = ModuloEquipeServidor::where('modulo_id', $moduloId)
+                ->where('equipe_id', $equipeId)
+                ->with('servidor')
+                ->get();
+        }
+        
+        $unidadeSelecionada = $unidadeId ? Unidade::with(['modulos', 'equipes', 'servidores' => function($q) {
+            $q->where('ativo', true);
+        }])->find($unidadeId) : null;
+        
+        return view('administrativo.vinculos-modulo-equipe', compact(
+            'unidades', 'unidadeSelecionada', 'moduloId', 'equipeId', 'vinculos'
+        ));
+    }
+
+    public function adicionarVinculoModuloEquipe(Request $request)
+    {
+        $request->validate([
+            'modulo_id' => 'required|exists:modulos,id',
+            'equipe_id' => 'required|exists:equipes,id',
+            'servidor_id' => 'required|exists:servidores,id',
+        ]);
+
+        $exists = ModuloEquipeServidor::where('modulo_id', $request->modulo_id)
+            ->where('equipe_id', $request->equipe_id)
+            ->where('servidor_id', $request->servidor_id)
+            ->exists();
+
+        if ($exists) {
+            return back()->with('warning', 'Este servidor já está vinculado a esta combinação de módulo e equipe.');
+        }
+
+        ModuloEquipeServidor::create([
+            'modulo_id' => $request->modulo_id,
+            'equipe_id' => $request->equipe_id,
+            'servidor_id' => $request->servidor_id,
+        ]);
+
+        return back()->with('success', 'Servidor vinculado com sucesso!');
+    }
+
+    public function removerVinculoModuloEquipe($id)
+    {
+        ModuloEquipeServidor::findOrFail($id)->delete();
+        return back()->with('success', 'Vínculo removido com sucesso!');
     }
 }

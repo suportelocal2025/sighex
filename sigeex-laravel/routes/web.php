@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/alocar-dia', [DiretorController::class, 'alocarDia']);
         Route::post('/enviar-aprovacao', [DiretorController::class, 'enviarAprovacao']);
         Route::get('/servidores', [DiretorController::class, 'servidores']);
+        Route::get('/servidores-modulo-equipe', [DiretorController::class, 'servidoresModuloEquipe']);
     });
 
     Route::prefix('rh')->middleware('role:rh')->group(function () {
@@ -92,6 +93,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/usuario/{id}', [AdminController::class, 'excluirUsuario']);
         Route::post('/importar-unidades', [AdminController::class, 'importarUnidades']);
         Route::post('/importar-servidores', [AdminController::class, 'importarServidores']);
+        Route::get('/vinculos-modulo-equipe', [AdminController::class, 'vinculosModuloEquipe']);
+        Route::post('/vinculo-modulo-equipe', [AdminController::class, 'adicionarVinculoModuloEquipe']);
+        Route::delete('/vinculo-modulo-equipe/{id}', [AdminController::class, 'removerVinculoModuloEquipe']);
     });
 
     Route::prefix('diretor')->middleware('role:diretor')->group(function () {

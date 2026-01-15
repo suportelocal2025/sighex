@@ -208,21 +208,18 @@ foreach ($alocacoes as $a) {
     <div class="card-body form-selecao">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label class="form-label fw-semibold">1. Selecione a Equipe <span class="text-danger">*</span></label>
-                <select id="equipeSelect" class="form-select">
-                    <option value="">Escolha uma equipe...</option>
-                    @foreach($equipes as $e)
-                        <option value="{{ $e->id }}">{{ $e->nome }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-semibold">2. Selecione o Módulo <span class="text-danger">*</span></label>
-                <select id="moduloSelect" class="form-select">
+                <label class="form-label fw-semibold">1. Selecione o Módulo <span class="text-danger">*</span></label>
+                <select id="moduloSelect" class="form-select" onchange="onModuloChange()">
                     <option value="">Escolha um módulo...</option>
                     @foreach($modulos as $m)
                         <option value="{{ $m->id }}">{{ $m->nome }}</option>
                     @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">2. Selecione a Equipe <span class="text-danger">*</span></label>
+                <select id="equipeSelect" class="form-select" onchange="onEquipeChange()" disabled>
+                    <option value="">Primeiro selecione um módulo...</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -404,35 +401,72 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 let servidoresSelecionadosModal = new Set();
 let servidoresEquipeAtual = [];
 const horasMap = {};
+let servidoresModuloEquipe = [];
 
 const todosServidores = @json($servidores);
 const escalaServidoresData = @json($escalaServidores);
 const alocacoesData = @json($alocacoes);
+const todasEquipes = @json($equipes);
 
-document.getElementById('equipeSelect')?.addEventListener('change', function() {
+async function onModuloChange() {
+    const moduloId = document.getElementById('moduloSelect')?.value;
+    const equipeSelect = document.getElementById('equipeSelect');
     const btn = document.getElementById('btnAddServidor');
-    if (btn) {
-        const modulo = document.getElementById('moduloSelect')?.value;
-        btn.disabled = !(this.value && modulo);
+    
+    if (!moduloId) {
+        equipeSelect.innerHTML = '<option value="">Primeiro selecione um módulo...</option>';
+        equipeSelect.disabled = true;
+        if (btn) btn.disabled = true;
+        document.getElementById('equipeNomeHeader').textContent = 'Selecione módulo e equipe';
+        servidoresEquipeAtual = [];
+        renderizarCalendario();
+        return;
     }
     
-    document.getElementById('equipeNomeHeader').textContent = 
-        this.value ? this.options[this.selectedIndex].text : 'Selecione uma equipe';
+    equipeSelect.disabled = false;
+    let equipesHtml = '<option value="">Escolha uma equipe...</option>';
+    todasEquipes.forEach(e => {
+        equipesHtml += `<option value="${e.id}">${e.nome}</option>`;
+    });
+    equipeSelect.innerHTML = equipesHtml;
+    
+    if (btn) btn.disabled = true;
+    document.getElementById('equipeNomeHeader').textContent = 'Selecione uma equipe';
+}
+
+async function onEquipeChange() {
+    const equipeId = document.getElementById('equipeSelect')?.value;
+    const moduloId = document.getElementById('moduloSelect')?.value;
+    const btn = document.getElementById('btnAddServidor');
+    
+    if (!equipeId || !moduloId) {
+        if (btn) btn.disabled = true;
+        return;
+    }
+    
+    if (btn) btn.disabled = false;
+    
+    const moduloNome = document.getElementById('moduloSelect')?.options[document.getElementById('moduloSelect').selectedIndex]?.text || '';
+    const equipeNome = document.getElementById('equipeSelect')?.options[document.getElementById('equipeSelect').selectedIndex]?.text || '';
+    document.getElementById('equipeNomeHeader').textContent = `${equipeNome} - ${moduloNome}`;
+    
+    try {
+        const response = await fetch(`/diretor/servidores-modulo-equipe?modulo_id=${moduloId}&equipe_id=${equipeId}`);
+        const data = await response.json();
+        servidoresModuloEquipe = data.servidores || [];
+    } catch (error) {
+        console.error('Erro ao carregar servidores:', error);
+        servidoresModuloEquipe = [];
+    }
     
     carregarServidoresEquipe();
-});
-
-document.getElementById('moduloSelect')?.addEventListener('change', function() {
-    const btn = document.getElementById('btnAddServidor');
-    if (btn) {
-        const equipe = document.getElementById('equipeSelect')?.value;
-        btn.disabled = !(this.value && equipe);
-    }
-});
+}
 
 function carregarServidoresEquipe() {
     const equipeId = document.getElementById('equipeSelect')?.value;
-    if (!equipeId) {
+    const moduloId = document.getElementById('moduloSelect')?.value;
+    
+    if (!equipeId || !moduloId) {
         document.getElementById('emptyState').style.display = 'block';
         document.getElementById('tabelaCalendario').style.display = 'none';
         const btnEnviar = document.getElementById('btnEnviar');
@@ -453,7 +487,7 @@ function carregarServidoresEquipe() {
         }));
     } else {
         servidoresEquipeAtual = escalaServidoresData
-            .filter(es => es.equipe_id == equipeId)
+            .filter(es => es.equipe_id == equipeId && es.modulo_id == moduloId)
             .map(es => ({
                 id: es.servidor_id,
                 nome: es.servidor?.nome || 'Servidor',
@@ -676,25 +710,39 @@ function atualizarHorasDisplay(servidorId) {
 function abrirModalServidores() {
     servidoresSelecionadosModal.clear();
     
+    const moduloId = document.getElementById('moduloSelect')?.value;
+    const equipeId = document.getElementById('equipeSelect')?.value;
+    const moduloNome = document.getElementById('moduloSelect')?.options[document.getElementById('moduloSelect').selectedIndex]?.text || '';
+    const equipeNome = document.getElementById('equipeSelect')?.options[document.getElementById('equipeSelect').selectedIndex]?.text || '';
+    
     const servidoresJaNaEscala = new Set(escalaServidoresData.map(es => es.servidor_id));
     
     let html = '';
-    todosServidores.forEach(s => {
-        const jaNaEscala = servidoresJaNaEscala.has(s.id);
-        html += `<div class="servidor-item ${jaNaEscala ? 'disabled' : ''}" 
-                      data-servidor-id="${s.id}" 
-                      onclick="${jaNaEscala ? '' : 'toggleServidorModal(this)'}">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="fw-semibold">${s.nome}</div>
-                    <small class="text-muted">${s.matricula}</small>
-                </div>
-                ${jaNaEscala ? '<span class="badge bg-secondary">Já na escala</span>' : '<i class="bi bi-check-circle text-success" style="display:none;"></i>'}
-            </div>
-        </div>`;
-    });
     
-    document.getElementById('listaServidoresModal').innerHTML = html || '<p class="text-muted text-center">Nenhum servidor disponível</p>';
+    if (servidoresModuloEquipe.length === 0) {
+        html = `<div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Nenhum servidor vinculado à <strong>${equipeNome}</strong> do <strong>${moduloNome}</strong>.
+            <br><small class="text-muted">Solicite ao administrador para vincular servidores a esta combinação de módulo e equipe.</small>
+        </div>`;
+    } else {
+        servidoresModuloEquipe.forEach(s => {
+            const jaNaEscala = servidoresJaNaEscala.has(s.id);
+            html += `<div class="servidor-item ${jaNaEscala ? 'disabled' : ''}" 
+                          data-servidor-id="${s.id}" 
+                          onclick="${jaNaEscala ? '' : 'toggleServidorModal(this)'}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">${s.nome}</div>
+                        <small class="text-muted">${s.matricula}</small>
+                    </div>
+                    ${jaNaEscala ? '<span class="badge bg-secondary">Já na escala</span>' : '<i class="bi bi-check-circle text-success" style="display:none;"></i>'}
+                </div>
+            </div>`;
+        });
+    }
+    
+    document.getElementById('listaServidoresModal').innerHTML = html;
     new bootstrap.Modal(document.getElementById('modalServidores')).show();
 }
 

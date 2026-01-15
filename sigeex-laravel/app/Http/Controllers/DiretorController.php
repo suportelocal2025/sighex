@@ -12,6 +12,7 @@ use App\Models\EscalaEquipeServidor;
 use App\Models\DistribuicaoOrcamento;
 use App\Models\SolicitacaoServidor;
 use App\Models\AlertaDiretor;
+use App\Models\ModuloEquipeServidor;
 use Illuminate\Support\Facades\Auth;
 
 class DiretorController extends Controller
@@ -548,5 +549,38 @@ class DiretorController extends Controller
             'success' => true,
             'message' => 'Solicitação enviada com sucesso! Aguarde a aprovação do RH.'
         ]);
+    }
+
+    public function servidoresModuloEquipe(Request $request)
+    {
+        $moduloId = $request->get('modulo_id');
+        $equipeId = $request->get('equipe_id');
+        
+        if (!$moduloId || !$equipeId) {
+            return response()->json(['servidores' => []]);
+        }
+        
+        $user = Auth::user();
+        $unidadeId = $user->unidade_id;
+        
+        $servidoresIds = ModuloEquipeServidor::where('modulo_id', $moduloId)
+            ->where('equipe_id', $equipeId)
+            ->pluck('servidor_id');
+        
+        $modulo = Modulo::where('id', $moduloId)->where('unidade_id', $unidadeId)->first();
+        $equipe = Equipe::where('id', $equipeId)->where('unidade_id', $unidadeId)->first();
+        
+        if (!$modulo || !$equipe) {
+            return response()->json(['servidores' => []]);
+        }
+        
+        $servidores = Servidor::whereIn('id', $servidoresIds)
+            ->where('unidade_id', $unidadeId)
+            ->where('ativo', true)
+            ->where('apto_escala_extra', true)
+            ->select('id', 'nome', 'matricula')
+            ->get();
+        
+        return response()->json(['servidores' => $servidores]);
     }
 }

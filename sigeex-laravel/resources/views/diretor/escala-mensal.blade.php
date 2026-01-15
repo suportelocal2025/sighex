@@ -751,34 +751,31 @@ function atualizarHorasDisplay(servidorId) {
 
 function abrirModalServidores() {
     servidoresSelecionadosModal.clear();
-    
-    const moduloId = document.getElementById('moduloSelect')?.value;
-    const equipeId = document.getElementById('equipeSelect')?.value;
-    const moduloNome = document.getElementById('moduloSelect')?.options[document.getElementById('moduloSelect').selectedIndex]?.text || '';
-    const equipeNome = document.getElementById('equipeSelect')?.options[document.getElementById('equipeSelect').selectedIndex]?.text || '';
+    document.getElementById('buscarServidor').value = '';
     
     const servidoresJaNaEscala = new Set(escalaServidoresData.map(es => es.servidor_id));
     
     let html = '';
     
-    if (servidoresModuloEquipe.length === 0) {
+    if (todosServidores.length === 0) {
         html = `<div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Nenhum servidor vinculado à <strong>${equipeNome}</strong> do <strong>${moduloNome}</strong>.
-            <br><small class="text-muted">Solicite ao administrador para vincular servidores a esta combinação de módulo e equipe.</small>
+            Nenhum servidor cadastrado na unidade.
         </div>`;
     } else {
-        servidoresModuloEquipe.forEach(s => {
+        todosServidores.forEach(s => {
             const jaNaEscala = servidoresJaNaEscala.has(s.id);
             html += `<div class="servidor-item ${jaNaEscala ? 'disabled' : ''}" 
-                          data-servidor-id="${s.id}" 
-                          onclick="${jaNaEscala ? '' : 'toggleServidorModal(this)'}">
+                          data-servidor-id="${s.id}"
+                          data-nome="${(s.nome || '').toLowerCase()}"
+                          data-matricula="${(s.matricula || '').toLowerCase()}"
+                          onclick="${jaNaEscala ? 'alertarServidorJaEscalado()' : 'toggleServidorModal(this)'}">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <div class="fw-semibold">${s.nome}</div>
                         <small class="text-muted">${s.matricula}</small>
                     </div>
-                    ${jaNaEscala ? '<span class="badge bg-secondary">Já na escala</span>' : '<i class="bi bi-check-circle text-success" style="display:none;"></i>'}
+                    ${jaNaEscala ? '<span class="badge bg-warning text-dark">Já escalado</span>' : '<i class="bi bi-check-circle text-success" style="display:none;"></i>'}
                 </div>
             </div>`;
         });
@@ -786,6 +783,10 @@ function abrirModalServidores() {
     
     document.getElementById('listaServidoresModal').innerHTML = html;
     new bootstrap.Modal(document.getElementById('modalServidores')).show();
+}
+
+function alertarServidorJaEscalado() {
+    alert('Este servidor já está escalado neste mês.');
 }
 
 function toggleServidorModal(el) {
@@ -852,10 +853,12 @@ function atualizarLider(servidorId, isLider) {
 }
 
 document.getElementById('buscarServidor')?.addEventListener('input', function() {
-    const termo = this.value.toLowerCase();
+    const termo = this.value.toLowerCase().trim();
     document.querySelectorAll('#listaServidoresModal .servidor-item').forEach(el => {
-        const texto = el.textContent.toLowerCase();
-        el.style.display = texto.includes(termo) ? 'block' : 'none';
+        const nome = el.dataset.nome || '';
+        const matricula = el.dataset.matricula || '';
+        const encontrado = nome.includes(termo) || matricula.includes(termo);
+        el.style.display = encontrado ? 'block' : 'none';
     });
 });
 

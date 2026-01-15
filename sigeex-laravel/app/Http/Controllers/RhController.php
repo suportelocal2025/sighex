@@ -85,24 +85,6 @@ class RhController extends Controller
 
         $escala = Escala::findOrFail($request->escala_id);
         
-        $budgetInfo = $this->recalcularBudget($escala);
-        
-        $escala->update([
-            'valor_previsto' => $budgetInfo['valor_previsto'],
-            'orcamento_mes' => $budgetInfo['orcamento_mes'],
-            'limite_margem' => $budgetInfo['limite_margem'],
-            'usa_margem' => $budgetInfo['usa_margem'],
-            'excede_margem' => $budgetInfo['excede_margem'],
-        ]);
-        
-        if ($budgetInfo['excede_margem']) {
-            return redirect('/rh/escalas')->with('error', 
-                'Esta escala excede a margem orçamentária e requer aprovação do Superintendente. ' .
-                'Valor previsto: R$ ' . number_format($budgetInfo['valor_previsto'], 2, ',', '.') . ' | ' .
-                'Limite com margem: R$ ' . number_format($budgetInfo['limite_margem'], 2, ',', '.')
-            );
-        }
-        
         $escala->update([
             'status' => 'aprovada',
             'aprovado_por' => Auth::id(),
@@ -111,18 +93,79 @@ class RhController extends Controller
 
         return redirect('/rh/escalas')->with('success', 'Escala aprovada!');
     }
+
+    public function rejeitarEscala(Request $request)
+    {
+        $request->validate([
+            'escala_id' => 'required|exists:escalas,id',
+            'motivo_rejeicao' => 'required|string|min:10',
+        ]);
+
+        $escala = Escala::findOrFail($request->escala_id);
+        $escala->update([
+            'status' => 'rejeitada',
+            'motivo_rejeicao' => $request->motivo_rejeicao,
+            'aprovado_por' => Auth::id(),
+            'data_aprovacao' => now(),
+        ]);
+
+        return redirect('/rh/escalas')->with('success', 'Escala rejeitada!');
+    }
+
+    public function executarEscala(Request $request)
+    {
+        $request->validate([
+            'escala_id' => 'required|exists:escalas,id',
+            'valor_executado' => 'required|numeric|min:0',
+        ]);
+
+        $escala = Escala::findOrFail($request->escala_id);
+        $valorExecutado = $request->valor_executado;
+        
+        $budgetInfo = $this->calcularBudgetMes($escala);
+        
+        $orcamentoMes = $budgetInfo['orcamento_mes'];
+        $limiteComMargem = $budgetInfo['limite_margem'];
+        
+        $passouPrevisto = $valorExecutado > $orcamentoMes;
+        $usouMargem = $valorExecutado > $orcamentoMes && $valorExecutado <= $limiteComMargem;
+        $excedeuMargem = $valorExecutado > $limiteComMargem;
+        
+        $escala->update([
+            'status' => 'executada',
+            'valor_executado' => $valorExecutado,
+            'orcamento_mes' => $orcamentoMes,
+            'limite_margem' => $limiteComMargem,
+            'usa_margem' => $usouMargem,
+            'excede_margem' => $excedeuMargem,
+        ]);
+
+        $distribuicao = DistribuicaoOrcamento::firstOrCreate(
+            ['unidade_id' => $escala->unidade_id, 'ano' => $escala->ano],
+            ['valor_distribuido' => 0, 'valor_gasto' => 0]
+        );
+
+        $distribuicao->increment('valor_gasto', $valorExecutado);
+
+        if ($passouPrevisto) {
+            $this->enviarAlertasMargemExecutada($escala, $orcamentoMes, $limiteComMargem, $valorExecutado, $usouMargem, $excedeuMargem);
+        }
+
+        $mensagem = 'Escala marcada como executada!';
+        if ($excedeuMargem) {
+            $mensagem = 'Escala executada! ALERTA: Valor EXCEDEU a margem orçamentária. Alertas enviados.';
+        } elseif ($usouMargem) {
+            $mensagem = 'Escala executada! ALERTA: Valor ultrapassou previsão mas está dentro da margem. Alertas enviados.';
+        }
+
+        return redirect('/rh/escalas')->with($passouPrevisto ? 'warning' : 'success', $mensagem);
+    }
     
-    private function recalcularBudget(Escala $escala): array
+    private function calcularBudgetMes(Escala $escala): array
     {
         $unidadeId = $escala->unidade_id;
         $ano = $escala->ano;
         $mes = $escala->mes;
-        
-        $totalHoras = Alocacao::where('escala_id', $escala->id)
-            ->sum(\DB::raw('COALESCE(horas, 0) + COALESCE(horas_abono, 0)'));
-        
-        $valorHora = 50;
-        $valorPrevisto = $totalHoras * $valorHora;
         
         $distribuicao = DistribuicaoOrcamento::where('unidade_id', $unidadeId)
             ->where('ano', $ano)
@@ -155,60 +198,71 @@ class RhController extends Controller
         }
         
         $mesesRestantes = 12 - $mes + 1;
-        $orcamentoMes = $orcamentoRestante / $mesesRestantes;
+        $orcamentoMes = $mesesRestantes > 0 ? $orcamentoRestante / $mesesRestantes : 0;
         $limiteComMargem = $orcamentoMes * (1 + $marginPercentual / 100);
         
-        $usaMargem = $valorPrevisto > $orcamentoMes && $valorPrevisto <= $limiteComMargem;
-        $excedeMargem = $valorPrevisto > $limiteComMargem;
-        
         return [
-            'valor_previsto' => $valorPrevisto,
             'orcamento_mes' => $orcamentoMes,
             'limite_margem' => $limiteComMargem,
-            'usa_margem' => $usaMargem,
-            'excede_margem' => $excedeMargem,
+            'margin_percentual' => $marginPercentual,
         ];
     }
-
-    public function rejeitarEscala(Request $request)
+    
+    private function enviarAlertasMargemExecutada(Escala $escala, float $orcamentoMes, float $limiteComMargem, float $valorExecutado, bool $usouMargem, bool $excedeuMargem)
     {
-        $request->validate([
-            'escala_id' => 'required|exists:escalas,id',
-            'motivo_rejeicao' => 'required|string|min:10',
-        ]);
-
-        $escala = Escala::findOrFail($request->escala_id);
-        $escala->update([
-            'status' => 'rejeitada',
-            'motivo_rejeicao' => $request->motivo_rejeicao,
-            'aprovado_por' => Auth::id(),
-            'data_aprovacao' => now(),
-        ]);
-
-        return redirect('/rh/escalas')->with('success', 'Escala rejeitada!');
-    }
-
-    public function executarEscala(Request $request)
-    {
-        $request->validate([
-            'escala_id' => 'required|exists:escalas,id',
-            'valor_executado' => 'required|numeric|min:0',
-        ]);
-
-        $escala = Escala::findOrFail($request->escala_id);
-        $escala->update([
-            'status' => 'executada',
-            'valor_executado' => $request->valor_executado,
-        ]);
-
-        $distribuicao = DistribuicaoOrcamento::firstOrCreate(
-            ['unidade_id' => $escala->unidade_id, 'ano' => $escala->ano],
-            ['valor_distribuido' => 0, 'valor_gasto' => 0]
-        );
-
-        $distribuicao->increment('valor_gasto', $request->valor_executado);
-
-        return redirect('/rh/escalas')->with('success', 'Escala marcada como executada!');
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        $unidade = $escala->unidade;
+        
+        $tipoAlerta = $excedeuMargem ? 'EXCEDEU MARGEM' : 'USOU MARGEM';
+        $corAlerta = $excedeuMargem ? 'VERMELHO' : 'AMARELO';
+        
+        $mensagem = "ALERTA DE ORÇAMENTO - SIGEEX\n\n" .
+            "Tipo: {$tipoAlerta}\n" .
+            "Unidade: {$unidade->nome}\n" .
+            "Período: {$meses[$escala->mes]}/{$escala->ano}\n" .
+            "Orçamento previsto do mês: R$ " . number_format($orcamentoMes, 2, ',', '.') . "\n" .
+            "Limite com margem: R$ " . number_format($limiteComMargem, 2, ',', '.') . "\n" .
+            "Valor executado: R$ " . number_format($valorExecutado, 2, ',', '.') . "\n" .
+            "Excedente: R$ " . number_format($valorExecutado - $orcamentoMes, 2, ',', '.') . "\n\n" .
+            ($excedeuMargem 
+                ? "O valor executado EXCEDEU a margem orçamentária permitida." 
+                : "O valor executado está DENTRO da margem de tolerância.");
+        
+        $superintendentes = \App\Models\Usuario::where('perfil', 'superintendente')
+            ->where('ativo', true)
+            ->get();
+        
+        foreach ($superintendentes as $super) {
+            if (!empty($super->email)) {
+                try {
+                    \Illuminate\Support\Facades\Mail::raw($mensagem, function ($message) use ($super, $tipoAlerta, $unidade) {
+                        $message->to($super->email)
+                                ->subject("[SIGEEX] {$tipoAlerta} - {$unidade->nome}");
+                    });
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Erro ao enviar email para superintendente: ' . $e->getMessage());
+                }
+            }
+        }
+        
+        $diretores = \App\Models\Usuario::where('perfil', 'diretor')
+            ->where('unidade_id', $escala->unidade_id)
+            ->where('ativo', true)
+            ->get();
+        
+        foreach ($diretores as $diretor) {
+            if (!empty($diretor->email)) {
+                try {
+                    \Illuminate\Support\Facades\Mail::raw($mensagem, function ($message) use ($diretor, $tipoAlerta, $unidade) {
+                        $message->to($diretor->email)
+                                ->subject("[SIGEEX] {$tipoAlerta} - {$unidade->nome}");
+                    });
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Erro ao enviar email para diretor: ' . $e->getMessage());
+                }
+            }
+        }
     }
 
     public function relatorios()

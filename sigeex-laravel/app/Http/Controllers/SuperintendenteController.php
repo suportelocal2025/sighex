@@ -48,13 +48,10 @@ class SuperintendenteController extends Controller
             ->orderBy('unidades.nome')
             ->get();
 
-        $escalasAguardandoAprovacao = Escala::with('unidade')
-            ->where('status', 'pendente')
-            ->where('excede_margem', true)
-            ->orderBy('data_envio', 'desc')
-            ->get();
+        $escalasAguardandoAprovacao = collect();
 
-        $alertasViolacao = [];
+        $alertasAmarelo = [];
+        $alertasVermelho = [];
         $mesAtual = date('n');
         $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         
@@ -78,8 +75,23 @@ class SuperintendenteController extends Controller
                 $saldoMes = $orcamentoAjustado - $gastoMes;
                 $saldoAcumulado = $saldoMes;
                 
-                if ($gastoMes > $limiteAjustado) {
-                    $alertasViolacao[] = [
+                $passouPrevisto = $gastoMes > $orcamentoAjustado;
+                $usouMargem = $passouPrevisto && $gastoMes <= $limiteAjustado;
+                $excedeuMargem = $gastoMes > $limiteAjustado;
+                
+                if ($usouMargem) {
+                    $alertasAmarelo[] = [
+                        'unidade_id' => $unidade->id,
+                        'unidade_nome' => $unidade->nome,
+                        'mes' => $m,
+                        'mes_nome' => $nomesMeses[$m],
+                        'orcamento' => $orcamentoAjustado,
+                        'limite' => $limiteAjustado,
+                        'gasto' => $gastoMes,
+                        'excedente' => $gastoMes - $orcamentoAjustado,
+                    ];
+                } elseif ($excedeuMargem) {
+                    $alertasVermelho[] = [
                         'unidade_id' => $unidade->id,
                         'unidade_nome' => $unidade->nome,
                         'mes' => $m,
@@ -103,7 +115,8 @@ class SuperintendenteController extends Controller
             'totalGasto',
             'totalUnidades',
             'unidadesStats',
-            'alertasViolacao',
+            'alertasAmarelo',
+            'alertasVermelho',
             'escalasAguardandoAprovacao'
         ));
     }
@@ -254,8 +267,15 @@ class SuperintendenteController extends Controller
     public function enviarAlertaEmail(Request $request)
     {
         $ano = (int)$request->get('ano', date('Y'));
+        $tipo = $request->get('tipo', 'todos');
         
-        $alertas = $this->calcularViolacoes($ano);
+        $result = $this->calcularAlertasPorTipo($ano);
+        
+        $alertas = match($tipo) {
+            'amarelo' => $result['amarelo'],
+            'vermelho' => $result['vermelho'],
+            default => array_merge($result['amarelo'], $result['vermelho']),
+        };
         
         if (empty($alertas)) {
             return redirect('/superintendente')->with('info', 'Nenhum alerta para enviar.');
@@ -267,13 +287,103 @@ class SuperintendenteController extends Controller
             return redirect('/superintendente')->with('error', 'Configure seu email no perfil para receber alertas.');
         }
         
+        $tipoLabel = match($tipo) {
+            'amarelo' => 'ALERTA AMARELO - Acima do Previsto',
+            'vermelho' => 'ALERTA VERMELHO - Margem Excedida',
+            default => 'Alertas de Margem',
+        };
+        
         try {
-            Mail::to($superintendente->email)->send(new MarginViolationAlert($alertas, $ano));
+            $mensagem = "{$tipoLabel} - SIGEEX\n\nAno: {$ano}\n\n";
+            foreach ($alertas as $a) {
+                $mensagem .= "Unidade: {$a['unidade_nome']}\n";
+                $mensagem .= "Mês: {$a['mes_nome']}/{$ano}\n";
+                $mensagem .= "Previsto: R$ " . number_format($a['orcamento'], 2, ',', '.') . "\n";
+                $mensagem .= "Limite: R$ " . number_format($a['limite'], 2, ',', '.') . "\n";
+                $mensagem .= "Gasto: R$ " . number_format($a['gasto'], 2, ',', '.') . "\n";
+                $mensagem .= "Excedente: R$ " . number_format($a['excedente'], 2, ',', '.') . "\n\n";
+            }
+            
+            Mail::raw($mensagem, function ($message) use ($superintendente, $tipoLabel) {
+                $message->to($superintendente->email)
+                        ->subject("[SIGEEX] {$tipoLabel}");
+            });
+            
             return redirect('/superintendente')->with('success', 'Email de alerta enviado para ' . $superintendente->email);
         } catch (\Exception $e) {
             Log::error('Erro ao enviar email de alerta de margem: ' . $e->getMessage());
             return redirect('/superintendente')->with('error', 'Erro ao enviar email. Verifique a configuração de email do sistema.');
         }
+    }
+    
+    private function calcularAlertasPorTipo(int $ano): array
+    {
+        $alertasAmarelo = [];
+        $alertasVermelho = [];
+        $mesAtual = date('n');
+        $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        
+        $unidades = Unidade::select('unidades.id', 'unidades.nome')
+            ->selectRaw('COALESCE(d.valor_distribuido, 0) as orcamento_distribuido')
+            ->selectRaw('COALESCE(d.margin_percentual, 10) as margin_percentual')
+            ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
+                $join->on('unidades.id', '=', 'd.unidade_id')
+                     ->where('d.ano', '=', $ano);
+            })
+            ->where('unidades.ativo', true)
+            ->get();
+        
+        foreach ($unidades as $unidade) {
+            if ($unidade->orcamento_distribuido <= 0) continue;
+            
+            $orcamentoMensal = $unidade->orcamento_distribuido / 12;
+            $marginPerc = $unidade->margin_percentual;
+            $saldoAcumulado = 0;
+            
+            for ($m = 1; $m <= $mesAtual; $m++) {
+                $gastoMes = Escala::where('unidade_id', $unidade->id)
+                    ->where('ano', $ano)
+                    ->where('mes', $m)
+                    ->where('status', 'executada')
+                    ->sum('valor_executado') ?? 0;
+                
+                $orcamentoAjustado = $orcamentoMensal + $saldoAcumulado;
+                $limiteAjustado = $orcamentoAjustado * (1 + $marginPerc / 100);
+                
+                $saldoMes = $orcamentoAjustado - $gastoMes;
+                $saldoAcumulado = $saldoMes;
+                
+                $passouPrevisto = $gastoMes > $orcamentoAjustado;
+                $usouMargem = $passouPrevisto && $gastoMes <= $limiteAjustado;
+                $excedeuMargem = $gastoMes > $limiteAjustado;
+                
+                if ($usouMargem) {
+                    $alertasAmarelo[] = [
+                        'unidade_id' => $unidade->id,
+                        'unidade_nome' => $unidade->nome,
+                        'mes' => $m,
+                        'mes_nome' => $nomesMeses[$m],
+                        'orcamento' => $orcamentoAjustado,
+                        'limite' => $limiteAjustado,
+                        'gasto' => $gastoMes,
+                        'excedente' => $gastoMes - $orcamentoAjustado,
+                    ];
+                } elseif ($excedeuMargem) {
+                    $alertasVermelho[] = [
+                        'unidade_id' => $unidade->id,
+                        'unidade_nome' => $unidade->nome,
+                        'mes' => $m,
+                        'mes_nome' => $nomesMeses[$m],
+                        'orcamento' => $orcamentoAjustado,
+                        'limite' => $limiteAjustado,
+                        'gasto' => $gastoMes,
+                        'excedente' => $gastoMes - $limiteAjustado,
+                    ];
+                }
+            }
+        }
+        
+        return ['amarelo' => $alertasAmarelo, 'vermelho' => $alertasVermelho];
     }
 
     public function aprovarEscalaExcedente(Request $request)

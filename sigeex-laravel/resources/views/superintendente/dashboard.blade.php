@@ -41,68 +41,17 @@
 @endpush
 
 @section('content')
-@if(count($escalasAguardandoAprovacao) > 0)
-<div class="alert alert-warning mb-4">
-    <div class="d-flex justify-content-between align-items-start">
-        <h6 class="alert-heading d-flex align-items-center mb-0">
-            <i class="bi bi-exclamation-circle-fill me-2"></i>
-            Escalas Aguardando Sua Aprovação ({{ count($escalasAguardandoAprovacao) }})
-        </h6>
-        <a href="/superintendente/escalas?status=pendente" class="btn btn-sm btn-warning">
-            <i class="bi bi-arrow-right-circle me-1"></i>Ver Escalas
-        </a>
-    </div>
-    <hr>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0">
-            <thead>
-                <tr>
-                    <th>Unidade</th>
-                    <th>Período</th>
-                    <th>Orçamento Mês</th>
-                    <th>Limite (c/ margem)</th>
-                    <th>Valor Previsto</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($escalasAguardandoAprovacao as $escala)
-                <tr>
-                    <td><strong>{{ $escala->unidade->nome ?? 'N/A' }}</strong></td>
-                    <td>{{ str_pad($escala->mes, 2, '0', STR_PAD_LEFT) }}/{{ $escala->ano }}</td>
-                    <td>R$ {{ number_format($escala->orcamento_mes, 2, ',', '.') }}</td>
-                    <td>R$ {{ number_format($escala->limite_margem, 2, ',', '.') }}</td>
-                    <td class="text-danger fw-bold">R$ {{ number_format($escala->valor_previsto, 2, ',', '.') }}</td>
-                    <td>
-                        <form method="POST" action="/superintendente/aprovar-escala" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="escala_id" value="{{ $escala->id }}">
-                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Aprovar escala que excede a margem?')">
-                                <i class="bi bi-check-lg"></i>
-                            </button>
-                        </form>
-                        <a href="/superintendente/escala/{{ $escala->id }}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
-@endif
-
-@if(count($alertasViolacao) > 0)
+@if(count($alertasVermelho) > 0)
 <div class="alert alert-danger mb-4">
     <div class="d-flex justify-content-between align-items-start">
         <h6 class="alert-heading d-flex align-items-center mb-0">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            Alertas de Margem Ultrapassada ({{ count($alertasViolacao) }})
+            <i class="bi bi-exclamation-octagon-fill me-2"></i>
+            ALERTA VERMELHO - Margem Excedida ({{ count($alertasVermelho) }})
         </h6>
         <form method="POST" action="/superintendente/enviar-alerta-email" class="d-inline">
             @csrf
             <input type="hidden" name="ano" value="{{ $ano }}">
+            <input type="hidden" name="tipo" value="vermelho">
             <button type="submit" class="btn btn-sm btn-outline-danger">
                 <i class="bi bi-envelope me-1"></i>Enviar por Email
             </button>
@@ -115,19 +64,63 @@
                 <tr>
                     <th>Unidade</th>
                     <th>Mês</th>
-                    <th>Limite</th>
+                    <th>Limite c/ Margem</th>
                     <th>Gasto</th>
                     <th>Excedente</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($alertasViolacao as $alerta)
+                @foreach($alertasVermelho as $alerta)
                 <tr>
                     <td><strong>{{ $alerta['unidade_nome'] }}</strong></td>
                     <td>{{ $alerta['mes_nome'] }}/{{ $ano }}</td>
                     <td>R$ {{ number_format($alerta['limite'], 2, ',', '.') }}</td>
                     <td class="text-danger fw-bold">R$ {{ number_format($alerta['gasto'], 2, ',', '.') }}</td>
                     <td class="text-danger">+R$ {{ number_format($alerta['excedente'], 2, ',', '.') }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
+@if(count($alertasAmarelo) > 0)
+<div class="alert alert-warning mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <h6 class="alert-heading d-flex align-items-center mb-0">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            ALERTA AMARELO - Acima do Previsto ({{ count($alertasAmarelo) }})
+        </h6>
+        <form method="POST" action="/superintendente/enviar-alerta-email" class="d-inline">
+            @csrf
+            <input type="hidden" name="ano" value="{{ $ano }}">
+            <input type="hidden" name="tipo" value="amarelo">
+            <button type="submit" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-envelope me-1"></i>Enviar por Email
+            </button>
+        </form>
+    </div>
+    <hr>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Unidade</th>
+                    <th>Mês</th>
+                    <th>Previsto</th>
+                    <th>Gasto</th>
+                    <th>Acima</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($alertasAmarelo as $alerta)
+                <tr>
+                    <td><strong>{{ $alerta['unidade_nome'] }}</strong></td>
+                    <td>{{ $alerta['mes_nome'] }}/{{ $ano }}</td>
+                    <td>R$ {{ number_format($alerta['orcamento'], 2, ',', '.') }}</td>
+                    <td class="text-warning fw-bold">R$ {{ number_format($alerta['gasto'], 2, ',', '.') }}</td>
+                    <td class="text-warning">+R$ {{ number_format($alerta['excedente'], 2, ',', '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>

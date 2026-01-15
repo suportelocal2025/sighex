@@ -296,23 +296,22 @@ php -S 0.0.0.0:5000 index.php
   - Redistribuição dinâmica: orçamento restante ÷ meses restantes
   - Cores diferenciadas: verde (dentro do limite), vermelho (acima do limite)
   - Indicador do mês atual e valores em "k" (milhares)
-- **Controle de Aprovação por Margem**:
-  - Ao enviar escala: calcula se usa margem ou excede margem
-  - Escala dentro do orçamento: aprovação normal pelo RH
-  - Escala usando margem: aprovação pelo RH + alerta ao superintendente
-  - Escala excedendo margem: SOMENTE superintendente pode aprovar
-  - RH é bloqueado de aprovar escalas que excedem margem
-- **Alertas de Violação de Margem no Superintendente**:
-  - Banner de alerta quando unidades ultrapassam limite + margem
-  - Tabela detalhada com unidade, mês, limite, gasto e excedente
-  - Botão "Enviar por Email" para notificação
+- **Controle de Margem na Execução**:
+  - Verificação de margem ocorre quando RH marca escala como EXECUTADA
+  - RH informa o valor real executado
+  - Sistema compara com orçamento previsto do mês
+  - Dois tipos de alerta:
+    - AMARELO: Valor acima do previsto mas dentro da margem
+    - VERMELHO: Valor excedeu a margem orçamentária
+- **Alertas Visuais Diferenciados**:
+  - Dashboard do Diretor: alertas amarelo e vermelho para escalas executadas
+  - Dashboard do Superintendente: alertas amarelo e vermelho por unidade/mês
+  - Cores diferenciadas para fácil identificação
 - **Notificações por Email**:
-  - Classe Mailable `MarginViolationAlert`
-  - Notificação automática ao superintendente quando margem é usada
-  - Recálculo server-side das violações (segurança)
-- **Validação Server-Side em Todas as Aprovações**:
-  - RH e Superintendente recalculam budget ao aprovar
-  - Proteção contra dados obsoletos ou manipulados
+  - Enviadas automaticamente quando escala executada ultrapassa previsão
+  - Destinatários: Superintendente E Diretor da unidade
+  - Email inclui detalhes de orçamento, limite, valor executado e excedente
+  - Botão "Enviar por Email" separado para cada tipo de alerta
 
 ### Laravel Edition - Dezembro 2025
 - **Dashboard do Diretor responsivo**: Cards de orçamento, gasto, disponível e horas executadas agora adaptam-se corretamente em diferentes tamanhos de tela

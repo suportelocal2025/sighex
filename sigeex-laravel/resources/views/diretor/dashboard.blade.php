@@ -10,9 +10,43 @@
 @endsection
 
 @section('content')
-@if($escalasRejeitadas > 0)
-<div class="alert alert-danger d-flex align-items-center mb-4">
+@if($alertasMargemVermelho->count() > 0)
+<div class="alert alert-danger d-flex align-items-center mb-3">
+    <i class="bi bi-exclamation-octagon-fill fs-4 me-3"></i>
+    <div>
+        <strong>ALERTA VERMELHO!</strong> {{ $alertasMargemVermelho->count() }} escala(s) executada(s) EXCEDERAM a margem orçamentária:
+        <ul class="mb-0 mt-1">
+        @foreach($alertasMargemVermelho as $alerta)
+            @php
+                $meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            @endphp
+            <li>{{ $meses[$alerta->mes] }}/{{ $alerta->ano }}: Executado R$ {{ number_format($alerta->valor_executado, 2, ',', '.') }} / Limite R$ {{ number_format($alerta->limite_margem ?? 0, 2, ',', '.') }}</li>
+        @endforeach
+        </ul>
+    </div>
+</div>
+@endif
+
+@if($alertasMargemAmarelo->count() > 0)
+<div class="alert alert-warning d-flex align-items-center mb-3">
     <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+    <div>
+        <strong>ALERTA AMARELO!</strong> {{ $alertasMargemAmarelo->count() }} escala(s) executada(s) ultrapassaram a previsão (mas dentro da margem):
+        <ul class="mb-0 mt-1">
+        @foreach($alertasMargemAmarelo as $alerta)
+            @php
+                $meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            @endphp
+            <li>{{ $meses[$alerta->mes] }}/{{ $alerta->ano }}: Executado R$ {{ number_format($alerta->valor_executado, 2, ',', '.') }} / Previsto R$ {{ number_format($alerta->orcamento_mes ?? 0, 2, ',', '.') }}</li>
+        @endforeach
+        </ul>
+    </div>
+</div>
+@endif
+
+@if($escalasRejeitadas > 0)
+<div class="alert alert-danger d-flex align-items-center mb-3">
+    <i class="bi bi-x-circle-fill fs-4 me-3"></i>
     <div>
         <strong>Atenção!</strong> Você tem {{ $escalasRejeitadas }} escala(s) rejeitada(s) que precisa(m) de correção.
     </div>
@@ -20,7 +54,7 @@
 @endif
 
 @if($escalasAprovadas > 0)
-<div class="alert alert-success d-flex align-items-center mb-4">
+<div class="alert alert-success d-flex align-items-center mb-3">
     <i class="bi bi-check-circle-fill fs-4 me-3"></i>
     <div>
         {{ $escalasAprovadas }} escala(s) aprovada(s) neste ano.

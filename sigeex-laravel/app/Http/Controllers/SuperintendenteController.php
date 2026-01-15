@@ -320,66 +320,34 @@ class SuperintendenteController extends Controller
     {
         $alertasAmarelo = [];
         $alertasVermelho = [];
-        $mesAtual = date('n');
         $nomesMeses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         
-        $unidades = Unidade::select('unidades.id', 'unidades.nome')
-            ->selectRaw('COALESCE(d.valor_distribuido, 0) as orcamento_distribuido')
-            ->selectRaw('COALESCE(d.margin_percentual, 10) as margin_percentual')
-            ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
-                $join->on('unidades.id', '=', 'd.unidade_id')
-                     ->where('d.ano', '=', $ano);
+        $escalasExecutadas = Escala::where('ano', $ano)
+            ->where('status', 'executada')
+            ->where(function($q) {
+                $q->where('usa_margem', true)->orWhere('excede_margem', true);
             })
-            ->where('unidades.ativo', true)
+            ->with('unidade')
             ->get();
         
-        foreach ($unidades as $unidade) {
-            if ($unidade->orcamento_distribuido <= 0) continue;
+        foreach ($escalasExecutadas as $escala) {
+            $alerta = [
+                'unidade_id' => $escala->unidade_id,
+                'unidade_nome' => $escala->unidade->nome ?? 'N/A',
+                'mes' => $escala->mes,
+                'mes_nome' => $nomesMeses[$escala->mes],
+                'orcamento' => $escala->orcamento_mes ?? 0,
+                'limite' => $escala->limite_margem ?? 0,
+                'gasto' => $escala->valor_executado ?? 0,
+                'excedente' => ($escala->valor_executado ?? 0) - ($escala->orcamento_mes ?? 0),
+                'escala_id' => $escala->id,
+            ];
             
-            $orcamentoMensal = $unidade->orcamento_distribuido / 12;
-            $marginPerc = $unidade->margin_percentual;
-            $saldoAcumulado = 0;
-            
-            for ($m = 1; $m <= $mesAtual; $m++) {
-                $gastoMes = Escala::where('unidade_id', $unidade->id)
-                    ->where('ano', $ano)
-                    ->where('mes', $m)
-                    ->where('status', 'executada')
-                    ->sum('valor_executado') ?? 0;
-                
-                $orcamentoAjustado = $orcamentoMensal + $saldoAcumulado;
-                $limiteAjustado = $orcamentoAjustado * (1 + $marginPerc / 100);
-                
-                $saldoMes = $orcamentoAjustado - $gastoMes;
-                $saldoAcumulado = $saldoMes;
-                
-                $passouPrevisto = $gastoMes > $orcamentoAjustado;
-                $usouMargem = $passouPrevisto && $gastoMes <= $limiteAjustado;
-                $excedeuMargem = $gastoMes > $limiteAjustado;
-                
-                if ($usouMargem) {
-                    $alertasAmarelo[] = [
-                        'unidade_id' => $unidade->id,
-                        'unidade_nome' => $unidade->nome,
-                        'mes' => $m,
-                        'mes_nome' => $nomesMeses[$m],
-                        'orcamento' => $orcamentoAjustado,
-                        'limite' => $limiteAjustado,
-                        'gasto' => $gastoMes,
-                        'excedente' => $gastoMes - $orcamentoAjustado,
-                    ];
-                } elseif ($excedeuMargem) {
-                    $alertasVermelho[] = [
-                        'unidade_id' => $unidade->id,
-                        'unidade_nome' => $unidade->nome,
-                        'mes' => $m,
-                        'mes_nome' => $nomesMeses[$m],
-                        'orcamento' => $orcamentoAjustado,
-                        'limite' => $limiteAjustado,
-                        'gasto' => $gastoMes,
-                        'excedente' => $gastoMes - $limiteAjustado,
-                    ];
-                }
+            if ($escala->excede_margem) {
+                $alerta['excedente'] = ($escala->valor_executado ?? 0) - ($escala->limite_margem ?? 0);
+                $alertasVermelho[] = $alerta;
+            } elseif ($escala->usa_margem) {
+                $alertasAmarelo[] = $alerta;
             }
         }
         

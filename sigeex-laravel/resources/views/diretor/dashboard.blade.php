@@ -149,17 +149,22 @@
                 $alturaTotal = $alturaVerde + $alturaLaranja + $alturaVermelho + $alturaCinza;
             @endphp
             <div class="text-center flex-fill" style="min-width: 0;">
-                <div class="position-relative mx-auto" style="width: 100%; max-width: 50px; height: {{ $alturaMaxima }}px;">
+                <div class="position-relative mx-auto" style="width: 100%; max-width: 60px; height: {{ $alturaMaxima }}px;">
                     @if($alturaVerde > 0)
                     <div class="position-absolute start-0 end-0" 
                          style="bottom: 0; height: {{ $alturaVerde }}px; background-color: #28a745; border-radius: 0 0 0 0;"
-                         title="Dentro do previsto: R$ {{ number_format(min($gastoMes, $orcMes), 0, ',', '.') }}">
+                         title="Gasto: R$ {{ number_format(min($gastoMes, $orcMes), 0, ',', '.') }}">
                     </div>
                     @endif
                     @if($alturaCinza > 0)
-                    <div class="position-absolute start-0 end-0" 
-                         style="bottom: {{ $alturaVerde }}px; height: {{ $alturaCinza }}px; background-color: #e9ecef; border-radius: 4px 4px 0 0;"
-                         title="Não utilizado: R$ {{ number_format($orcMes - max($gastoMes, 0), 0, ',', '.') }}">
+                    <div class="position-absolute start-0 end-0 d-flex align-items-center justify-content-center" 
+                         style="bottom: {{ $alturaVerde }}px; height: {{ $alturaCinza }}px; background-color: #e9ecef; border-radius: 4px 4px 0 0; overflow: hidden;"
+                         title="Disponível: R$ {{ number_format($orcMes - max($gastoMes, 0), 0, ',', '.') }}">
+                        @if($alturaCinza >= 25)
+                        <span class="fw-bold text-dark" style="font-size: 0.5rem; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">
+                            {{ number_format(($orcMes - max($gastoMes, 0))/1000, 1) }}k
+                        </span>
+                        @endif
                     </div>
                     @endif
                     @if($alturaLaranja > 0)
@@ -186,7 +191,7 @@
                 </div>
                 @endif
                 <div class="mt-1 {{ $info['mesAtual'] ? 'fw-bold text-primary' : '' }}" style="font-size: 0.7rem;">{{ $info['nome'] }}</div>
-                <div class="text-muted" style="font-size: 0.6rem;">{{ number_format($info['orcamento']/1000, 0) }}k</div>
+                <div class="text-muted" style="font-size: 0.55rem;">{{ number_format($orcamentoMensalBase/1000, 1) }}k</div>
             </div>
             @endforeach
         </div>

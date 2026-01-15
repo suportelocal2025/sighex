@@ -237,6 +237,25 @@ class DiretorController extends Controller
             'servidor_id' => 'required|exists:servidores,id',
             'modulo_id' => 'nullable|exists:modulos,id',
         ]);
+        
+        $servidor = Servidor::find($request->servidor_id);
+        
+        if (!$servidor) {
+            return back()->withErrors(['servidor' => 'Servidor não encontrado na base de dados.']);
+        }
+        
+        if (!$servidor->ativo) {
+            return back()->withErrors(['servidor' => 'Servidor está INATIVO e não pode ser alocado.']);
+        }
+        
+        if (!$servidor->apto_escala_extra) {
+            return back()->withErrors(['servidor' => 'Servidor não está APTO para escala extra. Aguarde aprovação do RH.']);
+        }
+        
+        if (!$servidor->isDisponivelParaEscala()) {
+            $motivo = $servidor->motivo_inativo ?? 'período de inatividade';
+            return back()->withErrors(['servidor' => "Servidor indisponível: {$motivo}"]);
+        }
 
         $existe = EscalaEquipeServidor::where('escala_id', $request->escala_id)
             ->where('servidor_id', $request->servidor_id)

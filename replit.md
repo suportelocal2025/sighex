@@ -146,3 +146,14 @@ Avoid making changes that would break the dual-database compatibility (PostgreSQ
 - API /diretor/servidores-modulo-equipe retorna apenas servidores vinculados à combinação selecionada
 - Validação de unidade: módulo e equipe devem pertencer à unidade do diretor
 - Filtro de servidores ativos e aptos para escala extra
+
+### Sistema de Horas Extras DIURNA/NOTURNA
+- Campo "Horas/dia" fixado em 10 horas (não editável pelo diretor)
+- Novo select para escolher tipo de hora extra: DIURNA ou NOTURNA
+- Limites de horas por servidor:
+  - DIURNA: máximo 60h (6 dias alocados)
+  - NOTURNA: máximo 20h (2 dias alocados)
+  - TOTAL: máximo 60h (ex: 40h diurna + 20h noturna)
+- Validação frontend e backend para impedir exceder limites
+- Exibição de horas no calendário: D/N/Total (ex: 30/10/40h)
+- Campo tipo_extra adicionado à tabela alocacoes (migration: 2026_01_15_222142)

@@ -60,6 +60,47 @@ class Servidor extends Model
         
         return null;
     }
+    
+    public function isInativoNaData($data): bool
+    {
+        if (!$this->ativo) {
+            return true;
+        }
+        
+        if ($this->inativo_indefinido) {
+            return true;
+        }
+        
+        if ($this->inativo_inicio && $this->inativo_fim) {
+            $dataVerificar = $data instanceof \Carbon\Carbon ? $data : \Carbon\Carbon::parse($data);
+            if ($dataVerificar >= $this->inativo_inicio && $dataVerificar <= $this->inativo_fim) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    public function getMotivoInativoNaData($data): ?string
+    {
+        if (!$this->ativo && !$this->inativo_indefinido && !$this->inativo_inicio) {
+            return 'Servidor inativo';
+        }
+        
+        if ($this->inativo_indefinido) {
+            return $this->motivo_inativo ?? 'Inativo por tempo indeterminado';
+        }
+        
+        if ($this->inativo_inicio && $this->inativo_fim) {
+            $dataVerificar = $data instanceof \Carbon\Carbon ? $data : \Carbon\Carbon::parse($data);
+            if ($dataVerificar >= $this->inativo_inicio && $dataVerificar <= $this->inativo_fim) {
+                $motivo = $this->motivo_inativo ?? 'Inativo';
+                return $motivo . ' (de ' . $this->inativo_inicio->format('d/m/Y') . ' a ' . $this->inativo_fim->format('d/m/Y') . ')';
+            }
+        }
+        
+        return null;
+    }
 
     public function unidade(): BelongsTo
     {

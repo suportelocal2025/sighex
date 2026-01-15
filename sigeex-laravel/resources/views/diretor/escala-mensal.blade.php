@@ -603,7 +603,9 @@ async function toggleDia(el) {
         
         const result = await response.json();
         
-        if (result.added) {
+        if (result.error) {
+            alert(result.message || 'Erro ao alocar dia.');
+        } else if (result.added) {
             el.dataset.alocado = '1';
             el.classList.add('alocado');
             el.title = `Alocado: ${horas}h`;

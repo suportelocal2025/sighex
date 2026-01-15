@@ -328,6 +328,15 @@ class DiretorController extends Controller
                 return response()->json(['removed' => true]);
             }
 
+            $servidor = Servidor::find($request->servidor_id);
+            if ($servidor && $servidor->isInativoNaData($data)) {
+                $motivo = $servidor->getMotivoInativoNaData($data);
+                return response()->json([
+                    'error' => true,
+                    'message' => "Servidor inativo nesta data: {$motivo}"
+                ], 422);
+            }
+
             Alocacao::create([
                 'escala_id' => $request->escala_id,
                 'servidor_id' => $request->servidor_id,

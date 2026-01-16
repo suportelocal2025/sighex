@@ -56,16 +56,32 @@ class RhController extends Controller
     {
         $status = $request->get('status', 'pendente');
         $ano = $request->get('ano', date('Y'));
+        $mes = $request->get('mes', '');
+        $unidadeId = $request->get('unidade_id', '');
 
         $query = Escala::with('unidade')->where('ano', $ano);
         
         if ($status !== 'todos') {
             $query->where('status', $status);
         }
+        
+        if ($mes !== '' && $mes !== null) {
+            $query->where('mes', (int)$mes);
+        }
+        
+        if ($unidadeId !== '' && $unidadeId !== null) {
+            $query->where('unidade_id', $unidadeId);
+        }
 
         $escalas = $query->orderBy('mes', 'desc')->get();
+        
+        $unidades = \App\Models\Unidade::orderBy('nome')->get();
+        $anos = Escala::select('ano')->distinct()->orderBy('ano', 'desc')->pluck('ano');
+        if ($anos->isEmpty()) {
+            $anos = collect([date('Y')]);
+        }
 
-        return view('rh.escalas', compact('escalas', 'status', 'ano'));
+        return view('rh.escalas', compact('escalas', 'status', 'ano', 'mes', 'unidadeId', 'unidades', 'anos'));
     }
 
     public function detalharEscala($id)

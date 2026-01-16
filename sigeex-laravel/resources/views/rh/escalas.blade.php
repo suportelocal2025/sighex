@@ -11,19 +11,71 @@
 @endsection
 
 @section('content')
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" action="/rh/escalas" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Ano</label>
+                <select name="ano" class="form-select form-select-sm">
+                    @foreach($anos as $a)
+                        <option value="{{ $a }}" {{ $ano == $a ? 'selected' : '' }}>{{ $a }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Mês</label>
+                <select name="mes" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    @php
+                        $nomesMeses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                    @endphp
+                    @for($m = 1; $m <= 12; $m++)
+                        <option value="{{ $m }}" {{ $mes == $m ? 'selected' : '' }}>{{ $nomesMeses[$m] }}</option>
+                    @endfor
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Unidade</label>
+                <select name="unidade_id" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    @foreach($unidades as $u)
+                        <option value="{{ $u->id }}" {{ $unidadeId == $u->id ? 'selected' : '' }}>{{ $u->nome }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="todos" {{ $status === 'todos' ? 'selected' : '' }}>Todas</option>
+                    <option value="pendente" {{ $status === 'pendente' ? 'selected' : '' }}>Pendentes</option>
+                    <option value="aprovada" {{ $status === 'aprovada' ? 'selected' : '' }}>Aprovadas</option>
+                    <option value="executada" {{ $status === 'executada' ? 'selected' : '' }}>Executadas</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-funnel me-1"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header bg-white">
         <div class="row align-items-center">
             <div class="col">
-                <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Escalas - {{ $ano }}</h5>
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-check me-2"></i>Escalas
+                    @if($mes)
+                        - {{ $nomesMeses[$mes] }}/{{ $ano }}
+                    @else
+                        - {{ $ano }}
+                    @endif
+                </h5>
             </div>
             <div class="col-auto">
-                <div class="btn-group">
-                    <a href="/rh/escalas?status=todos" class="btn btn-sm {{ $status === 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">Todas</a>
-                    <a href="/rh/escalas?status=pendente" class="btn btn-sm {{ $status === 'pendente' ? 'btn-warning' : 'btn-outline-warning' }}">Pendentes</a>
-                    <a href="/rh/escalas?status=aprovada" class="btn btn-sm {{ $status === 'aprovada' ? 'btn-success' : 'btn-outline-success' }}">Aprovadas</a>
-                    <a href="/rh/escalas?status=executada" class="btn btn-sm {{ $status === 'executada' ? 'btn-info' : 'btn-outline-info' }}">Executadas</a>
-                </div>
+                <span class="badge bg-secondary">{{ $escalas->count() }} escala(s)</span>
             </div>
         </div>
     </div>
@@ -69,7 +121,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center text-muted">Nenhuma escala encontrada</td>
+                        <td colspan="5" class="text-center text-muted">Nenhuma escala encontrada com os filtros selecionados</td>
                     </tr>
                     @endforelse
                 </tbody>

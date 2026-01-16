@@ -30,8 +30,8 @@
                 <i class="bi bi-cash-stack display-1 text-success mb-3"></i>
                 <h4>Relatório Financeiro</h4>
                 <p class="text-muted">Valores executados por escala e unidade.</p>
-                <a href="#" class="btn btn-success">
-                    <i class="bi bi-download"></i> Gerar Relatório
+                <a href="/rh/relatorio-financeiro" class="btn btn-success">
+                    <i class="bi bi-cash-stack"></i> Acessar Relatório
                 </a>
             </div>
         </div>

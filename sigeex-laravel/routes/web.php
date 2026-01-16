@@ -71,6 +71,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/relatorios', [RhController::class, 'relatorios']);
         Route::get('/relatorio-horas', [RhController::class, 'relatorioHoras']);
         Route::get('/relatorio-horas/exportar-excel', [RhController::class, 'exportarRelatorioHorasExcel']);
+        Route::get('/relatorio-financeiro', [RhController::class, 'relatorioFinanceiro']);
+        Route::get('/relatorio-financeiro/exportar-excel', [RhController::class, 'exportarRelatorioFinanceiroExcel']);
         Route::get('/servidores', [RhController::class, 'servidores']);
         Route::get('/servidores/buscar', [RhController::class, 'buscarServidores']);
         Route::post('/servidores/alterar-status', [RhController::class, 'alterarStatusServidor']);

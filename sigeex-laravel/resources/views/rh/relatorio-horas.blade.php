@@ -45,20 +45,29 @@
                     @endfor
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small">Unidade</label>
-                <select name="unidade_id" class="form-select form-select-sm">
+                <select name="unidade_id" id="unidade_id" class="form-select form-select-sm" onchange="atualizarServidores()">
                     <option value="">Todas as Unidades</option>
                     @foreach($unidades as $unidade)
                         <option value="{{ $unidade->id }}" {{ $unidadeId == $unidade->id ? 'selected' : '' }}>{{ $unidade->nome }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3 d-flex gap-2">
+            <div class="col-md-2">
+                <label class="form-label small">Servidor</label>
+                <select name="servidor_id" id="servidor_id" class="form-select form-select-sm">
+                    <option value="">Todos os Servidores</option>
+                    @foreach($servidores as $servidor)
+                        <option value="{{ $servidor->id }}" {{ $servidorId == $servidor->id ? 'selected' : '' }}>{{ $servidor->nome }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                     <i class="bi bi-funnel me-1"></i> Filtrar
                 </button>
-                <a href="/rh/relatorio-horas/exportar-excel?ano={{ $ano }}&mes_inicio={{ $mesInicio }}&mes_fim={{ $mesFim }}&unidade_id={{ $unidadeId }}" class="btn btn-success btn-sm" title="Exportar Excel">
+                <a href="/rh/relatorio-horas/exportar-excel?ano={{ $ano }}&mes_inicio={{ $mesInicio }}&mes_fim={{ $mesFim }}&unidade_id={{ $unidadeId }}&servidor_id={{ $servidorId }}" class="btn btn-success btn-sm" title="Exportar Excel">
                     <i class="bi bi-file-earmark-excel"></i>
                 </a>
                 <button type="button" onclick="window.print()" class="btn btn-secondary btn-sm" title="Imprimir/PDF">
@@ -82,6 +91,9 @@
         Horas Trabalhadas por Servidor - {{ $mesesNomes[$mesInicio] }}@if($mesInicio != $mesFim) a {{ $mesesNomes[$mesFim] }}@endif/{{ $ano }}
         @if($unidadeSelecionada)
             - {{ $unidadeSelecionada->nome }}
+        @endif
+        @if($servidorSelecionado)
+            - {{ $servidorSelecionado->nome }}
         @endif
     </div>
     <div class="card-body">

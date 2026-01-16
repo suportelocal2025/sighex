@@ -334,17 +334,25 @@ class RhController extends Controller
         $mesInicio = $request->get('mes_inicio', 1);
         $mesFim = $request->get('mes_fim', date('n'));
         $unidadeId = $request->get('unidade_id', '');
+        $servidorId = $request->get('servidor_id', '');
         
         $unidades = Unidade::where('ativo', true)->orderBy('nome')->get();
         $unidadeSelecionada = $unidadeId ? Unidade::find($unidadeId) : null;
+        
+        $servidoresQuery = Servidor::where('ativo', true)->orderBy('nome');
+        if ($unidadeId) {
+            $servidoresQuery->where('unidade_id', $unidadeId);
+        }
+        $servidores = $servidoresQuery->get();
+        $servidorSelecionado = $servidorId ? Servidor::find($servidorId) : null;
         
         $query = Alocacao::select(
                 'servidores.id as servidor_id',
                 'servidores.matricula',
                 'servidores.nome as servidor_nome',
                 'unidades.nome as unidade_nome',
-                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'DIURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_diurnas"),
-                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'NOTURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_noturnas"),
+                DB::raw("SUM(CASE WHEN UPPER(alocacoes.tipo_extra) = 'DIURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_diurnas"),
+                DB::raw("SUM(CASE WHEN UPPER(alocacoes.tipo_extra) = 'NOTURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_noturnas"),
                 DB::raw("SUM(COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0)) as total_horas"),
                 DB::raw("COUNT(alocacoes.id) as dias_alocados")
             )
@@ -359,11 +367,15 @@ class RhController extends Controller
             $query->where('escalas.unidade_id', $unidadeId);
         }
         
+        if ($servidorId) {
+            $query->where('alocacoes.servidor_id', $servidorId);
+        }
+        
         $dados = $query->groupBy('servidores.id', 'servidores.matricula', 'servidores.nome', 'unidades.nome')
             ->orderBy('servidores.nome')
             ->get();
         
-        return view('rh.relatorio-horas', compact('ano', 'mesInicio', 'mesFim', 'unidadeId', 'unidades', 'unidadeSelecionada', 'dados'));
+        return view('rh.relatorio-horas', compact('ano', 'mesInicio', 'mesFim', 'unidadeId', 'servidorId', 'unidades', 'unidadeSelecionada', 'servidores', 'servidorSelecionado', 'dados'));
     }
 
     public function exportarRelatorioHorasExcel(Request $request)
@@ -375,16 +387,18 @@ class RhController extends Controller
         $mesInicio = $request->get('mes_inicio', 1);
         $mesFim = $request->get('mes_fim', date('n'));
         $unidadeId = $request->get('unidade_id', '');
+        $servidorId = $request->get('servidor_id', '');
         
         $unidadeSelecionada = $unidadeId ? Unidade::find($unidadeId) : null;
+        $servidorSelecionado = $servidorId ? Servidor::find($servidorId) : null;
         
         $query = Alocacao::select(
                 'servidores.id as servidor_id',
                 'servidores.matricula',
                 'servidores.nome as servidor_nome',
                 'unidades.nome as unidade_nome',
-                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'DIURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_diurnas"),
-                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'NOTURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_noturnas"),
+                DB::raw("SUM(CASE WHEN UPPER(alocacoes.tipo_extra) = 'DIURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_diurnas"),
+                DB::raw("SUM(CASE WHEN UPPER(alocacoes.tipo_extra) = 'NOTURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_noturnas"),
                 DB::raw("SUM(COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0)) as total_horas"),
                 DB::raw("COUNT(alocacoes.id) as dias_alocados")
             )
@@ -397,6 +411,10 @@ class RhController extends Controller
         
         if ($unidadeId) {
             $query->where('escalas.unidade_id', $unidadeId);
+        }
+        
+        if ($servidorId) {
+            $query->where('alocacoes.servidor_id', $servidorId);
         }
         
         $dados = $query->groupBy('servidores.id', 'servidores.matricula', 'servidores.nome', 'unidades.nome')

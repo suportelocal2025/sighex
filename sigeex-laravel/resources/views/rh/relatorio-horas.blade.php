@@ -188,13 +188,69 @@
 
 <style>
 @media print {
-    .sidebar, .navbar, form, .btn, .alert { display: none !important; }
-    .card { border: none !important; box-shadow: none !important; }
-    .card-header { background-color: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; }
-    .table-dark th { background-color: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; }
-    .badge { border: 1px solid #000; }
-    body { padding: 0 !important; margin: 0 !important; }
-    .container-fluid { padding: 0 !important; }
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+    html, body {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .sidebar, .navbar, form, .btn, .alert, .card:not(#relatorio-content), nav { 
+        display: none !important; 
+    }
+    .main-content, .container-fluid, .row, .col-12, .col-md-10 {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    #relatorio-content {
+        width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+    }
+    #relatorio-content .card-header {
+        background-color: #2c3e50 !important;
+        color: #fff !important;
+        font-size: 14pt !important;
+        padding: 10px !important;
+    }
+    #relatorio-content .card-body {
+        padding: 10px 0 !important;
+    }
+    .table {
+        width: 100% !important;
+        font-size: 10pt !important;
+    }
+    .table th, .table td {
+        padding: 6px 8px !important;
+    }
+    .table-dark th { 
+        background-color: #2c3e50 !important; 
+        color: #fff !important; 
+    }
+    .table-secondary td {
+        background-color: #e9ecef !important;
+    }
+    .badge { 
+        border: 1px solid #000 !important;
+        padding: 2px 6px !important;
+    }
+    .row.mt-4 {
+        margin-top: 15px !important;
+    }
+    .row.mt-4 .card {
+        display: inline-block !important;
+        width: 30% !important;
+        margin: 0 1.5% !important;
+        border: 1px solid #ccc !important;
+    }
 }
 </style>
 @endsection

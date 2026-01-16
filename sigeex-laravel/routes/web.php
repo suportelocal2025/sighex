@@ -44,6 +44,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/rejeitar-escala', [SuperintendenteController::class, 'rejeitarEscalaExcedente']);
         Route::post('/enviar-alerta-email', [SuperintendenteController::class, 'enviarAlertaEmail']);
         Route::get('/relatorios', [SuperintendenteController::class, 'relatorios']);
+        Route::get('/relatorio-horas', [SuperintendenteController::class, 'relatorioHoras']);
+        Route::get('/relatorio-horas/exportar-excel', [SuperintendenteController::class, 'exportarRelatorioHorasExcel']);
+        Route::get('/relatorio-financeiro', [SuperintendenteController::class, 'relatorioFinanceiro']);
+        Route::get('/relatorio-financeiro/exportar-excel', [SuperintendenteController::class, 'exportarRelatorioFinanceiroExcel']);
     });
 
     Route::prefix('diretor')->middleware('role:diretor')->group(function () {

@@ -48,6 +48,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/relatorio-horas/exportar-excel', [SuperintendenteController::class, 'exportarRelatorioHorasExcel']);
         Route::get('/relatorio-financeiro', [SuperintendenteController::class, 'relatorioFinanceiro']);
         Route::get('/relatorio-financeiro/exportar-excel', [SuperintendenteController::class, 'exportarRelatorioFinanceiroExcel']);
+        Route::get('/relatorio-orcamento', [SuperintendenteController::class, 'relatorioOrcamento']);
+        Route::get('/relatorio-orcamento/exportar-excel', [SuperintendenteController::class, 'exportarRelatorioOrcamentoExcel']);
+        Route::get('/relatorio-escalas', [SuperintendenteController::class, 'relatorioEscalas']);
+        Route::get('/relatorio-escalas/exportar-excel', [SuperintendenteController::class, 'exportarRelatorioEscalasExcel']);
     });
 
     Route::prefix('diretor')->middleware('role:diretor')->group(function () {

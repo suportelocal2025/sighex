@@ -942,4 +942,362 @@ class SuperintendenteController extends Controller
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
     }
+
+    public function relatorioOrcamento(Request $request)
+    {
+        $ano = $request->get('ano', date('Y'));
+        
+        $orcamentoGlobal = OrcamentoGlobal::where('ano', $ano)->first();
+        $valorTotal = $orcamentoGlobal?->valor_total ?? 0;
+        $reservaTecnica = $orcamentoGlobal ? ($valorTotal * $orcamentoGlobal->reserva_tecnica_percentual / 100) : 0;
+        $valorDisponivel = $valorTotal - $reservaTecnica;
+        
+        $dados = Unidade::select(
+                'unidades.id',
+                'unidades.nome',
+                'unidades.codigo',
+                DB::raw("COALESCE(d.valor_distribuido, 0) as orcamento_distribuido"),
+                DB::raw("COALESCE(d.margin_percentual, 10) as margin_percentual"),
+                DB::raw("COALESCE((SELECT SUM(valor_executado) FROM escalas WHERE unidade_id = unidades.id AND ano = {$ano} AND status = 'executada'), 0) as valor_gasto"),
+                DB::raw("COALESCE((SELECT COUNT(*) FROM escalas WHERE unidade_id = unidades.id AND ano = {$ano}), 0) as total_escalas"),
+                DB::raw("COALESCE((SELECT SUM(a.horas) FROM alocacoes a INNER JOIN escalas e ON a.escala_id = e.id WHERE e.unidade_id = unidades.id AND e.ano = {$ano} AND e.status IN ('aprovada', 'executada')), 0) as total_horas")
+            )
+            ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
+                $join->on('unidades.id', '=', 'd.unidade_id')
+                     ->where('d.ano', '=', $ano);
+            })
+            ->where('unidades.ativo', true)
+            ->orderBy('unidades.nome')
+            ->get();
+        
+        $totalDistribuido = $dados->sum('orcamento_distribuido');
+        $totalGasto = $dados->sum('valor_gasto');
+        $saldoNaoDistribuido = $valorDisponivel - $totalDistribuido;
+        
+        return view('superintendente.relatorio-orcamento', compact(
+            'ano', 'valorTotal', 'reservaTecnica', 'valorDisponivel', 
+            'totalDistribuido', 'totalGasto', 'saldoNaoDistribuido', 'dados', 'orcamentoGlobal'
+        ));
+    }
+
+    public function exportarRelatorioOrcamentoExcel(Request $request)
+    {
+        $ano = $request->get('ano', date('Y'));
+        
+        $orcamentoGlobal = OrcamentoGlobal::where('ano', $ano)->first();
+        $valorTotal = $orcamentoGlobal?->valor_total ?? 0;
+        $reservaTecnica = $orcamentoGlobal ? ($valorTotal * $orcamentoGlobal->reserva_tecnica_percentual / 100) : 0;
+        $valorDisponivel = $valorTotal - $reservaTecnica;
+        
+        $dados = Unidade::select(
+                'unidades.id',
+                'unidades.nome',
+                'unidades.codigo',
+                DB::raw("COALESCE(d.valor_distribuido, 0) as orcamento_distribuido"),
+                DB::raw("COALESCE(d.margin_percentual, 10) as margin_percentual"),
+                DB::raw("COALESCE((SELECT SUM(valor_executado) FROM escalas WHERE unidade_id = unidades.id AND ano = {$ano} AND status = 'executada'), 0) as valor_gasto"),
+                DB::raw("COALESCE((SELECT COUNT(*) FROM escalas WHERE unidade_id = unidades.id AND ano = {$ano}), 0) as total_escalas"),
+                DB::raw("COALESCE((SELECT SUM(a.horas) FROM alocacoes a INNER JOIN escalas e ON a.escala_id = e.id WHERE e.unidade_id = unidades.id AND e.ano = {$ano} AND e.status IN ('aprovada', 'executada')), 0) as total_horas")
+            )
+            ->leftJoin('distribuicao_orcamento as d', function($join) use ($ano) {
+                $join->on('unidades.id', '=', 'd.unidade_id')
+                     ->where('d.ano', '=', $ano);
+            })
+            ->where('unidades.ativo', true)
+            ->orderBy('unidades.nome')
+            ->get();
+        
+        $totalDistribuido = $dados->sum('orcamento_distribuido');
+        $totalGasto = $dados->sum('valor_gasto');
+        $saldoNaoDistribuido = $valorDisponivel - $totalDistribuido;
+        
+        $nomeArquivo = "relatorio_orcamento_{$ano}.xls";
+        
+        $html = "\xEF\xBB\xBF";
+        $html .= "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        $html .= "<head><meta charset='UTF-8'>";
+        $html .= "<style>";
+        $html .= "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }";
+        $html .= "th, td { border: 1px solid #000; padding: 8px; text-align: left; }";
+        $html .= "th { background-color: #0d6efd; color: white; font-weight: bold; }";
+        $html .= ".header { text-align: center; font-size: 16pt; font-weight: bold; background-color: #0a58ca; color: white; }";
+        $html .= ".subheader { text-align: center; font-size: 12pt; background-color: #6ea8fe; }";
+        $html .= ".total-row { background-color: #cfe2ff; font-weight: bold; }";
+        $html .= ".numero { text-align: center; }";
+        $html .= ".valor { text-align: right; }";
+        $html .= ".positivo { color: #198754; }";
+        $html .= ".negativo { color: #dc3545; }";
+        $html .= "</style>";
+        $html .= "</head><body>";
+        
+        $html .= "<table>";
+        $html .= "<tr><td class='header' colspan='8'>Relatório de Orçamento - Ano {$ano}</td></tr>";
+        $html .= "<tr><td class='subheader' colspan='8'>Visão Consolidada por Unidade</td></tr>";
+        $html .= "</table>";
+        
+        $html .= "<table>";
+        $html .= "<tr><td style='background-color: #cfe2ff;'>Orçamento Total:</td><td class='valor'>R$ " . number_format($valorTotal, 2, ',', '.') . "</td>";
+        $html .= "<td style='background-color: #cfe2ff;'>Reserva Técnica:</td><td class='valor'>R$ " . number_format($reservaTecnica, 2, ',', '.') . "</td>";
+        $html .= "<td style='background-color: #cfe2ff;'>Disponível:</td><td class='valor'>R$ " . number_format($valorDisponivel, 2, ',', '.') . "</td>";
+        $html .= "<td style='background-color: #cfe2ff;'>Não Distribuído:</td><td class='valor'>R$ " . number_format($saldoNaoDistribuido, 2, ',', '.') . "</td></tr>";
+        $html .= "</table>";
+        
+        $html .= "<table>";
+        $html .= "<thead>";
+        $html .= "<tr>";
+        $html .= "<th class='numero'>Núm.</th>";
+        $html .= "<th>Código</th>";
+        $html .= "<th>Unidade</th>";
+        $html .= "<th class='valor'>Orçamento Anual</th>";
+        $html .= "<th class='numero'>Margem %</th>";
+        $html .= "<th class='valor'>Valor Gasto</th>";
+        $html .= "<th class='valor'>Saldo</th>";
+        $html .= "<th class='numero'>Escalas</th>";
+        $html .= "</tr>";
+        $html .= "</thead>";
+        $html .= "<tbody>";
+        
+        $num = 1;
+        foreach ($dados as $d) {
+            $saldo = $d->orcamento_distribuido - $d->valor_gasto;
+            $html .= "<tr>";
+            $html .= "<td class='numero'>" . str_pad($num++, 3, '0', STR_PAD_LEFT) . "</td>";
+            $html .= "<td>" . htmlspecialchars($d->codigo ?? '-') . "</td>";
+            $html .= "<td>" . htmlspecialchars($d->nome) . "</td>";
+            $html .= "<td class='valor'>R$ " . number_format($d->orcamento_distribuido, 2, ',', '.') . "</td>";
+            $html .= "<td class='numero'>" . number_format($d->margin_percentual, 0) . "%</td>";
+            $html .= "<td class='valor'>R$ " . number_format($d->valor_gasto, 2, ',', '.') . "</td>";
+            $html .= "<td class='valor " . ($saldo >= 0 ? 'positivo' : 'negativo') . "'>R$ " . number_format($saldo, 2, ',', '.') . "</td>";
+            $html .= "<td class='numero'>" . $d->total_escalas . "</td>";
+            $html .= "</tr>";
+        }
+        
+        $saldoTotal = $totalDistribuido - $totalGasto;
+        $html .= "<tr class='total-row'>";
+        $html .= "<td colspan='3' style='text-align: right;'>TOTAIS:</td>";
+        $html .= "<td class='valor'>R$ " . number_format($totalDistribuido, 2, ',', '.') . "</td>";
+        $html .= "<td></td>";
+        $html .= "<td class='valor'>R$ " . number_format($totalGasto, 2, ',', '.') . "</td>";
+        $html .= "<td class='valor " . ($saldoTotal >= 0 ? 'positivo' : 'negativo') . "'>R$ " . number_format($saldoTotal, 2, ',', '.') . "</td>";
+        $html .= "<td class='numero'>" . $dados->sum('total_escalas') . "</td>";
+        $html .= "</tr>";
+        $html .= "</tbody>";
+        $html .= "</table>";
+        
+        $html .= "</body></html>";
+        
+        return response($html)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+            ->header('Content-Disposition', "attachment; filename=\"{$nomeArquivo}\"")
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
+    }
+
+    public function relatorioEscalas(Request $request)
+    {
+        $ano = $request->get('ano', date('Y'));
+        $mesInicio = $request->get('mes_inicio', 1);
+        $mesFim = $request->get('mes_fim', date('n'));
+        $unidadeId = $request->get('unidade_id', '');
+        $status = $request->get('status', '');
+        
+        $unidades = Unidade::where('ativo', true)->orderBy('nome')->get();
+        $unidadeSelecionada = $unidadeId ? Unidade::find($unidadeId) : null;
+        
+        $query = Escala::select(
+                'escalas.id',
+                'escalas.ano',
+                'escalas.mes',
+                'escalas.status',
+                'escalas.valor_executado',
+                'escalas.created_at',
+                'escalas.updated_at',
+                'unidades.nome as unidade_nome',
+                'unidades.codigo as unidade_codigo',
+                DB::raw("(SELECT COUNT(*) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_alocacoes"),
+                DB::raw("(SELECT COALESCE(SUM(alocacoes.horas), 0) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_horas"),
+                DB::raw("(SELECT COUNT(DISTINCT alocacoes.servidor_id) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_servidores")
+            )
+            ->join('unidades', 'escalas.unidade_id', '=', 'unidades.id')
+            ->where('escalas.ano', $ano)
+            ->whereBetween('escalas.mes', [$mesInicio, $mesFim]);
+        
+        if ($unidadeId) {
+            $query->where('escalas.unidade_id', $unidadeId);
+        }
+        
+        if ($status) {
+            $query->where('escalas.status', $status);
+        }
+        
+        $dados = $query->orderBy('unidades.nome')
+            ->orderBy('escalas.mes')
+            ->get();
+        
+        $resumoPorStatus = [
+            'pendente' => $dados->where('status', 'pendente')->count(),
+            'aprovada' => $dados->where('status', 'aprovada')->count(),
+            'rejeitada' => $dados->where('status', 'rejeitada')->count(),
+            'executada' => $dados->where('status', 'executada')->count(),
+        ];
+        
+        return view('superintendente.relatorio-escalas', compact(
+            'ano', 'mesInicio', 'mesFim', 'unidadeId', 'status', 
+            'unidades', 'unidadeSelecionada', 'dados', 'resumoPorStatus'
+        ));
+    }
+
+    public function exportarRelatorioEscalasExcel(Request $request)
+    {
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        $ano = $request->get('ano', date('Y'));
+        $mesInicio = $request->get('mes_inicio', 1);
+        $mesFim = $request->get('mes_fim', date('n'));
+        $unidadeId = $request->get('unidade_id', '');
+        $status = $request->get('status', '');
+        
+        $unidadeSelecionada = $unidadeId ? Unidade::find($unidadeId) : null;
+        
+        $query = Escala::select(
+                'escalas.id',
+                'escalas.ano',
+                'escalas.mes',
+                'escalas.status',
+                'escalas.valor_executado',
+                'unidades.nome as unidade_nome',
+                'unidades.codigo as unidade_codigo',
+                DB::raw("(SELECT COUNT(*) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_alocacoes"),
+                DB::raw("(SELECT COALESCE(SUM(alocacoes.horas), 0) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_horas"),
+                DB::raw("(SELECT COUNT(DISTINCT alocacoes.servidor_id) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_servidores")
+            )
+            ->join('unidades', 'escalas.unidade_id', '=', 'unidades.id')
+            ->where('escalas.ano', $ano)
+            ->whereBetween('escalas.mes', [$mesInicio, $mesFim]);
+        
+        if ($unidadeId) {
+            $query->where('escalas.unidade_id', $unidadeId);
+        }
+        
+        if ($status) {
+            $query->where('escalas.status', $status);
+        }
+        
+        $dados = $query->orderBy('unidades.nome')
+            ->orderBy('escalas.mes')
+            ->get();
+        
+        if ($dados->isEmpty()) {
+            return redirect('/superintendente/relatorio-escalas?' . http_build_query($request->all()))
+                ->with('error', 'Nenhum dado encontrado para exportar.');
+        }
+        
+        $periodoStr = $meses[$mesInicio];
+        if ($mesInicio != $mesFim) {
+            $periodoStr .= "_a_{$meses[$mesFim]}";
+        }
+        $nomeArquivo = "relatorio_escalas_{$periodoStr}_{$ano}.xls";
+        
+        $html = "\xEF\xBB\xBF";
+        $html .= "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        $html .= "<head><meta charset='UTF-8'>";
+        $html .= "<style>";
+        $html .= "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }";
+        $html .= "th, td { border: 1px solid #000; padding: 8px; text-align: left; }";
+        $html .= "th { background-color: #6f42c1; color: white; font-weight: bold; }";
+        $html .= ".header { text-align: center; font-size: 16pt; font-weight: bold; background-color: #59359a; color: white; }";
+        $html .= ".subheader { text-align: center; font-size: 12pt; background-color: #a98eda; }";
+        $html .= ".total-row { background-color: #e2d9f3; font-weight: bold; }";
+        $html .= ".numero { text-align: center; }";
+        $html .= ".valor { text-align: right; }";
+        $html .= "</style>";
+        $html .= "</head><body>";
+        
+        $titulo = "Relatório de Escalas";
+        $subtitulo = "{$meses[$mesInicio]}" . ($mesInicio != $mesFim ? " a {$meses[$mesFim]}" : "") . " / {$ano}";
+        if ($unidadeSelecionada) {
+            $subtitulo .= " - " . $unidadeSelecionada->nome;
+        }
+        if ($status) {
+            $subtitulo .= " - Status: " . ucfirst($status);
+        }
+        
+        $html .= "<table>";
+        $html .= "<tr><td class='header' colspan='8'>{$titulo}</td></tr>";
+        $html .= "<tr><td class='subheader' colspan='8'>{$subtitulo}</td></tr>";
+        $html .= "</table>";
+        
+        $html .= "<table>";
+        $html .= "<thead>";
+        $html .= "<tr>";
+        $html .= "<th class='numero'>Núm.</th>";
+        $html .= "<th>Unidade</th>";
+        $html .= "<th>Mês/Ano</th>";
+        $html .= "<th class='numero'>Status</th>";
+        $html .= "<th class='numero'>Servidores</th>";
+        $html .= "<th class='numero'>Alocações</th>";
+        $html .= "<th class='numero'>Total Horas</th>";
+        $html .= "<th class='valor'>Valor Executado</th>";
+        $html .= "</tr>";
+        $html .= "</thead>";
+        $html .= "<tbody>";
+        
+        $num = 1;
+        $totalServidores = 0;
+        $totalAlocacoes = 0;
+        $totalHoras = 0;
+        $totalValor = 0;
+        
+        foreach ($dados as $d) {
+            $totalServidores += $d->total_servidores;
+            $totalAlocacoes += $d->total_alocacoes;
+            $totalHoras += $d->total_horas;
+            $totalValor += $d->valor_executado;
+            
+            $html .= "<tr>";
+            $html .= "<td class='numero'>" . str_pad($num++, 3, '0', STR_PAD_LEFT) . "</td>";
+            $html .= "<td>" . htmlspecialchars($d->unidade_nome) . "</td>";
+            $html .= "<td>" . $meses[$d->mes] . "/" . $d->ano . "</td>";
+            $html .= "<td class='numero'>" . ucfirst($d->status) . "</td>";
+            $html .= "<td class='numero'>" . $d->total_servidores . "</td>";
+            $html .= "<td class='numero'>" . $d->total_alocacoes . "</td>";
+            $html .= "<td class='numero'>" . number_format($d->total_horas, 0, ',', '.') . "</td>";
+            $html .= "<td class='valor'>R$ " . number_format($d->valor_executado ?? 0, 2, ',', '.') . "</td>";
+            $html .= "</tr>";
+        }
+        
+        $html .= "<tr class='total-row'>";
+        $html .= "<td colspan='4' style='text-align: right;'>TOTAIS:</td>";
+        $html .= "<td class='numero'>" . $totalServidores . "</td>";
+        $html .= "<td class='numero'>" . $totalAlocacoes . "</td>";
+        $html .= "<td class='numero'>" . number_format($totalHoras, 0, ',', '.') . "</td>";
+        $html .= "<td class='valor'>R$ " . number_format($totalValor, 2, ',', '.') . "</td>";
+        $html .= "</tr>";
+        $html .= "</tbody>";
+        $html .= "</table>";
+        
+        $resumoPorStatus = [
+            'Pendente' => $dados->where('status', 'pendente')->count(),
+            'Aprovada' => $dados->where('status', 'aprovada')->count(),
+            'Rejeitada' => $dados->where('status', 'rejeitada')->count(),
+            'Executada' => $dados->where('status', 'executada')->count(),
+        ];
+        
+        $html .= "<br>";
+        $html .= "<table>";
+        $html .= "<tr><td style='background-color: #e2d9f3;'>Total de Escalas:</td><td style='text-align: center; font-weight: bold;'>" . $dados->count() . "</td></tr>";
+        foreach ($resumoPorStatus as $st => $count) {
+            $html .= "<tr><td style='background-color: #e2d9f3;'>{$st}:</td><td style='text-align: center; font-weight: bold;'>{$count}</td></tr>";
+        }
+        $html .= "</table>";
+        
+        $html .= "</body></html>";
+        
+        return response($html)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+            ->header('Content-Disposition', "attachment; filename=\"{$nomeArquivo}\"")
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
+    }
 }

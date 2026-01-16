@@ -19,8 +19,8 @@
                 <i class="bi bi-file-earmark-bar-graph display-1 text-primary mb-3"></i>
                 <h4>Relatório de Orçamento</h4>
                 <p class="text-muted">Visão consolidada do orçamento anual, distribuição e gastos por unidade.</p>
-                <a href="#" class="btn btn-primary">
-                    <i class="bi bi-download"></i> Gerar Relatório
+                <a href="/superintendente/relatorio-orcamento" class="btn btn-primary">
+                    <i class="bi bi-bar-chart"></i> Acessar Relatório
                 </a>
             </div>
         </div>
@@ -31,8 +31,8 @@
                 <i class="bi bi-calendar-check display-1 text-success mb-3"></i>
                 <h4>Relatório de Escalas</h4>
                 <p class="text-muted">Resumo das escalas aprovadas e executadas por período.</p>
-                <a href="#" class="btn btn-success">
-                    <i class="bi bi-download"></i> Gerar Relatório
+                <a href="/superintendente/relatorio-escalas" class="btn btn-success">
+                    <i class="bi bi-calendar-check"></i> Acessar Relatório
                 </a>
             </div>
         </div>

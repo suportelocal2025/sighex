@@ -542,7 +542,7 @@ class RhController extends Controller
                 'escalas.status',
                 'escalas.valor_executado',
                 'unidades.nome as unidade_nome',
-                DB::raw("COALESCE(distribuicao_orcamento.valor_mensal, 0) as orcamento_previsto"),
+                DB::raw("COALESCE(distribuicao_orcamento.valor_distribuido, 0) as orcamento_previsto"),
                 DB::raw("(SELECT COUNT(*) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_alocacoes"),
                 DB::raw("(SELECT COALESCE(SUM(alocacoes.horas), 0) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_horas"),
                 DB::raw("(SELECT COUNT(DISTINCT alocacoes.servidor_id) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_servidores")
@@ -586,7 +586,7 @@ class RhController extends Controller
                 'escalas.status',
                 'escalas.valor_executado',
                 'unidades.nome as unidade_nome',
-                DB::raw("COALESCE(distribuicao_orcamento.valor_mensal, 0) as orcamento_previsto"),
+                DB::raw("COALESCE(distribuicao_orcamento.valor_distribuido, 0) as orcamento_previsto"),
                 DB::raw("(SELECT COALESCE(SUM(alocacoes.horas), 0) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_horas"),
                 DB::raw("(SELECT COUNT(DISTINCT alocacoes.servidor_id) FROM alocacoes WHERE alocacoes.escala_id = escalas.id) as total_servidores")
             )

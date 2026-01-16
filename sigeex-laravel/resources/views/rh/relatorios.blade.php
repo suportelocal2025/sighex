@@ -18,8 +18,8 @@
                 <i class="bi bi-clock-history display-1 text-primary mb-3"></i>
                 <h4>Relatório de Horas</h4>
                 <p class="text-muted">Horas trabalhadas por servidor em determinado período.</p>
-                <a href="#" class="btn btn-primary">
-                    <i class="bi bi-download"></i> Gerar Relatório
+                <a href="/rh/relatorio-horas" class="btn btn-primary">
+                    <i class="bi bi-clock-history"></i> Acessar Relatório
                 </a>
             </div>
         </div>

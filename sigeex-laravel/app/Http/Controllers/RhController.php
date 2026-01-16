@@ -13,6 +13,7 @@ use App\Models\Unidade;
 use App\Models\AlertaDiretor;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class RhController extends Controller
 {
@@ -325,6 +326,185 @@ class RhController extends Controller
     public function relatorios()
     {
         return view('rh.relatorios');
+    }
+
+    public function relatorioHoras(Request $request)
+    {
+        $ano = $request->get('ano', date('Y'));
+        $mesInicio = $request->get('mes_inicio', 1);
+        $mesFim = $request->get('mes_fim', date('n'));
+        $unidadeId = $request->get('unidade_id', '');
+        
+        $unidades = Unidade::where('ativo', true)->orderBy('nome')->get();
+        $unidadeSelecionada = $unidadeId ? Unidade::find($unidadeId) : null;
+        
+        $query = Alocacao::select(
+                'servidores.id as servidor_id',
+                'servidores.matricula',
+                'servidores.nome as servidor_nome',
+                'unidades.nome as unidade_nome',
+                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'DIURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_diurnas"),
+                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'NOTURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_noturnas"),
+                DB::raw("SUM(COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0)) as total_horas"),
+                DB::raw("COUNT(alocacoes.id) as dias_alocados")
+            )
+            ->join('servidores', 'alocacoes.servidor_id', '=', 'servidores.id')
+            ->join('escalas', 'alocacoes.escala_id', '=', 'escalas.id')
+            ->join('unidades', 'escalas.unidade_id', '=', 'unidades.id')
+            ->where('escalas.ano', $ano)
+            ->whereBetween('escalas.mes', [$mesInicio, $mesFim])
+            ->whereIn('escalas.status', ['aprovada', 'executada']);
+        
+        if ($unidadeId) {
+            $query->where('escalas.unidade_id', $unidadeId);
+        }
+        
+        $dados = $query->groupBy('servidores.id', 'servidores.matricula', 'servidores.nome', 'unidades.nome')
+            ->orderBy('servidores.nome')
+            ->get();
+        
+        return view('rh.relatorio-horas', compact('ano', 'mesInicio', 'mesFim', 'unidadeId', 'unidades', 'unidadeSelecionada', 'dados'));
+    }
+
+    public function exportarRelatorioHorasExcel(Request $request)
+    {
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        $ano = $request->get('ano', date('Y'));
+        $mesInicio = $request->get('mes_inicio', 1);
+        $mesFim = $request->get('mes_fim', date('n'));
+        $unidadeId = $request->get('unidade_id', '');
+        
+        $unidadeSelecionada = $unidadeId ? Unidade::find($unidadeId) : null;
+        
+        $query = Alocacao::select(
+                'servidores.id as servidor_id',
+                'servidores.matricula',
+                'servidores.nome as servidor_nome',
+                'unidades.nome as unidade_nome',
+                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'DIURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_diurnas"),
+                DB::raw("SUM(CASE WHEN alocacoes.tipo_extra = 'NOTURNA' THEN COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0) ELSE 0 END) as horas_noturnas"),
+                DB::raw("SUM(COALESCE(alocacoes.horas, 0) + COALESCE(alocacoes.horas_abono, 0)) as total_horas"),
+                DB::raw("COUNT(alocacoes.id) as dias_alocados")
+            )
+            ->join('servidores', 'alocacoes.servidor_id', '=', 'servidores.id')
+            ->join('escalas', 'alocacoes.escala_id', '=', 'escalas.id')
+            ->join('unidades', 'escalas.unidade_id', '=', 'unidades.id')
+            ->where('escalas.ano', $ano)
+            ->whereBetween('escalas.mes', [$mesInicio, $mesFim])
+            ->whereIn('escalas.status', ['aprovada', 'executada']);
+        
+        if ($unidadeId) {
+            $query->where('escalas.unidade_id', $unidadeId);
+        }
+        
+        $dados = $query->groupBy('servidores.id', 'servidores.matricula', 'servidores.nome', 'unidades.nome')
+            ->orderBy('servidores.nome')
+            ->get();
+        
+        if ($dados->isEmpty()) {
+            return redirect('/rh/relatorio-horas?' . http_build_query($request->all()))
+                ->with('error', 'Nenhum dado encontrado para exportar.');
+        }
+        
+        $periodoStr = $meses[$mesInicio];
+        if ($mesInicio != $mesFim) {
+            $periodoStr .= "_a_{$meses[$mesFim]}";
+        }
+        $nomeArquivo = "relatorio_horas_{$periodoStr}_{$ano}.xls";
+        
+        $html = "\xEF\xBB\xBF";
+        $html .= "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        $html .= "<head><meta charset='UTF-8'>";
+        $html .= "<style>";
+        $html .= "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }";
+        $html .= "th, td { border: 1px solid #000; padding: 8px; text-align: left; }";
+        $html .= "th { background-color: #4472C4; color: white; font-weight: bold; }";
+        $html .= ".header { text-align: center; font-size: 16pt; font-weight: bold; background-color: #2F5496; color: white; }";
+        $html .= ".subheader { text-align: center; font-size: 12pt; background-color: #8FAADC; }";
+        $html .= ".total-row { background-color: #D9E2F3; font-weight: bold; }";
+        $html .= ".numero { text-align: center; }";
+        $html .= ".horas { text-align: center; }";
+        $html .= "</style>";
+        $html .= "</head><body>";
+        
+        $titulo = "Relatório de Horas Trabalhadas";
+        $subtitulo = "{$meses[$mesInicio]}" . ($mesInicio != $mesFim ? " a {$meses[$mesFim]}" : "") . " / {$ano}";
+        if ($unidadeSelecionada) {
+            $subtitulo .= " - " . $unidadeSelecionada->nome;
+        }
+        
+        $html .= "<table>";
+        $html .= "<tr><td class='header' colspan='8'>{$titulo}</td></tr>";
+        $html .= "<tr><td class='subheader' colspan='8'>{$subtitulo}</td></tr>";
+        $html .= "</table>";
+        
+        $html .= "<table>";
+        $html .= "<thead>";
+        $html .= "<tr>";
+        $html .= "<th class='numero'>Núm.</th>";
+        $html .= "<th>Matrícula</th>";
+        $html .= "<th>Nome do Servidor</th>";
+        $html .= "<th>Unidade</th>";
+        $html .= "<th class='horas'>Horas Diurnas</th>";
+        $html .= "<th class='horas'>Horas Noturnas</th>";
+        $html .= "<th class='horas'>Total Horas</th>";
+        $html .= "<th class='horas'>Dias Alocados</th>";
+        $html .= "</tr>";
+        $html .= "</thead>";
+        $html .= "<tbody>";
+        
+        $num = 1;
+        $totalDiurnas = 0;
+        $totalNoturnas = 0;
+        $totalGeral = 0;
+        $totalDias = 0;
+        
+        foreach ($dados as $d) {
+            $totalDiurnas += $d->horas_diurnas;
+            $totalNoturnas += $d->horas_noturnas;
+            $totalGeral += $d->total_horas;
+            $totalDias += $d->dias_alocados;
+            
+            $html .= "<tr>";
+            $html .= "<td class='numero'>" . str_pad($num, 3, '0', STR_PAD_LEFT) . "</td>";
+            $html .= "<td>" . htmlspecialchars($d->matricula) . "</td>";
+            $html .= "<td>" . htmlspecialchars($d->servidor_nome) . "</td>";
+            $html .= "<td>" . htmlspecialchars($d->unidade_nome) . "</td>";
+            $html .= "<td class='horas'>" . number_format($d->horas_diurnas, 0, ',', '.') . "</td>";
+            $html .= "<td class='horas'>" . number_format($d->horas_noturnas, 0, ',', '.') . "</td>";
+            $html .= "<td class='horas'>" . number_format($d->total_horas, 0, ',', '.') . "</td>";
+            $html .= "<td class='horas'>" . $d->dias_alocados . "</td>";
+            $html .= "</tr>";
+            
+            $num++;
+        }
+        
+        $html .= "<tr class='total-row'>";
+        $html .= "<td colspan='4' style='text-align: right;'>TOTAIS:</td>";
+        $html .= "<td class='horas'>" . number_format($totalDiurnas, 0, ',', '.') . "</td>";
+        $html .= "<td class='horas'>" . number_format($totalNoturnas, 0, ',', '.') . "</td>";
+        $html .= "<td class='horas'>" . number_format($totalGeral, 0, ',', '.') . "</td>";
+        $html .= "<td class='horas'>" . $totalDias . "</td>";
+        $html .= "</tr>";
+        $html .= "</tbody>";
+        $html .= "</table>";
+        
+        $html .= "<br>";
+        $html .= "<table>";
+        $html .= "<tr><td style='background-color: #D9E2F3;'>Total de Servidores:</td><td style='text-align: center; font-weight: bold;'>" . $dados->count() . "</td></tr>";
+        $html .= "<tr><td style='background-color: #D9E2F3;'>Total de Horas:</td><td style='text-align: center; font-weight: bold;'>" . number_format($totalGeral, 0, ',', '.') . "</td></tr>";
+        $html .= "<tr><td style='background-color: #D9E2F3;'>Média por Servidor:</td><td style='text-align: center; font-weight: bold;'>" . ($dados->count() > 0 ? number_format($totalGeral / $dados->count(), 1, ',', '.') : 0) . "</td></tr>";
+        $html .= "</table>";
+        
+        $html .= "</body></html>";
+        
+        return response($html)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+            ->header('Content-Disposition', "attachment; filename=\"{$nomeArquivo}\"")
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function servidores()

@@ -452,6 +452,156 @@ class RhController extends Controller
             ->with('success', 'Solicitação rejeitada.');
     }
 
+    public function exportarExcelFiltradas(Request $request)
+    {
+        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        $status = $request->get('status', 'pendente');
+        $ano = $request->get('ano', date('Y'));
+        $mes = $request->get('mes', '');
+        $unidadeId = $request->get('unidade_id', '');
+
+        $query = Escala::with('unidade')->where('ano', $ano);
+        
+        if ($status !== 'todos') {
+            $query->where('status', $status);
+        }
+        
+        if ($mes !== '' && $mes !== null) {
+            $query->where('mes', (int)$mes);
+        }
+        
+        if ($unidadeId !== '' && $unidadeId !== null) {
+            $query->where('unidade_id', $unidadeId);
+        }
+
+        $escalas = $query->orderBy('mes', 'desc')->get();
+        
+        if ($escalas->isEmpty()) {
+            return redirect('/rh/escalas?' . http_build_query($request->all()))
+                ->with('error', 'Nenhuma escala encontrada para exportar.');
+        }
+        
+        $nomeArquivo = "escalas_{$ano}" . ($mes ? "_{$meses[$mes]}" : "") . ".xls";
+        
+        $html = "\xEF\xBB\xBF";
+        $html .= "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        $html .= "<head><meta charset='UTF-8'>";
+        $html .= "<style>";
+        $html .= "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }";
+        $html .= "th, td { border: 1px solid #000; padding: 8px; text-align: left; }";
+        $html .= "th { background-color: #4472C4; color: white; font-weight: bold; }";
+        $html .= ".header { text-align: center; font-size: 16pt; font-weight: bold; background-color: #2F5496; color: white; }";
+        $html .= ".subheader { text-align: center; font-size: 12pt; }";
+        $html .= ".section-header { background-color: #8FAADC; font-weight: bold; font-size: 12pt; }";
+        $html .= ".total-row { background-color: #D9E2F3; font-weight: bold; }";
+        $html .= ".numero { text-align: center; }";
+        $html .= ".horas { text-align: center; }";
+        $html .= ".page-break { page-break-after: always; }";
+        $html .= "</style>";
+        $html .= "</head><body>";
+        
+        $totalGeralHoras = 0;
+        
+        foreach ($escalas as $escala) {
+            $alocacoes = Alocacao::select('alocacoes.*', 'servidores.nome as servidor_nome', 
+                    'servidores.matricula', 'equipes.nome as equipe_nome', 'modulos.nome as modulo_nome')
+                ->join('servidores', 'alocacoes.servidor_id', '=', 'servidores.id')
+                ->leftJoin('equipes', 'alocacoes.equipe_id', '=', 'equipes.id')
+                ->leftJoin('modulos', 'alocacoes.modulo_id', '=', 'modulos.id')
+                ->where('alocacoes.escala_id', $escala->id)
+                ->orderBy('servidores.nome')
+                ->orderBy('alocacoes.dia')
+                ->get();
+            
+            $alocacoesAgrupadas = [];
+            foreach ($alocacoes as $a) {
+                $key = $a->servidor_id . '_' . ($a->modulo_id ?? 0);
+                if (!isset($alocacoesAgrupadas[$key])) {
+                    $alocacoesAgrupadas[$key] = [
+                        'servidor_nome' => $a->servidor_nome,
+                        'matricula' => $a->matricula,
+                        'modulo_nome' => $a->modulo_nome ?? '-',
+                        'dias' => [],
+                        'horas' => 0
+                    ];
+                }
+                $alocacoesAgrupadas[$key]['dias'][] = str_pad($a->dia, 2, '0', STR_PAD_LEFT);
+                $alocacoesAgrupadas[$key]['horas'] += ($a->horas ?? 0) + ($a->horas_abono ?? 0);
+            }
+            
+            foreach ($alocacoesAgrupadas as &$ag) {
+                sort($ag['dias']);
+            }
+            unset($ag);
+            
+            $unidadeNome = $escala->unidade->nome ?? 'Unidade';
+            $mesNome = $meses[$escala->mes];
+            
+            $html .= "<table>";
+            $html .= "<tr><td class='header' colspan='6'>" . htmlspecialchars($unidadeNome) . " - {$mesNome}/{$escala->ano}</td></tr>";
+            $html .= "</table>";
+            
+            $html .= "<table>";
+            $html .= "<thead>";
+            $html .= "<tr>";
+            $html .= "<th class='numero'>Núm.</th>";
+            $html .= "<th>Matrícula</th>";
+            $html .= "<th>Nome do Servidor</th>";
+            $html .= "<th class='horas'>Horas</th>";
+            $html .= "<th>Módulo</th>";
+            $html .= "<th>Dias</th>";
+            $html .= "</tr>";
+            $html .= "</thead>";
+            $html .= "<tbody>";
+            
+            $num = 1;
+            $totalHorasEscala = 0;
+            
+            foreach ($alocacoesAgrupadas as $a) {
+                $diasStr = implode(', ', $a['dias']);
+                $totalHorasEscala += $a['horas'];
+                
+                $html .= "<tr>";
+                $html .= "<td class='numero'>" . str_pad($num, 3, '0', STR_PAD_LEFT) . "</td>";
+                $html .= "<td>" . htmlspecialchars($a['matricula']) . "</td>";
+                $html .= "<td>" . htmlspecialchars($a['servidor_nome']) . "</td>";
+                $html .= "<td class='horas'>" . number_format($a['horas'], 0, ',', '.') . "</td>";
+                $html .= "<td>" . htmlspecialchars($a['modulo_nome']) . "</td>";
+                $html .= "<td>" . htmlspecialchars($diasStr) . "</td>";
+                $html .= "</tr>";
+                
+                $num++;
+            }
+            
+            $html .= "<tr class='total-row'>";
+            $html .= "<td colspan='3' style='text-align: right;'>Total da Escala:</td>";
+            $html .= "<td class='horas'>" . number_format($totalHorasEscala, 0, ',', '.') . "</td>";
+            $html .= "<td colspan='2'></td>";
+            $html .= "</tr>";
+            $html .= "</tbody>";
+            $html .= "</table>";
+            $html .= "<br><br>";
+            
+            $totalGeralHoras += $totalHorasEscala;
+        }
+        
+        $html .= "<table>";
+        $html .= "<tr><td class='header' colspan='2'>RESUMO GERAL</td></tr>";
+        $html .= "<tr><td>Total de Escalas:</td><td style='text-align: center; font-weight: bold;'>" . $escalas->count() . "</td></tr>";
+        $html .= "<tr><td>Total Geral de Horas:</td><td style='text-align: center; font-weight: bold;'>" . number_format($totalGeralHoras, 0, ',', '.') . "</td></tr>";
+        $html .= "</table>";
+        
+        $html .= "</body></html>";
+        
+        return response($html)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+            ->header('Content-Disposition', "attachment; filename=\"{$nomeArquivo}\"")
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
+    }
+
     public function exportarExcel($id)
     {
         $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 

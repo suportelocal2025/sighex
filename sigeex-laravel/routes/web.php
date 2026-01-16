@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('rh')->middleware('role:rh')->group(function () {
         Route::get('/', [RhController::class, 'dashboard']);
         Route::get('/escalas', [RhController::class, 'escalas']);
+        Route::get('/escalas/exportar-excel', [RhController::class, 'exportarExcelFiltradas']);
         Route::get('/escala/{id}', [RhController::class, 'detalharEscala']);
         Route::get('/escala/{id}/exportar-excel', [RhController::class, 'exportarExcel']);
         Route::post('/aprovar', [RhController::class, 'aprovarEscala']);

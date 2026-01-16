@@ -52,10 +52,13 @@
                     <option value="executada" {{ $status === 'executada' ? 'selected' : '' }}>Executadas</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary btn-sm w-100">
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                     <i class="bi bi-funnel me-1"></i> Filtrar
                 </button>
+                <a href="/rh/escalas/exportar-excel?ano={{ $ano }}&mes={{ $mes }}&unidade_id={{ $unidadeId }}&status={{ $status }}" class="btn btn-success btn-sm" title="Exportar Excel">
+                    <i class="bi bi-file-earmark-excel"></i>
+                </a>
             </div>
         </form>
     </div>

@@ -635,6 +635,54 @@ class DiretorController extends Controller
         return response()->json(['servidores' => $servidores]);
     }
 
+    public function adicionarServidorAjax(Request $request)
+    {
+        $request->validate([
+            'escala_id' => 'required|exists:escalas,id',
+            'equipe_id' => 'required|exists:equipes,id',
+            'servidor_id' => 'required|exists:servidores,id',
+            'modulo_id' => 'nullable|exists:modulos,id',
+        ]);
+        
+        $servidor = Servidor::find($request->servidor_id);
+        
+        if (!$servidor) {
+            return response()->json(['success' => false, 'message' => 'Servidor não encontrado.']);
+        }
+        
+        if (!$servidor->ativo) {
+            return response()->json(['success' => false, 'message' => 'Servidor está INATIVO.']);
+        }
+        
+        if (!$servidor->apto_escala_extra) {
+            return response()->json(['success' => false, 'message' => 'Servidor não está APTO para escala extra.']);
+        }
+        
+        if (!$servidor->isDisponivelParaEscala()) {
+            return response()->json(['success' => false, 'message' => 'Servidor indisponível.']);
+        }
+
+        $existe = EscalaEquipeServidor::where('escala_id', $request->escala_id)
+            ->where('servidor_id', $request->servidor_id)
+            ->where('equipe_id', $request->equipe_id)
+            ->where('modulo_id', $request->modulo_id)
+            ->exists();
+
+        if ($existe) {
+            return response()->json(['success' => false, 'message' => 'Servidor já está na equipe/módulo.']);
+        }
+
+        EscalaEquipeServidor::create([
+            'escala_id' => $request->escala_id,
+            'equipe_id' => $request->equipe_id,
+            'servidor_id' => $request->servidor_id,
+            'modulo_id' => $request->modulo_id,
+            'lider' => $request->has('lider') && $request->lider == '1',
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Servidor adicionado!']);
+    }
+
     public function servidoresEscalaAnterior(Request $request)
     {
         $user = Auth::user();

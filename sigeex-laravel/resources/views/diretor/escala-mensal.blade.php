@@ -1180,10 +1180,11 @@ async function confirmarEspelhar() {
             form.append('modulo_id', moduloId);
             form.append('lider', '0');
             
-            const response = await fetch('/diretor/adicionar-servidor-escala', {
+            const response = await fetch('/diretor/adicionar-servidor-ajax', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': csrfToken
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
                 },
                 body: form
             });

@@ -66,6 +66,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/servidores', [DiretorController::class, 'servidores']);
         Route::get('/servidores-modulo-equipe', [DiretorController::class, 'servidoresModuloEquipe']);
         Route::get('/servidores-escala-anterior', [DiretorController::class, 'servidoresEscalaAnterior']);
+        Route::post('/adicionar-servidor-ajax', [DiretorController::class, 'adicionarServidorAjax']);
     });
 
     Route::prefix('rh')->middleware('role:rh')->group(function () {

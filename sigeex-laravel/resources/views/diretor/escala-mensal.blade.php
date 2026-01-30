@@ -407,7 +407,7 @@ foreach ($alocacoes as $a) {
 </div>
 
 <div class="modal fade" id="modalEspelhar" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-info text-white border-0">
                 <h6 class="modal-title fw-semibold">
@@ -416,40 +416,92 @@ foreach ($alocacoes as $a) {
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-info">
+                <div class="alert alert-info mb-3">
                     <i class="bi bi-info-circle me-1"></i>
-                    Selecione um mês anterior para trazer os servidores escalados. 
-                    Os servidores serão adicionados à equipe atual <strong>sem dias alocados</strong>.
+                    Selecione a <strong>origem</strong> (módulo, equipe, mês e ano) para trazer os servidores escalados. 
+                    Eles serão adicionados ao <strong>destino</strong> (módulo e equipe selecionados na página) <strong>sem dias alocados</strong>.
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Mês de Referência <span class="text-danger">*</span></label>
-                    <div class="d-flex gap-2">
-                        <select id="espelharMes" class="form-select">
-                            @php
-                                $mesesEspelhar = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
-                                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-                            @endphp
-                            @for($i = 1; $i <= 12; $i++)
-                                @php
-                                    $mesAnterior = $mes - 1;
-                                    if ($mesAnterior < 1) $mesAnterior = 12;
-                                @endphp
-                                <option value="{{ $i }}" {{ $i == $mesAnterior ? 'selected' : '' }}>{{ $mesesEspelhar[$i - 1] }}</option>
-                            @endfor
-                        </select>
-                        <select id="espelharAno" class="form-select" style="width: 100px;">
-                            @for($a = date('Y') - 1; $a <= date('Y') + 1; $a++)
-                                @php
-                                    $anoAnterior = $mes == 1 ? $ano - 1 : $ano;
-                                @endphp
-                                <option value="{{ $a }}" {{ $a == $anoAnterior ? 'selected' : '' }}>{{ $a }}</option>
-                            @endfor
-                        </select>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0 mb-3">
+                            <div class="card-header bg-secondary text-white py-2">
+                                <i class="bi bi-box-arrow-right me-1"></i> Origem (De onde copiar)
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Módulo/Raio/Setor de Referência</label>
+                                    <select id="espelharModulo" class="form-select form-select-sm">
+                                        <option value="">Selecione...</option>
+                                        @foreach($modulos as $mod)
+                                            <option value="{{ $mod->id }}">{{ $mod->nome }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Equipe de Referência</label>
+                                    <select id="espelharEquipe" class="form-select form-select-sm">
+                                        <option value="">Selecione...</option>
+                                        @foreach($equipes as $eq)
+                                            <option value="{{ $eq->id }}">{{ $eq->nome }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small fw-semibold">Mês/Ano de Referência</label>
+                                    <div class="d-flex gap-2">
+                                        <select id="espelharMes" class="form-select form-select-sm">
+                                            @php
+                                                $mesesEspelhar = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                                                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                                            @endphp
+                                            @for($i = 1; $i <= 12; $i++)
+                                                @php
+                                                    $mesAnterior = $mes - 1;
+                                                    if ($mesAnterior < 1) $mesAnterior = 12;
+                                                @endphp
+                                                <option value="{{ $i }}" {{ $i == $mesAnterior ? 'selected' : '' }}>{{ $mesesEspelhar[$i - 1] }}</option>
+                                            @endfor
+                                        </select>
+                                        <select id="espelharAno" class="form-select form-select-sm" style="width: 90px;">
+                                            @for($a = date('Y') - 1; $a <= date('Y') + 1; $a++)
+                                                @php
+                                                    $anoAnterior = $mes == 1 ? $ano - 1 : $ano;
+                                                @endphp
+                                                <option value="{{ $a }}" {{ $a == $anoAnterior ? 'selected' : '' }}>{{ $a }}</option>
+                                            @endfor
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0 mb-3">
+                            <div class="card-header bg-primary text-white py-2">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Destino (Para onde copiar)
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Módulo/Raio/Setor</label>
+                                    <input type="text" class="form-control form-control-sm bg-white" id="espelharDestinoModulo" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Equipe</label>
+                                    <input type="text" class="form-control form-control-sm bg-white" id="espelharDestinoEquipe" readonly>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small fw-semibold">Mês/Ano</label>
+                                    <input type="text" class="form-control form-control-sm bg-white" id="espelharDestinoMesAno" readonly>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div id="espelharPreview" class="mt-3" style="display:none;">
-                    <label class="form-label">Servidores encontrados:</label>
-                    <div id="espelharServidoresLista" style="max-height: 250px; overflow-y: auto;">
+                
+                <div id="espelharPreview" class="mt-2" style="display:none;">
+                    <label class="form-label fw-semibold">Servidores encontrados:</label>
+                    <div id="espelharServidoresLista" style="max-height: 200px; overflow-y: auto;">
                     </div>
                 </div>
                 <div id="espelharLoading" class="text-center py-4" style="display:none;">
@@ -458,7 +510,7 @@ foreach ($alocacoes as $a) {
                 </div>
                 <div id="espelharEmpty" class="text-center py-4 text-muted" style="display:none;">
                     <i class="bi bi-inbox display-4"></i>
-                    <p class="mt-2">Nenhum servidor encontrado no mês selecionado.</p>
+                    <p class="mt-2">Nenhum servidor encontrado com os critérios selecionados.</p>
                 </div>
             </div>
             <div class="modal-footer border-0">
@@ -1010,6 +1062,8 @@ async function enviarSolicitacaoServidor() {
 }
 
 let servidoresEspelhar = [];
+const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 function abrirModalEspelhar() {
     document.getElementById('espelharPreview').style.display = 'none';
@@ -1018,14 +1072,32 @@ function abrirModalEspelhar() {
     document.getElementById('btnConfirmarEspelhar').disabled = true;
     servidoresEspelhar = [];
     
+    const moduloDestinoSelect = document.getElementById('moduloSelect');
+    const equipeDestinoSelect = document.getElementById('equipeSelect');
+    
+    const moduloDestinoNome = moduloDestinoSelect.options[moduloDestinoSelect.selectedIndex]?.text || '-';
+    const equipeDestinoNome = equipeDestinoSelect.options[equipeDestinoSelect.selectedIndex]?.text || '-';
+    
+    document.getElementById('espelharDestinoModulo').value = moduloDestinoNome;
+    document.getElementById('espelharDestinoEquipe').value = equipeDestinoNome;
+    document.getElementById('espelharDestinoMesAno').value = `${mesesNomes[mesAtual - 1]}/${anoAtual}`;
+    
     new bootstrap.Modal(document.getElementById('modalEspelhar')).show();
 }
 
 async function buscarServidoresEspelhar() {
     const mesRef = document.getElementById('espelharMes').value;
     const anoRef = document.getElementById('espelharAno').value;
-    const moduloId = document.getElementById('moduloSelect').value;
-    const equipeId = document.getElementById('equipeSelect').value;
+    const moduloOrigemId = document.getElementById('espelharModulo').value;
+    const equipeOrigemId = document.getElementById('espelharEquipe').value;
+    
+    const moduloDestinoId = document.getElementById('moduloSelect').value;
+    const equipeDestinoId = document.getElementById('equipeSelect').value;
+    
+    if (!moduloOrigemId || !equipeOrigemId) {
+        alert('Selecione o Módulo e Equipe de Referência (origem).');
+        return;
+    }
     
     document.getElementById('espelharPreview').style.display = 'none';
     document.getElementById('espelharEmpty').style.display = 'none';
@@ -1033,7 +1105,7 @@ async function buscarServidoresEspelhar() {
     document.getElementById('btnConfirmarEspelhar').disabled = true;
     
     try {
-        const response = await fetch(`/diretor/servidores-escala-anterior?mes=${mesRef}&ano=${anoRef}&modulo_id=${moduloId}&equipe_id=${equipeId}`);
+        const response = await fetch(`/diretor/servidores-escala-anterior?mes=${mesRef}&ano=${anoRef}&modulo_id=${moduloOrigemId}&equipe_id=${equipeOrigemId}`);
         const data = await response.json();
         
         document.getElementById('espelharLoading').style.display = 'none';
@@ -1044,7 +1116,7 @@ async function buscarServidoresEspelhar() {
             let html = '';
             servidoresEspelhar.forEach(s => {
                 const jaAdicionado = escalaServidoresData.some(es => 
-                    es.servidor_id == s.id && es.equipe_id == equipeId && es.modulo_id == moduloId
+                    es.servidor_id == s.id && es.equipe_id == equipeDestinoId && es.modulo_id == moduloDestinoId
                 );
                 
                 html += `<div class="servidor-item ${jaAdicionado ? 'disabled' : ''}" data-id="${s.id}">
@@ -1063,7 +1135,7 @@ async function buscarServidoresEspelhar() {
             
             const novos = servidoresEspelhar.filter(s => 
                 !escalaServidoresData.some(es => 
-                    es.servidor_id == s.id && es.equipe_id == equipeId && es.modulo_id == moduloId
+                    es.servidor_id == s.id && es.equipe_id == equipeDestinoId && es.modulo_id == moduloDestinoId
                 )
             );
             document.getElementById('btnConfirmarEspelhar').disabled = novos.length === 0;

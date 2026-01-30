@@ -1,0 +1,125 @@
+Internal Server Error
+
+Copy as Markdown
+Illuminate\Database\Eloquent\RelationNotFoundException
+vendor/laravel/framework/src/Illuminate/Database/Eloquent/RelationNotFoundException.php:35
+Call to undefined relationship [equipe] on model [App\Models\Alocacao].
+
+LARAVEL
+12.43.1
+PHP
+8.4.16
+UNHANDLED
+CODE 0
+500
+GET
+https://342850e5-4ff1-4a8e-9972-5c36bc2c5628-00-1ij0mws0vd7b7.riker.replit.dev/superintendente/escala/2
+
+Exception trace
+15 vendor frames
+
+app/Http/Controllers/SuperintendenteController.php
+app/Http/Controllers/SuperintendenteController.php:239
+
+234    }
+235
+236    public function detalharEscala(string $id)
+237    {
+238        $escala = Escala::with(['unidade', 'alocacoes.servidor', 'alocacoes.equipe', 'alocacoes.modulo'])
+239            ->findOrFail($id);
+240
+241        $alocacoes = \DB::table('alocacoes')
+242            ->join('servidores', 'alocacoes.servidor_id', '=', 'servidores.id')
+243            ->leftJoin('equipes', 'alocacoes.equipe_id', '=', 'equipes.id')
+244            ->leftJoin('modulos', 'alocacoes.modulo_id', '=', 'modulos.id')
+245            ->where('alocacoes.escala_id', $id)
+246            ->select(
+247                'alocacoes.*',
+248                'servidores.nome as servidor_nome',
+249                'servidores.matricula',
+250                'equipes.nome as equipe_nome',
+251
+5 vendor frames
+
+app/Http/Middleware/CheckRole.php
+app/Http/Middleware/CheckRole.php:21
+
+45 vendor frames
+
+public/index.php
+public/index.php:20
+
+1 vendor frame
+
+Queries
+1-5 of 5
+pgsql
+select * from "usuarios" where "id" = 5 limit 1
+536.72ms
+pgsql
+select * from "escalas" where "escalas"."id" = '2' limit 1
+131.74ms
+pgsql
+select * from "unidades" where "unidades"."id" in (1)
+131.49ms
+pgsql
+select * from "alocacoes" where "alocacoes"."escala_id" in (2)
+131.69ms
+pgsql
+select * from "servidores" where "servidores"."id" in (1)
+141.11ms
+Headers
+host
+342850e5-4ff1-4a8e-9972-5c36bc2c5628-00-1ij0mws0vd7b7.riker.replit.dev
+user-agent
+Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36
+accept
+text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+accept-encoding
+identity, gzip, deflate, br, zstd
+accept-language
+pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7
+cookie
+XSRF-TOKEN=eyJpdiI6Im5ybWFBVnd3bUFHamRkRE8rUlNlaXc9PSIsInZhbHVlIjoiWWtrOW0wLzFRV3YvSGZkRjJCWE55SnY4K3VLUkZ6Vm84cVhra3BHZmJSZHV6VUJGQVZ4RDJZQWJFOEZJMHhNYlpMYlgxODNkdUlGMVZQYmpxVWZMZk5YYzRKN0RBMEd4MVFEbE8zY0JVN3hlaENXTlVCd2lYL2xKS1J2SGg1SVUiLCJtYWMiOiI1YTFiMzNmOTc4ZDBlOThlZTUxYjVlZmNhMDlhZWI4MTFiZGQzZDUxOWI5MTg4MWRjZWY5NzRhNjJmZjIwMDA5IiwidGFnIjoiIn0%3D; sigeex-session=eyJpdiI6IkxoWHNPOEZtSVZHTzZycWhDK0w1Z3c9PSIsInZhbHVlIjoiV21jQUFRMk0vTnhFQzJmbmVoSC9idWNTM2ZzREV6cENrVjc5QWIzcTZmRTZvL1RUcjA4bmM0OTNCYk9uZk0vb0xScVJRaDBhd2VEQzdJcWM2T1FKY3VYQk0rOW5uQ2Y3TFZkV3V6enVmVnJ4MW9wODZOVDNLM0RsM3o2NDJnYXIiLCJtYWMiOiJkOWFmY2Y0M2U1ODVlZjBhNWU0YWRlNDVmZjVjZWUxOWZiYmFlMTI4NzMyNzFjODkyNmQyN2ZhYWE0MTQwNTQ3IiwidGFnIjoiIn0%3D
+referer
+https://342850e5-4ff1-4a8e-9972-5c36bc2c5628-00-1ij0mws0vd7b7.riker.replit.dev/superintendente/escalas
+sec-ch-ua
+"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+sec-ch-ua-mobile
+?1
+sec-ch-ua-platform
+"Android"
+sec-fetch-dest
+iframe
+sec-fetch-mode
+navigate
+sec-fetch-site
+same-origin
+sec-fetch-storage-access
+active
+sec-fetch-user
+?1
+upgrade-insecure-requests
+1
+x-forwarded-for
+177.57.213.189, 10.81.11.182
+x-forwarded-proto
+https
+x-replit-user-bio
+x-replit-user-id
+x-replit-user-name
+x-replit-user-profile-image
+x-replit-user-roles
+x-replit-user-teams
+x-replit-user-url
+Body
+// No request body
+Routing
+controller
+App\Http\Controllers\SuperintendenteController@detalharEscala
+middleware
+web, auth, role:superintendente
+Routing parameters
+{
+    "id": "2"
+}

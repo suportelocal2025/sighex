@@ -38,4 +38,14 @@ class Alocacao extends Model
     {
         return $this->belongsTo(Servidor::class);
     }
+
+    public function equipe(): BelongsTo
+    {
+        return $this->belongsTo(Equipe::class);
+    }
+
+    public function modulo(): BelongsTo
+    {
+        return $this->belongsTo(Modulo::class);
+    }
 }

@@ -535,6 +535,8 @@ const podeEditar = {{ $podeEditar ? 'true' : 'false' }};
 const diasNoMes = {{ $diasNoMes }};
 const diasInfo = @json($diasInfo);
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+const mesAtual = {{ $mes }};
+const anoAtual = {{ $ano }};
 
 let servidoresSelecionadosModal = new Set();
 let servidoresEquipeAtual = [];

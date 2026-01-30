@@ -634,4 +634,57 @@ class DiretorController extends Controller
         
         return response()->json(['servidores' => $servidores]);
     }
+
+    public function servidoresEscalaAnterior(Request $request)
+    {
+        $user = Auth::user();
+        $unidadeId = $user->unidade_id;
+        
+        $mes = $request->get('mes');
+        $ano = $request->get('ano');
+        $moduloId = $request->get('modulo_id');
+        $equipeId = $request->get('equipe_id');
+        
+        if (!$mes || !$ano) {
+            return response()->json(['servidores' => []]);
+        }
+        
+        $escalaAnterior = Escala::where('unidade_id', $unidadeId)
+            ->where('mes', $mes)
+            ->where('ano', $ano)
+            ->first();
+        
+        if (!$escalaAnterior) {
+            return response()->json(['servidores' => []]);
+        }
+        
+        $query = EscalaEquipeServidor::where('escala_id', $escalaAnterior->id)
+            ->with('servidor:id,nome,matricula,ativo,apto_escala_extra');
+        
+        if ($moduloId) {
+            $query->where('modulo_id', $moduloId);
+        }
+        
+        if ($equipeId) {
+            $query->where('equipe_id', $equipeId);
+        }
+        
+        $escalaServidores = $query->get();
+        
+        $servidores = $escalaServidores
+            ->filter(function($es) {
+                return $es->servidor && $es->servidor->ativo && $es->servidor->apto_escala_extra;
+            })
+            ->map(function($es) {
+                return [
+                    'id' => $es->servidor->id,
+                    'nome' => $es->servidor->nome,
+                    'matricula' => $es->servidor->matricula
+                ];
+            })
+            ->unique('id')
+            ->values();
+        
+        return response()->json(['servidores' => $servidores]);
+    }
 }

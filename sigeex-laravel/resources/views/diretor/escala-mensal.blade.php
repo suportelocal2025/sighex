@@ -244,9 +244,12 @@ foreach ($alocacoes as $a) {
                 <label class="form-label fw-semibold">Abono</label>
                 <input type="number" id="abonoInput" class="form-control" min="0" max="24" value="0">
             </div>
-            <div class="col-md-2">
-                <button type="button" class="btn btn-primary w-100" id="btnAddServidor" onclick="abrirModalServidores()" disabled>
-                    <i class="bi bi-person-plus me-1"></i> Add Servidor
+            <div class="col-md-2 d-flex gap-1">
+                <button type="button" class="btn btn-primary flex-grow-1" id="btnAddServidor" onclick="abrirModalServidores()" disabled>
+                    <i class="bi bi-person-plus me-1"></i> Add
+                </button>
+                <button type="button" class="btn btn-info" id="btnEspelhar" onclick="abrirModalEspelhar()" title="Espelhar escala de mês anterior" disabled>
+                    <i class="bi bi-copy"></i>
                 </button>
             </div>
         </div>
@@ -402,6 +405,74 @@ foreach ($alocacoes as $a) {
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalEspelhar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white border-0">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-copy me-2"></i>Espelhar Escala de Mês Anterior
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Selecione um mês anterior para trazer os servidores escalados. 
+                    Os servidores serão adicionados à equipe atual <strong>sem dias alocados</strong>.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mês de Referência <span class="text-danger">*</span></label>
+                    <div class="d-flex gap-2">
+                        <select id="espelharMes" class="form-select">
+                            @php
+                                $mesesEspelhar = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                            @endphp
+                            @for($i = 1; $i <= 12; $i++)
+                                @php
+                                    $mesAnterior = $mes - 1;
+                                    if ($mesAnterior < 1) $mesAnterior = 12;
+                                @endphp
+                                <option value="{{ $i }}" {{ $i == $mesAnterior ? 'selected' : '' }}>{{ $mesesEspelhar[$i - 1] }}</option>
+                            @endfor
+                        </select>
+                        <select id="espelharAno" class="form-select" style="width: 100px;">
+                            @for($a = date('Y') - 1; $a <= date('Y') + 1; $a++)
+                                @php
+                                    $anoAnterior = $mes == 1 ? $ano - 1 : $ano;
+                                @endphp
+                                <option value="{{ $a }}" {{ $a == $anoAnterior ? 'selected' : '' }}>{{ $a }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+                <div id="espelharPreview" class="mt-3" style="display:none;">
+                    <label class="form-label">Servidores encontrados:</label>
+                    <div id="espelharServidoresLista" style="max-height: 250px; overflow-y: auto;">
+                    </div>
+                </div>
+                <div id="espelharLoading" class="text-center py-4" style="display:none;">
+                    <div class="spinner-border text-info" role="status"></div>
+                    <p class="mt-2 text-muted">Buscando servidores...</p>
+                </div>
+                <div id="espelharEmpty" class="text-center py-4 text-muted" style="display:none;">
+                    <i class="bi bi-inbox display-4"></i>
+                    <p class="mt-2">Nenhum servidor encontrado no mês selecionado.</p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-info" onclick="buscarServidoresEspelhar()">
+                    <i class="bi bi-search me-1"></i> Buscar
+                </button>
+                <button type="button" class="btn btn-info" id="btnConfirmarEspelhar" onclick="confirmarEspelhar()" disabled>
+                    <i class="bi bi-copy me-1"></i> Espelhar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -432,6 +503,8 @@ async function onModuloChange() {
         equipeSelect.innerHTML = '<option value="">Primeiro selecione um módulo...</option>';
         equipeSelect.disabled = true;
         if (btn) btn.disabled = true;
+        const btnEspelhar = document.getElementById('btnEspelhar');
+        if (btnEspelhar) btnEspelhar.disabled = true;
         document.getElementById('equipeNomeHeader').textContent = 'Selecione módulo e equipe';
         servidoresEquipeAtual = [];
         renderizarCalendario();
@@ -453,13 +526,16 @@ async function onEquipeChange() {
     const equipeId = document.getElementById('equipeSelect')?.value;
     const moduloId = document.getElementById('moduloSelect')?.value;
     const btn = document.getElementById('btnAddServidor');
+    const btnEspelhar = document.getElementById('btnEspelhar');
     
     if (!equipeId || !moduloId) {
         if (btn) btn.disabled = true;
+        if (btnEspelhar) btnEspelhar.disabled = true;
         return;
     }
     
     if (btn) btn.disabled = false;
+    if (btnEspelhar) btnEspelhar.disabled = false;
     
     const moduloNome = document.getElementById('moduloSelect')?.options[document.getElementById('moduloSelect').selectedIndex]?.text || '';
     const equipeNome = document.getElementById('equipeSelect')?.options[document.getElementById('equipeSelect').selectedIndex]?.text || '';
@@ -931,6 +1007,137 @@ async function enviarSolicitacaoServidor() {
     } catch (error) {
         alert('Erro ao enviar solicitação. Tente novamente.');
     }
+}
+
+let servidoresEspelhar = [];
+
+function abrirModalEspelhar() {
+    document.getElementById('espelharPreview').style.display = 'none';
+    document.getElementById('espelharLoading').style.display = 'none';
+    document.getElementById('espelharEmpty').style.display = 'none';
+    document.getElementById('btnConfirmarEspelhar').disabled = true;
+    servidoresEspelhar = [];
+    
+    new bootstrap.Modal(document.getElementById('modalEspelhar')).show();
+}
+
+async function buscarServidoresEspelhar() {
+    const mesRef = document.getElementById('espelharMes').value;
+    const anoRef = document.getElementById('espelharAno').value;
+    const moduloId = document.getElementById('moduloSelect').value;
+    const equipeId = document.getElementById('equipeSelect').value;
+    
+    document.getElementById('espelharPreview').style.display = 'none';
+    document.getElementById('espelharEmpty').style.display = 'none';
+    document.getElementById('espelharLoading').style.display = 'block';
+    document.getElementById('btnConfirmarEspelhar').disabled = true;
+    
+    try {
+        const response = await fetch(`/diretor/servidores-escala-anterior?mes=${mesRef}&ano=${anoRef}&modulo_id=${moduloId}&equipe_id=${equipeId}`);
+        const data = await response.json();
+        
+        document.getElementById('espelharLoading').style.display = 'none';
+        
+        if (data.servidores && data.servidores.length > 0) {
+            servidoresEspelhar = data.servidores;
+            
+            let html = '';
+            servidoresEspelhar.forEach(s => {
+                const jaAdicionado = escalaServidoresData.some(es => 
+                    es.servidor_id == s.id && es.equipe_id == equipeId && es.modulo_id == moduloId
+                );
+                
+                html += `<div class="servidor-item ${jaAdicionado ? 'disabled' : ''}" data-id="${s.id}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">${s.nome}</div>
+                            <small class="text-muted">${s.matricula}</small>
+                        </div>
+                        ${jaAdicionado ? '<span class="badge bg-secondary">Já adicionado</span>' : '<i class="bi bi-check-circle text-success"></i>'}
+                    </div>
+                </div>`;
+            });
+            
+            document.getElementById('espelharServidoresLista').innerHTML = html;
+            document.getElementById('espelharPreview').style.display = 'block';
+            
+            const novos = servidoresEspelhar.filter(s => 
+                !escalaServidoresData.some(es => 
+                    es.servidor_id == s.id && es.equipe_id == equipeId && es.modulo_id == moduloId
+                )
+            );
+            document.getElementById('btnConfirmarEspelhar').disabled = novos.length === 0;
+        } else {
+            document.getElementById('espelharEmpty').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Erro ao buscar servidores:', error);
+        document.getElementById('espelharLoading').style.display = 'none';
+        document.getElementById('espelharEmpty').style.display = 'block';
+    }
+}
+
+async function confirmarEspelhar() {
+    const moduloId = document.getElementById('moduloSelect').value;
+    const equipeId = document.getElementById('equipeSelect').value;
+    
+    const novosServidores = servidoresEspelhar.filter(s => 
+        !escalaServidoresData.some(es => 
+            es.servidor_id == s.id && es.equipe_id == equipeId && es.modulo_id == moduloId
+        )
+    );
+    
+    if (novosServidores.length === 0) {
+        alert('Nenhum servidor novo para adicionar.');
+        return;
+    }
+    
+    document.getElementById('btnConfirmarEspelhar').disabled = true;
+    document.getElementById('btnConfirmarEspelhar').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Adicionando...';
+    
+    let adicionados = 0;
+    
+    for (const servidor of novosServidores) {
+        try {
+            const form = new FormData();
+            form.append('escala_id', escalaId);
+            form.append('servidor_id', servidor.id);
+            form.append('equipe_id', equipeId);
+            form.append('modulo_id', moduloId);
+            form.append('lider', '0');
+            
+            const response = await fetch('/diretor/adicionar-servidor-escala', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: form
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                adicionados++;
+                escalaServidoresData.push({
+                    servidor_id: servidor.id,
+                    equipe_id: parseInt(equipeId),
+                    modulo_id: parseInt(moduloId),
+                    lider: false,
+                    servidor: { id: servidor.id, nome: servidor.nome, matricula: servidor.matricula },
+                    equipe: { id: parseInt(equipeId), nome: '' },
+                    modulo: { id: parseInt(moduloId), nome: '' }
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao adicionar servidor:', error);
+        }
+    }
+    
+    document.getElementById('btnConfirmarEspelhar').innerHTML = '<i class="bi bi-copy me-1"></i> Espelhar';
+    bootstrap.Modal.getInstance(document.getElementById('modalEspelhar'))?.hide();
+    
+    alert(`${adicionados} servidor(es) adicionado(s) com sucesso!`);
+    
+    carregarServidoresEquipe();
 }
 </script>
 @endpush

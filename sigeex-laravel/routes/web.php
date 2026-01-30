@@ -65,6 +65,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/enviar-aprovacao', [DiretorController::class, 'enviarAprovacao']);
         Route::get('/servidores', [DiretorController::class, 'servidores']);
         Route::get('/servidores-modulo-equipe', [DiretorController::class, 'servidoresModuloEquipe']);
+        Route::get('/servidores-escala-anterior', [DiretorController::class, 'servidoresEscalaAnterior']);
     });
 
     Route::prefix('rh')->middleware('role:rh')->group(function () {

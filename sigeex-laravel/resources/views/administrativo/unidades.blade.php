@@ -46,16 +46,24 @@
                             @endif
                         </td>
                         <td>
-                            <a href="/admin/unidade/{{ $unidade->id }}" class="btn btn-sm btn-outline-primary">
+                            <a href="/admin/unidade/{{ $unidade->id }}" class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form action="/admin/unidade/{{ $unidade->id }}" method="POST" class="d-inline" onsubmit="return confirm('Excluir esta unidade? Isso removerá todos os dados vinculados.')">
+                            @if($unidade->ativo)
+                            <form action="/admin/unidade/{{ $unidade->id }}/inabilitar" method="POST" class="d-inline" onsubmit="return confirm('Inabilitar esta unidade? Ela ficará oculta nos cálculos e dashboards, mas poderá ser reativada.')">
                                 @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Inabilitar">
+                                    <i class="bi bi-x-circle"></i>
                                 </button>
                             </form>
+                            @else
+                            <form action="/admin/unidade/{{ $unidade->id }}/reativar" method="POST" class="d-inline" onsubmit="return confirm('Reativar esta unidade?')">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Reativar">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            </form>
+                            @endif
                         </td>
                     </tr>
                     @empty

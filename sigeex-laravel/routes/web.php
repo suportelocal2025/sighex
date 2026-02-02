@@ -97,6 +97,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/unidade/{id?}', [AdminController::class, 'formUnidade']);
         Route::post('/unidade', [AdminController::class, 'salvarUnidade']);
         Route::delete('/unidade/{id}', [AdminController::class, 'excluirUnidade']);
+        Route::post('/unidade/{id}/inabilitar', [AdminController::class, 'excluirUnidade']);
+        Route::post('/unidade/{id}/reativar', [AdminController::class, 'reativarUnidade']);
         Route::post('/modulo', [AdminController::class, 'salvarModulo']);
         Route::delete('/modulo/{id}/excluir', [AdminController::class, 'excluirModulo']);
         Route::get('/servidores', [AdminController::class, 'servidores']);

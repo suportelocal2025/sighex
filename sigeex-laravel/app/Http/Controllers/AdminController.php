@@ -74,8 +74,18 @@ class AdminController extends Controller
 
     public function excluirUnidade($id)
     {
-        Unidade::findOrFail($id)->delete();
-        return redirect('/admin/unidades')->with('success', 'Unidade excluída!');
+        $unidade = Unidade::findOrFail($id);
+        $unidade->ativo = false;
+        $unidade->save();
+        return redirect('/admin/unidades')->with('success', 'Unidade inabilitada com sucesso!');
+    }
+
+    public function reativarUnidade($id)
+    {
+        $unidade = Unidade::findOrFail($id);
+        $unidade->ativo = true;
+        $unidade->save();
+        return redirect('/admin/unidades')->with('success', 'Unidade reativada com sucesso!');
     }
 
     public function servidores(Request $request)

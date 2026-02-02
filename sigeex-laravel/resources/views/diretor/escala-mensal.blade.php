@@ -238,7 +238,7 @@ foreach ($alocacoes as $a) {
             </div>
             <div class="col-md-1">
                 <label class="form-label fw-semibold">Horas/dia</label>
-                <input type="number" id="horasInput" class="form-control bg-light" value="10" readonly disabled>
+                <input type="number" id="horasInput" class="form-control" value="10" min="1" max="24">
             </div>
             <div class="col-md-1">
                 <label class="form-label fw-semibold">Abono</label>
@@ -255,8 +255,8 @@ foreach ($alocacoes as $a) {
         </div>
         <div class="mt-3 small text-muted">
             <i class="bi bi-lightbulb me-1"></i>
-            <strong>Como usar:</strong> Selecione Módulo e Equipe, escolha o tipo de extra (DIURNA ou NOTURNA), adicione servidores e clique nos dias para alocar.
-            <br><strong>Limites:</strong> Máx. 60h diurnas (6 dias), máx. 20h noturnas (2 dias), total máx. 60h por servidor.
+            <strong>Como usar:</strong> Selecione Módulo e Equipe, escolha o tipo de extra (DIURNA ou NOTURNA), defina o multiplicador de Horas/dia, adicione servidores e clique nos dias para alocar.
+            <br><strong>Limites:</strong> Máx. 60h diurnas, máx. 20h noturnas, total máx. 60h por servidor.
         </div>
     </div>
 </div>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIGEEX - Login</title>
+    <title>SIGHEX - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -70,9 +70,8 @@
                 <div class="login-card">
                     <div class="login-header">
                         <i class="bi bi-calendar-check display-4"></i>
-                        <h2 class="mt-3">SIGEEX</h2>
-                        <p class="mb-0 opacity-75">Sistema de Gestão de Escalas Extraordinárias</p>
-                        <span class="version-badge">Laravel Edition</span>
+                        <h2 class="mt-3">SIGHEX</h2>
+                        <p class="mb-0 opacity-75">Sistema de Gestão de Horas Extraordinárias</p>
                     </div>
                     
                     <div class="login-body">
